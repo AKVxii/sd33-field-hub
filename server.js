@@ -1,0 +1,2312 @@
+const express = require("express");
+const session = require("express-session");
+const path = require("path");
+const fs = require("fs");
+const os = require("os");
+const morgan = require("morgan");
+
+const PORT = Number(process.env.PORT || 3050);
+const PUBLIC_URL = (process.env.PUBLIC_URL || "").replace(/\/$/, "");
+const IS_PROD = process.env.NODE_ENV === "production" || !!PUBLIC_URL;
+
+/** LAN IPs phones can use (not localhost) */
+function lanIps() {
+  const ips = [];
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets || {})) {
+    for (const net of nets[name] || []) {
+      if (net.family === "IPv4" && !net.internal) ips.push(net.address);
+    }
+  }
+  return ips;
+}
+function phoneShareBase(req) {
+  // Permanent deploy URL wins
+  if (PUBLIC_URL) return PUBLIC_URL;
+  // Prefer the host the visitor already used (LAN IP, tunnel, or custom domain)
+  const host = req.get("host");
+  if (host && !host.includes("localhost") && !host.startsWith("127.")) {
+    const proto = req.protocol || (IS_PROD ? "https" : "http");
+    return `${proto}://${host}`;
+  }
+  const ips = lanIps();
+  if (ips.length) return `http://${ips[0]}:${PORT}`;
+  return `http://localhost:${PORT}`;
+}
+function phoneLinksBox(req) {
+  const ips = lanIps();
+  const phoneBase = phoneShareBase(req);
+  const localBase = `http://localhost:${PORT}`;
+  const ipLines = ips.length
+    ? ips
+        .map(
+          (ip) =>
+            `<li><strong>Phone (same Wi‑Fi):</strong>
+              <input class="share-input" readonly value="http://${esc(ip)}:${PORT}/review" onclick="this.select()" />
+              <button type="button" class="btn btn-gold" onclick="navigator.clipboard.writeText('http://${esc(ip)}:${PORT}/review');this.textContent='Copied!';">Copy for phone</button>
+            </li>`
+        )
+        .join("")
+    : "<li>Could not detect Wi‑Fi IP — run <code>ipconfig</code> and use your IPv4 address.</li>";
+
+  return `
+    <div class="card" style="margin-bottom:1rem;border:2px solid var(--gold);background:#fffbeb">
+      <h3 style="margin-top:0">Why email “didn’t work” on your phone</h3>
+      <p><code>localhost</code> / <code>127.0.0.1</code> only opens on <strong>this computer</strong>. Your phone needs your PC’s <strong>Wi‑Fi address</strong>.</p>
+      <ol>
+        <li>Phone and PC on the <strong>same Wi‑Fi</strong></li>
+        <li>This site must be <strong>running</strong> on the PC</li>
+        <li>Windows Firewall may ask to allow Node — click <strong>Allow</strong> (or allow port ${PORT})</li>
+        <li>Email yourself the <strong>Phone</strong> link below — not localhost</li>
+      </ol>
+      <ul class="list" style="list-style:none;padding:0">${ipLines}
+        <li class="muted" style="margin-top:0.75rem">On this PC only: <a href="${esc(localBase)}/review">${esc(localBase)}/review</a></li>
+        <li class="muted">Best base right now: <code>${esc(phoneBase)}</code></li>
+      </ul>
+      <p class="muted">Away from home Wi‑Fi? You need public hosting or a tunnel (ngrok / Cloudflare Tunnel) — localhost and LAN IPs won’t reach your phone on cellular data.</p>
+    </div>`;
+}
+const ROOT = __dirname;
+const DATA = path.join(ROOT, "data");
+const CAND_FILE = path.join(DATA, "candidates.json");
+const SIGNUPS = path.join(DATA, "lit_signups.json");
+const STATS = path.join(DATA, "drop_logs.json");
+const CONTACTS_FILE = path.join(DATA, "contacts.json");
+const THOROUGH_FILE = path.join(DATA, "thoroughfares.json");
+const POLLS_FILE = path.join(DATA, "polling_places.json");
+const SIGNS_FILE = path.join(DATA, "sign_locations.json");
+const FIELD_LOG = path.join(DATA, "field_activity.json");
+const GEO_FILE = path.join(DATA, "geo_lookup.json");
+const PREFS_FILE = path.join(DATA, "candidate_prefs.json");
+const FEEDBACK_FILE = path.join(DATA, "feedback.json");
+const SIGN_ASKS_FILE = path.join(DATA, "sign_asks.json");
+
+if (!fs.existsSync(DATA)) fs.mkdirSync(DATA, { recursive: true });
+if (!fs.existsSync(SIGNUPS)) fs.writeFileSync(SIGNUPS, "[]");
+if (!fs.existsSync(STATS)) fs.writeFileSync(STATS, "[]");
+if (!fs.existsSync(FIELD_LOG)) fs.writeFileSync(FIELD_LOG, "[]");
+if (!fs.existsSync(PREFS_FILE)) fs.writeFileSync(PREFS_FILE, "[]");
+if (!fs.existsSync(FEEDBACK_FILE)) fs.writeFileSync(FEEDBACK_FILE, "[]");
+if (!fs.existsSync(SIGN_ASKS_FILE)) fs.writeFileSync(SIGN_ASKS_FILE, "[]");
+
+/** Busy-street script + form: sign location, person spoken to, contact */
+function signAskCalloutAndForm(opts = {}) {
+  const redirect = opts.redirect || "/field/doors";
+  const prefStreet = opts.street || "";
+  const prefCity = opts.city || "";
+  const thorough = (() => {
+    try {
+      return loadJson(THOROUGH_FILE);
+    } catch {
+      return { corridors: [] };
+    }
+  })();
+  const corridorOpts = (thorough.corridors || [])
+    .map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`)
+    .join("");
+
+  return `
+    <div class="card sign-ask-callout" style="margin:1rem 0;border:2px solid var(--gop);background:#fff8f8">
+      <h3 style="margin-top:0;color:var(--gop)">Busy street rule</h3>
+      <p style="font-size:1.05rem;margin:0.4rem 0"><strong>If you are on a busy street</strong> (Hwy 36, Hwy 95, Manning Ave, CR 96, Forest Lake arterials, poll approaches) and the person is <strong>interested in a candidate</strong>:</p>
+      <p style="font-size:1.1rem;font-weight:700;margin:0.5rem 0">→ Ask for a yard sign location!</p>
+      <p class="muted" style="margin:0">Private property only. Get permission. Log the sign location, who you spoke to, and their contact below.</p>
+    </div>
+    <div class="card stack" style="margin-bottom:1rem">
+      <h3>Log a sign ask / placement</h3>
+      <form method="post" action="/field/sign-ask" class="stack">
+        <input type="hidden" name="redirect" value="${esc(redirect)}" />
+        <label>Volunteer name</label>
+        <input type="text" name="volunteer" required maxlength="100" placeholder="Your name" />
+        <label>On a busy street?</label>
+        <select name="onBusyStreet" required>
+          <option value="yes" selected>Yes — busy street / major thoroughfare</option>
+          <option value="no">No — side street / neighborhood</option>
+        </select>
+        <label>Busy corridor (if known)</label>
+        <select name="corridor">
+          <option value="">Select…</option>
+          ${corridorOpts}
+          <option value="near_poll">Near polling place</option>
+          <option value="other">Other</option>
+        </select>
+        <label>Interested in candidate?</label>
+        <select name="interested" required>
+          <option value="yes">Yes — interested (ask for sign!)</option>
+          <option value="maybe">Maybe / leaning</option>
+          <option value="no">No / not interested</option>
+        </select>
+        <label>Asked for sign location?</label>
+        <select name="askedForSign" required>
+          <option value="yes">Yes — I asked</option>
+          <option value="yes_got">Yes — and they said YES to a sign</option>
+          <option value="yes_no">Yes — they declined a sign</option>
+          <option value="no">Not yet / not appropriate</option>
+        </select>
+        <label>Sign location (address / yard description)</label>
+        <input type="text" name="signLocation" maxlength="200" value="${esc(prefStreet)}" placeholder="e.g. 1234 Manning Ave N — front yard facing road" />
+        <label>City</label>
+        <input type="text" name="city" maxlength="80" value="${esc(prefCity)}" placeholder="Stillwater, Forest Lake…" />
+        <label>Person spoken to (name)</label>
+        <input type="text" name="personSpokenTo" required maxlength="120" placeholder="Name of homeowner / person at door" />
+        <label>Contact (phone or email)</label>
+        <input type="text" name="contact" maxlength="160" placeholder="Phone or email for follow-up / sign delivery" />
+        <label>Which candidate(s) interested in</label>
+        <input type="text" name="candidates" maxlength="200" placeholder="e.g. Housley, Demuth, full GOP package" />
+        <label>House district</label>
+        <select name="houseDistrict">
+          <option value="">Unknown</option>
+          <option value="33A">33A</option>
+          <option value="33B">33B</option>
+        </select>
+        <label>Notes</label>
+        <textarea name="notes" rows="2" maxlength="500" placeholder="Gate code, best time to place sign, needs 2 signs…"></textarea>
+        <div class="row-actions">
+          <button class="btn" type="submit">Save sign location &amp; contact</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function loadCandidates() {
+  return JSON.parse(fs.readFileSync(CAND_FILE, "utf8"));
+}
+function loadJson(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+function saveJson(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+}
+function loadContacts() {
+  return loadJson(CONTACTS_FILE);
+}
+function partyClass(p) {
+  const x = String(p || "UNK").toUpperCase();
+  if (x === "GOP" || x === "R" || x === "REPUBLICAN") return "GOP";
+  if (x === "DFL" || x === "D" || x === "DEMOCRATIC") return "DFL";
+  if (x === "NP" || x === "I" || x === "IND") return "NP";
+  return "UNK";
+}
+function filterContacts(list, q) {
+  let rows = list.slice();
+  if (q.hd) rows = rows.filter((c) => String(c.houseDistrict) === q.hd);
+  if (q.party) rows = rows.filter((c) => partyClass(c.partyAffiliation) === q.party);
+  if (q.corridor) rows = rows.filter((c) => c.streetCorridor === q.corridor);
+  if (q.pollOnly === "1") rows = rows.filter((c) => c.nearPollingPlace);
+  if (q.q) {
+    const s = q.q.toLowerCase();
+    rows = rows.filter(
+      (c) =>
+        (c.name || "").toLowerCase().includes(s) ||
+        (c.address || "").toLowerCase().includes(s) ||
+        (c.city || "").toLowerCase().includes(s)
+    );
+  }
+  rows.sort(
+    (a, b) =>
+      (Number(b.doorPriority) || 0) - (Number(a.doorPriority) || 0) ||
+      (a.address || "").localeCompare(b.address || "")
+  );
+  return rows;
+}
+/** Resolve address text → districts for GOP ballot lookup */
+function normalizeCity(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function resolveAddress(input) {
+  const geo = loadJson(GEO_FILE);
+  const street = String(input.street || input.address || "").trim();
+  const cityRaw = String(input.city || "").trim();
+  const zip = String(input.zip || "").trim().slice(0, 5);
+  const freeform = String(input.q || input.fullAddress || "").trim();
+
+  // Allow single-box: "123 Main St, Stillwater, MN 55082"
+  let city = cityRaw;
+  let streetUse = street;
+  let zipUse = zip;
+  if (freeform && !street && !city) {
+    streetUse = freeform;
+    const zipM = freeform.match(/\b(55\d{3})\b/);
+    if (zipM) zipUse = zipM[1];
+    const parts = freeform.split(",").map((p) => p.trim());
+    if (parts.length >= 2) {
+      // last parts often "Stillwater MN 55082" or "Stillwater, MN"
+      const maybeCity = parts[parts.length - 1].replace(/\bMN\b/i, "").replace(/\d{5}.*/, "").trim();
+      const mid = parts[parts.length - 2].replace(/\bMN\b/i, "").replace(/\d{5}.*/, "").trim();
+      city = mid || maybeCity || city;
+      if (parts.length >= 3) city = parts[1].replace(/\bMN\b/i, "").trim() || city;
+    }
+  }
+
+  const cityKey = normalizeCity(city);
+  const streetLow = (streetUse + " " + freeform).toLowerCase();
+  const result = {
+    street: streetUse,
+    city: city || "",
+    zip: zipUse || "",
+    house: null,
+    senate: "33",
+    usHouse: [],
+    confidence: "low",
+    notes: [],
+    inSd33: true,
+  };
+
+  let matched = null;
+  if (zipUse && geo.zips[zipUse]) {
+    matched = { ...geo.zips[zipUse], from: "zip" };
+  }
+  if (cityKey && geo.cities[cityKey]) {
+    const c = geo.cities[cityKey];
+    matched = matched
+      ? {
+          house: c.house || matched.house,
+          senate: c.senate || matched.senate,
+          usHouse: c.usHouse || matched.usHouse,
+          confidence: c.confidence || matched.confidence,
+          note: c.note || matched.note,
+          from: "city+zip",
+        }
+      : { ...c, from: "city" };
+  }
+  // fuzzy city contains
+  if (!matched && cityKey) {
+    for (const [k, v] of Object.entries(geo.cities)) {
+      if (cityKey.includes(k) || k.includes(cityKey)) {
+        matched = { ...v, from: "city-fuzzy" };
+        break;
+      }
+    }
+  }
+  // street hints refine house district
+  if (geo.streetHints) {
+    for (const [hint, v] of Object.entries(geo.streetHints)) {
+      if (streetLow.includes(hint)) {
+        if (v.house) {
+          if (!matched) matched = { house: v.house, senate: "33", usHouse: ["4"], confidence: "low", from: "street" };
+          else if (matched.confidence === "medium" || matched.confidence === "low") {
+            matched.house = v.house;
+          }
+        }
+        if (v.note) result.notes.push(v.note);
+      }
+    }
+  }
+
+  if (matched) {
+    result.house = matched.house || null;
+    result.senate = matched.senate || "33";
+    result.usHouse = matched.usHouse || [];
+    result.confidence = matched.confidence || "medium";
+    if (matched.note) result.notes.push(matched.note);
+    if (matched.cityHint) result.notes.push("ZIP area: " + matched.cityHint);
+    result.matchedVia = matched.from;
+  } else if (streetUse || freeform) {
+    result.notes.push(
+      "Could not match city/ZIP to a map rule. Showing statewide + all SD 33 local GOP races. Pick town from the list for a tighter house district."
+    );
+    result.house = "BOTH";
+    result.usHouse = ["4", "6"];
+    result.confidence = "low";
+    result.matchedVia = "fallback";
+  } else {
+    result.inSd33 = false;
+    result.notes.push("Enter a street and city or ZIP.");
+  }
+
+  return result;
+}
+
+function gopBallotForDistricts(districts) {
+  const data = loadCandidates();
+  const races = data.races;
+  const out = [];
+
+  function add(key, label) {
+    const r = races[key];
+    if (!r) return;
+    out.push({
+      key,
+      office: r.office,
+      scope: r.scope,
+      label: label || r.office,
+      winSeat: !!r.winSeat,
+      candidates: (r.gop || []).map((c) => ({
+        name: c.name,
+        party: "GOP",
+        note: c.note || "",
+        leading: !!c.leading,
+      })),
+    });
+  }
+
+  add("governor", "Governor of Minnesota (statewide)");
+  add("usSenate", "U.S. Senate — Minnesota (statewide)");
+
+  const uh = districts.usHouse || [];
+  if (uh.includes("4") || uh.length === 0) add("usHouse4", "U.S. House — MN District 4");
+  if (uh.includes("6")) add("usHouse6", "U.S. House — MN District 6");
+  if (uh.includes("4") && uh.includes("6")) {
+    // both already added
+  }
+
+  add("stateSenate33", "State Senate District 33");
+
+  if (districts.house === "33A") add("house33A", "State House District 33A");
+  else if (districts.house === "33B") add("house33B", "State House District 33B");
+  else {
+    add("house33A", "State House District 33A (if your address is 33A)");
+    add("house33B", "State House District 33B (if your address is 33B)");
+  }
+
+  return { asOf: data.asOf, races: out };
+}
+
+function renderGopBallot(districts, ballot, formVals, opts = {}) {
+  const confColor =
+    districts.confidence === "high"
+      ? "published"
+      : districts.confidence === "medium"
+        ? "marked"
+        : "draft";
+  const thanks = opts.thanks
+    ? `<div class="flash">Thanks — your preferred candidate picks were saved. You can update them anytime.</div>`
+    : "";
+
+  // Checkbox list inside one POST form for preferences
+  const raceBlocks = (ballot.races || [])
+    .map((r) => {
+      const cands = (r.candidates || [])
+        .map((c, idx) => {
+          const val = `${r.key}||${c.name}`;
+          const id = `c_${r.key}_${idx}`.replace(/[^a-zA-Z0-9_]/g, "_");
+          const lead = c.leading
+            ? ' <span class="badge pri">LEADING</span>'
+            : "";
+          const boxCls = c.leading ? "lit-box cand-pick priority" : "lit-box cand-pick";
+          return `<label class="${boxCls}" for="${esc(id)}">
+            <input type="checkbox" id="${esc(id)}" name="pick" value="${esc(val)}" ${c.leading ? "checked" : ""} />
+            <span>
+              <span class="lbl"><span class="tag-gop">GOP</span> ${esc(c.name)}${lead}</span>
+              ${c.note ? `<div class="muted">${esc(c.note)}</div>` : ""}
+            </span>
+          </label>`;
+        })
+        .join("");
+      return `<section class="card" style="margin-bottom:0.85rem">
+        <h3>${esc(r.label || r.office)} ${r.winSeat ? '<span class="badge pri">LOCAL WIN SEAT</span>' : ""}</h3>
+        <p class="muted">${esc(r.scope || "")} · Check one or more preferred <span class="tag-gop">GOP</span> candidates</p>
+        ${cands || "<p class=\"muted\">No GOP candidates listed yet.</p>"}
+      </section>`;
+    })
+    .join("");
+
+  const notes = (districts.notes || []).map((n) => `<li>${esc(n)}</li>`).join("");
+
+  return `
+    ${thanks}
+    <section class="hero">
+      <span class="badge pri">Volunteer tool</span>
+      <h2>GOP candidates for this address</h2>
+      <p>Enter a door address → see <span class="tag-gop">GOP</span> candidates → <strong>check your preferred picks</strong> (pre-primary or post-primary package).</p>
+      <p><a class="btn btn-navy" href="/share">Share this site for feedback</a></p>
+    </section>
+
+    <form class="card stack" method="get" action="/my-gop-ballot" style="margin-bottom:1rem">
+      <label>Street address</label>
+      <input type="text" name="street" value="${esc(formVals.street || "")}" placeholder="123 Main St N" />
+      <label>City / town</label>
+      <select name="city">
+        <option value="">Select city…</option>
+        ${[
+          "Stillwater",
+          "Oak Park Heights",
+          "Bayport",
+          "Marine on St. Croix",
+          "Scandia",
+          "May Township",
+          "Stillwater Township",
+          "Forest Lake",
+          "Hugo",
+          "Mahtomedi",
+          "Dellwood",
+          "Grant",
+        ]
+          .map(
+            (c) =>
+              `<option value="${esc(c)}" ${
+                normalizeCity(formVals.city) === normalizeCity(c) ? "selected" : ""
+              }>${esc(c)}</option>`
+          )
+          .join("")}
+      </select>
+      <label>ZIP (optional — improves match)</label>
+      <input type="text" name="zip" value="${esc(formVals.zip || "")}" placeholder="55082" maxlength="10" />
+      <label>Or paste full address in one line</label>
+      <input type="text" name="q" value="${esc(formVals.q || "")}" placeholder="123 Main St, Stillwater, MN 55082" />
+      <div class="row-actions">
+        <button class="btn" type="submit">Show GOP candidates</button>
+      </div>
+    </form>
+
+    ${
+      formVals.submitted
+        ? `
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Match result</h3>
+      <p><strong>Address:</strong> ${esc(formVals.street || formVals.q || "—")}${
+            formVals.city ? ", " + esc(formVals.city) : ""
+          } ${esc(formVals.zip || "")}</p>
+      <p>
+        <span class="badge ${confColor}">confidence: ${esc(districts.confidence || "low")}</span>
+        · State Senate: <strong>SD ${esc(districts.senate || "33")}</strong>
+        · State House: <strong>${esc(
+          districts.house === "BOTH" ? "33A or 33B — confirm" : "HD " + (districts.house || "?")
+        )}</strong>
+        · U.S. House: <strong>MN-${esc((districts.usHouse || []).join(" / ") || "?")}</strong>
+      </p>
+      ${notes ? `<ul class="muted">${notes}</ul>` : ""}
+      <p class="muted">Always double-check precinct at
+        <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>.
+        Candidate list as of ${esc(ballot.asOf || "")}.
+      </p>
+    </div>
+
+    <form method="post" action="/my-gop-ballot/prefer" id="pref-form">
+      <input type="hidden" name="street" value="${esc(formVals.street || "")}" />
+      <input type="hidden" name="city" value="${esc(formVals.city || "")}" />
+      <input type="hidden" name="zip" value="${esc(formVals.zip || "")}" />
+      <input type="hidden" name="q" value="${esc(formVals.q || "")}" />
+      <input type="hidden" name="houseDistrict" value="${esc(districts.house || "")}" />
+      <input type="hidden" name="usHouse" value="${esc((districts.usHouse || []).join(","))}" />
+
+      <div class="card" style="margin-bottom:1rem;border-color:#e0b84a">
+        <h3>When is this pick for?</h3>
+        <p class="muted">Choose one (or both if you want a pre-primary lean <em>and</em> a post-primary package).</p>
+        <label class="lit-box priority">
+          <input type="checkbox" name="phase" value="pre_primary" checked />
+          <span>
+            <span class="lbl">Pre-primary preferences</span>
+            <div class="muted">Before Aug 11 — check who you favor in contested GOP primaries (Governor, U.S. Senate, U.S. House, etc.).</div>
+          </span>
+        </label>
+        <label class="lit-box priority">
+          <input type="checkbox" name="phase" value="post_package" />
+          <span>
+            <span class="lbl">Post-primary package (still an option)</span>
+            <div class="muted">After primary (or “I’ll carry the full GOP package”) — support the nominees + local SD33 / 33A / 33B slate for doors &amp; lit.</div>
+          </span>
+        </label>
+        <label class="lit-box">
+          <input type="checkbox" name="wantFullPackage" value="yes" />
+          <span>
+            <span class="lbl">I want the full post-primary GOP package lit</span>
+            <div class="muted">Governor nominee + U.S. Senate nominee + U.S. House + Housley + local house — when available.</div>
+          </span>
+        </label>
+      </div>
+
+      <h2 style="margin-top:0.5rem">Check your preferred <span class="tag-gop">GOP</span> candidate(s)</h2>
+      <p class="muted">Check boxes next to every candidate you prefer. You can pick more than one per race if you are still deciding (pre-primary).</p>
+      ${raceBlocks}
+
+      <div class="card stack">
+        <h3>Your info (optional but helps follow-up)</h3>
+        <label>Your name</label>
+        <input type="text" name="name" maxlength="100" placeholder="First name or full name" />
+        <label>Email or phone</label>
+        <input type="text" name="contact" maxlength="160" placeholder="so we can send package / turf updates" />
+        <label>Notes</label>
+        <textarea name="notes" rows="2" maxlength="500" placeholder="e.g. only local races, need post-primary lit only…"></textarea>
+        <div class="row-actions">
+          <button class="btn" type="submit">Save my preferred candidates</button>
+          <a class="btn btn-navy" href="/share">Share site for feedback</a>
+        </div>
+      </div>
+    </form>
+
+    <div class="card" style="margin-top:1rem;border:2px solid var(--gop)">
+      <h3 style="color:var(--gop)">On a busy street?</h3>
+      <p><strong>If this address is on a busy street</strong> and they are interested in a candidate — <strong>ask for a yard sign location!</strong></p>
+    </div>
+    ${signAskCalloutAndForm({
+      redirect: "/my-gop-ballot?street=" + encodeURIComponent(formVals.street || "") + "&city=" + encodeURIComponent(formVals.city || "") + "&zip=" + encodeURIComponent(formVals.zip || "") + "&q=" + encodeURIComponent(formVals.q || ""),
+      street: formVals.street || "",
+      city: formVals.city || "",
+    })}
+
+    <div class="card" style="margin-top:1rem">
+      <p><a class="btn btn-navy" href="/carry">Choose literature to carry</a>
+      <a class="btn btn-navy" href="/field/doors">Door lists</a>
+      <a class="btn btn-navy" href="/team/sign-asks">View sign asks</a>
+      <a class="btn btn-navy" href="/team/preferences">View team pick totals</a></p>
+    </div>`
+        : `<div class="card"><p class="muted">Submit an address above to see GOP candidates and check your preferred picks (pre-primary and/or post-primary package).</p></div>`
+    }`;
+}
+
+function contactTable(rows, opts = {}) {
+  const showPhone = opts.showPhone !== false;
+  return `<table>
+    <thead><tr>
+      <th>Pri</th><th>Name</th><th>Address</th><th>City</th>
+      ${showPhone ? "<th>Phone</th>" : ""}
+      <th>Party</th><th>HD</th><th>Near poll / corridor</th><th>Sign</th><th>Notes</th>
+    </tr></thead>
+    <tbody>${
+      rows.length
+        ? rows
+            .map((c) => {
+              const pc = partyClass(c.partyAffiliation);
+              const badge =
+                pc === "GOP"
+                  ? '<span class="tag-gop">GOP</span>'
+                  : pc === "DFL"
+                    ? '<span class="badge dfl">DFL</span>'
+                    : pc === "NP"
+                      ? '<span class="badge other">NP/I</span>'
+                      : '<span class="badge other">UNK</span>';
+              return `<tr class="${c.isDemo ? "demo-row" : ""}">
+                <td>${esc(c.doorPriority ?? "")}</td>
+                <td><strong>${esc(c.name)}</strong>${c.isDemo ? ' <span class="muted">demo</span>' : ""}</td>
+                <td>${esc(c.address)}</td>
+                <td>${esc(c.city)} ${esc(c.zip || "")}</td>
+                ${showPhone ? `<td>${esc(c.phone || "—")}</td>` : ""}
+                <td>${badge}</td>
+                <td>${esc(c.houseDistrict)}</td>
+                <td class="muted">${esc(c.nearPollingPlace || "—")}<br/>${esc(c.streetCorridor || "")}</td>
+                <td>${esc(c.signOk || "")}</td>
+                <td class="muted">${esc((c.notes || "").slice(0, 80))}</td>
+              </tr>`;
+            })
+            .join("")
+        : `<tr><td colspan="10">No contacts match. Import voter-file CSV at <a href="/field/import">/field/import</a>.</td></tr>`
+    }</tbody>
+  </table>`;
+}
+function esc(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+const app = express();
+app.set("trust proxy", 1);
+app.use(morgan(IS_PROD ? "combined" : "dev"));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(ROOT, "public"), { maxAge: IS_PROD ? "1h" : 0 }));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "sd33-litdrop-secret-change-me",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: IS_PROD,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    },
+  })
+);
+
+function layout(title, body) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${esc(title)} · SD 33 Lit Drop</title>
+  <link rel="stylesheet" href="/css/lit.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <h1>SD 33 · St. Croix Valley Field Hub</h1>
+      <p>Beautiful Minnesota · Stillwater lakes &amp; river country · Win Senate 33 + House 33A + 33B</p>
+      <nav class="nav">
+        <a href="/">Home</a>
+        <a class="nav-hot" href="/review">Review &amp; advise</a>
+        <a href="/win-playbook">Win playbook</a>
+        <a href="/my-gop-ballot">GOP ballot</a>
+        <a href="/share">Share</a>
+        <a href="/field">Field</a>
+        <a href="/field/doors">Doors</a>
+        <a href="/field/signs">Signs</a>
+        <a href="/team/sign-asks">Sign asks</a>
+        <a href="/candidates">Candidates</a>
+        <a href="/carry">Lit</a>
+        <a href="/team/preferences">Totals</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap main">${body}</main>
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-brand">
+        <img src="/images/loon-lake.jpg" alt="Minnesota loon on a lake" />
+        <img src="/images/mn-lake-shore.jpg" alt="Minnesota lake shore" />
+        <img src="/images/st-croix-valley.jpg" alt="St. Croix valley" />
+        <div>
+          <strong>SD 33 Field Hub</strong> · Washington County · St. Croix Valley<br/>
+          Volunteer field tool — not an official government site. Verify candidates at SOS.
+        </div>
+      </div>
+      <p>Share for review: <a href="/review">/review</a> · Feedback: <a href="/share">/share</a></p>
+    </div>
+  </footer>
+</body>
+</html>`;
+}
+
+function partyBadge(party) {
+  const p = String(party || "").toUpperCase();
+  if (p === "GOP" || p === "REPUBLICAN" || p === "R") return '<span class="badge">GOP</span>';
+  if (p === "DFL" || p === "DEMOCRATIC" || p === "D") return '<span class="badge dfl">DFL</span>';
+  return `<span class="badge other">${esc(party || "OTHER")}</span>`;
+}
+
+function candList(items) {
+  return `<ul class="list">${(items || [])
+    .map(
+      (c) =>
+        `<li class="${c.leading ? "leading-cand" : ""}">
+          ${partyBadge(c.party)}
+          <span class="cand-name">${esc(c.name)}</span>
+          ${c.leading ? ' <span class="badge pri">LEADING</span>' : ""}
+          ${c.note ? `<div class="note">${esc(c.note)}</div>` : ""}
+        </li>`
+    )
+    .join("")}</ul>`;
+}
+
+/* ---------- GOP ballot by address ---------- */
+app.get("/my-gop-ballot", (req, res) => {
+  const hasInput = !!(req.query.street || req.query.city || req.query.q || req.query.zip);
+  const formVals = {
+    street: req.query.street || "",
+    city: req.query.city || "",
+    zip: req.query.zip || "",
+    q: req.query.q || "",
+    submitted: hasInput,
+  };
+  let districts = {
+    house: null,
+    senate: "33",
+    usHouse: [],
+    confidence: "low",
+    notes: [],
+  };
+  let ballot = { asOf: "", races: [] };
+  if (hasInput) {
+    districts = resolveAddress({
+      street: formVals.street,
+      city: formVals.city,
+      zip: formVals.zip,
+      q: formVals.q,
+    });
+    ballot = gopBallotForDistricts(districts);
+  }
+  res.send(
+    layout(
+      "My GOP ballot",
+      renderGopBallot(districts, ballot, formVals, { thanks: req.query.saved === "1" })
+    )
+  );
+});
+
+app.post("/my-gop-ballot", (req, res) => {
+  const q = new URLSearchParams({
+    street: req.body.street || "",
+    city: req.body.city || "",
+    zip: req.body.zip || "",
+    q: req.body.q || "",
+  });
+  res.redirect("/my-gop-ballot?" + q.toString());
+});
+
+app.post("/my-gop-ballot/prefer", (req, res) => {
+  let picks = req.body.pick;
+  if (!picks) picks = [];
+  if (!Array.isArray(picks)) picks = [picks];
+
+  let phases = req.body.phase;
+  if (!phases) phases = [];
+  if (!Array.isArray(phases)) phases = [phases];
+  if (phases.length === 0) phases = ["pre_primary"];
+
+  const preferred = picks.map((p) => {
+    const [raceKey, ...rest] = String(p).split("||");
+    return { raceKey, candidate: rest.join("||"), party: "GOP" };
+  });
+
+  const entry = {
+    id: "pref_" + Date.now(),
+    at: new Date().toISOString(),
+    name: String(req.body.name || "").slice(0, 100),
+    contact: String(req.body.contact || "").slice(0, 160),
+    notes: String(req.body.notes || "").slice(0, 500),
+    address: {
+      street: String(req.body.street || "").slice(0, 120),
+      city: String(req.body.city || "").slice(0, 80),
+      zip: String(req.body.zip || "").slice(0, 10),
+      q: String(req.body.q || "").slice(0, 200),
+    },
+    houseDistrict: String(req.body.houseDistrict || ""),
+    usHouse: String(req.body.usHouse || ""),
+    phases,
+    wantFullPackage: req.body.wantFullPackage === "yes",
+    preferred,
+  };
+
+  const all = loadJson(PREFS_FILE);
+  all.unshift(entry);
+  saveJson(PREFS_FILE, all.slice(0, 5000));
+
+  const q = new URLSearchParams({
+    street: entry.address.street,
+    city: entry.address.city,
+    zip: entry.address.zip,
+    q: entry.address.q,
+    saved: "1",
+  });
+  res.redirect("/my-gop-ballot?" + q.toString());
+});
+
+app.get("/api/gop-ballot", (req, res) => {
+  const districts = resolveAddress({
+    street: req.query.street || "",
+    city: req.query.city || "",
+    zip: req.query.zip || "",
+    q: req.query.q || req.query.address || "",
+  });
+  const ballot = gopBallotForDistricts(districts);
+  res.json({
+    ok: true,
+    address: {
+      street: districts.street,
+      city: districts.city,
+      zip: districts.zip,
+    },
+    districts: {
+      stateSenate: districts.senate,
+      stateHouse: districts.house,
+      usHouse: districts.usHouse,
+      confidence: districts.confidence,
+      notes: districts.notes,
+      matchedVia: districts.matchedVia,
+    },
+    gopCandidates: ballot.races,
+    asOf: ballot.asOf,
+  });
+});
+
+/* ---------- Home: winning lit plan ---------- */
+app.get("/", (req, res) => {
+  const flash = req.session.flash;
+  delete req.session.flash;
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    <section class="photo-hero">
+      <div class="photo-hero-content">
+        <span class="badge pri">St. Croix Valley · SD 33</span>
+        <h2>Win where loons call and neighbors vote</h2>
+        <p>Stillwater · Forest Lake · Bayport · Marine · Scandia · lakes, river, and main streets. A field hub built to win <strong>Senate 33 + House 33A + House 33B</strong>.</p>
+        <div class="cta-row">
+          <a class="btn btn-gold" href="/review">Review this site &amp; advise</a>
+          <a class="btn" href="/my-gop-ballot">My GOP ballot</a>
+          <a class="btn btn-navy" href="/win-playbook">Winning playbook</a>
+        </div>
+      </div>
+      <span class="photo-credit">Minnesota lakes · loon country</span>
+    </section>
+
+    <div class="gallery" aria-label="District scenery">
+      <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" />
+      <img src="/images/st-croix-valley.jpg" alt="St. Croix river valley" />
+      <img src="/images/mn-lake-shore.jpg" alt="Minnesota lake shoreline" />
+      <img src="/images/autumn-lakeside.jpg" alt="Autumn lakeside path" />
+    </div>
+
+    <div class="grid" style="margin-bottom:1rem">
+      <article class="card">
+        <div class="card-photo loon"></div>
+        <h3>Governor (GOP) — Lindell leading</h3>
+        <p><span class="tag-gop">GOP</span> <strong>Mike Lindell</strong> listed first (Trump-endorsed). Check your pick on the ballot tool.</p>
+        <a class="btn" href="/my-gop-ballot">Pick candidates</a>
+      </article>
+      <article class="card">
+        <div class="card-photo valley"></div>
+        <h3>Share for feedback</h3>
+        <p>Send one link. Neighbors review the plan, check preferred GOP candidates, and suggest improvements.</p>
+        <a class="btn btn-gold" href="/review">Open review portal</a>
+      </article>
+      <article class="card">
+        <div class="card-photo shore"></div>
+        <h3>Field that wins close races</h3>
+        <p>Doors near polls · signs on busy streets · phones · lit packages. Built for ~700-vote margins.</p>
+        <a class="btn btn-navy" href="/field">Field HQ</a>
+      </article>
+    </div>
+
+    <section class="card" style="margin-bottom:1rem">
+      <h3>Quick: GOP ballot by address</h3>
+      <form class="stack" method="get" action="/my-gop-ballot">
+        <label>Street</label>
+        <input name="street" placeholder="123 Main St" required />
+        <label>City</label>
+        <select name="city" required>
+          <option value="">Select…</option>
+          <option>Stillwater</option>
+          <option>Oak Park Heights</option>
+          <option>Bayport</option>
+          <option>Marine on St. Croix</option>
+          <option>Scandia</option>
+          <option>Forest Lake</option>
+          <option>Hugo</option>
+          <option>Mahtomedi</option>
+          <option>Dellwood</option>
+          <option>May Township</option>
+        </select>
+        <label>ZIP (optional)</label>
+        <input name="zip" placeholder="55082" />
+        <button class="btn" type="submit">Show GOP candidates</button>
+      </form>
+    </section>
+
+    <section class="hero">
+      <span class="badge pri">Win path</span>
+      <h2 style="margin:.4rem 0">Literature &amp; field plan — all three local seats</h2>
+      <p>Senate District 33 elects <strong>one state senator</strong> and two house members (<strong>33A</strong> and <strong>33B</strong>). Close races are won door-by-door. Pick turf, lit, signs on busy streets, report it.</p>
+      <p><a class="btn" href="/my-gop-ballot">Enter address → GOP candidates</a>
+      <a class="btn btn-navy" href="/carry">Select literature →</a>
+      <a class="btn btn-navy" href="/candidates">All candidates →</a>
+      <a class="btn btn-gold" href="/share">Share site →</a></p>
+    </section>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Three seats = three pieces of local lit</h3>
+        <ul class="checklist">
+          <li><span class="tag-gop">GOP</span> State Senate 33 — Karin Housley</li>
+          <li><span class="tag-gop">GOP</span> House 33A — GOP nominee (open seat)</li>
+          <li><span class="tag-gop">GOP</span> House 33B — GOP nominee (challenge Hill)</li>
+        </ul>
+        <p class="muted">Ideal door kit: combined “Win SD 33” piece <em>or</em> all three singles + sample ballot.</p>
+      </article>
+      <article class="card">
+        <h3>Top-of-ticket (carry after primary)</h3>
+        <ul class="checklist">
+          <li><span class="tag-gop">GOP</span> Governor — primary winner lit</li>
+          <li><span class="tag-gop">GOP</span> U.S. Senate — primary winner lit</li>
+          <li><span class="tag-gop">GOP</span> U.S. House MN-04 or MN-06 (match address)</li>
+        </ul>
+        <p class="muted">Before Aug 11: focus local three seats. After primary: add nominee statewide/federal pieces.</p>
+      </article>
+      <article class="card">
+        <h3>Why lit wins here</h3>
+        <p>HD 33B recently decided by ~700 votes. SD 33 and 33A are competitive suburban/exurban turf. Multiple light touches beat one heavy visit.</p>
+        <p class="muted">Goal: every target door gets local GOP slate lit <strong>2–3 times</strong> before Election Day.</p>
+      </article>
+    </div>
+
+    <section class="card" style="margin-top:1rem">
+      <h2>Phase plan</h2>
+      <div class="phase"><strong>Now → Aug 10 (pre-primary)</strong><br/>
+        Saturdays: 33A + 33B priority turfs. Carry local three + early-vote card. Build volunteer habit. Do not overstock un-nominated statewide primary lit.</div>
+      <div class="phase"><strong>Aug 12–Labor Day</strong><br/>
+        Swap in <span class="tag-gop">GOP</span> primary winners for Governor, U.S. Senate, U.S. House. Re-drop soft IDs and new move-ins.</div>
+      <div class="phase"><strong>September persuasion</strong><br/>
+        High-density Stillwater / Forest Lake / Hugo routes. Combined slate piece. Track “no lit / already had lit” on walk sheets.</div>
+      <div class="phase"><strong>October GOTV</strong><br/>
+        Early vote push. Chase absentees. Sample ballot at doors + churches/community boards where allowed. Double-cover soft Republicans and independents.</div>
+      <div class="phase"><strong>Final 10 days</strong><br/>
+        Only GOTV: “vote early / here’s who is GOP on your ballot.” No new message experiments.</div>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <h2>Weekly field targets (full SD 33)</h2>
+      <table>
+        <thead><tr><th>Metric</th><th>Build phase</th><th>Peak Oct</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Lit pieces out / week</td><td>3,000–5,000</td><td>8,000–12,000</td><td>Coverage beats perfection</td></tr>
+          <tr><td>Active lit droppers</td><td>25–40</td><td>60–100</td><td>Small teams by town</td></tr>
+          <tr><td>Doors / shift</td><td>40–70</td><td>50–80</td><td>2-hour Saturday shift</td></tr>
+          <tr><td>Touches per target door</td><td>1–2</td><td>2–3</td><td>Memory + trust</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <h2>Rules that win (and stay legal)</h2>
+      <ul>
+        <li>Leave lit where allowed — never block mailboxes (federal law: do <strong>not</strong> put materials in mailboxes).</li>
+        <li>Door hanger or under mat / between screen &amp; door if safe; porch is fine.</li>
+        <li>No arguing. Smile, leave piece, mark walk sheet, move on.</li>
+        <li>Respect “No Soliciting” if your local counsel says so; when in doubt, skip.</li>
+        <li>Pair new volunteers with a captain the first time.</li>
+      </ul>
+      <p><a class="btn" href="/how-to">Full how-to guide</a> <a class="btn btn-navy" href="/turf">33A vs 33B turf</a></p>
+    </section>`;
+  res.send(layout("Lit drop plan", body));
+});
+
+/* ---------- Candidates ---------- */
+app.get("/candidates", (req, res) => {
+  const data = loadCandidates();
+  const races = data.races;
+  const order = [
+    "stateSenate33",
+    "house33A",
+    "house33B",
+    "governor",
+    "usSenate",
+    "usHouse4",
+    "usHouse6",
+  ];
+  const sections = order
+    .map((key) => {
+      const r = races[key];
+      if (!r) return "";
+      return `<section class="card" style="margin-bottom:1rem">
+        <h2>${esc(r.office)} ${r.winSeat ? '<span class="badge pri">WIN SEAT</span>' : ""}</h2>
+        <p class="muted">${esc(r.scope)}</p>
+        <div class="two">
+          <div>
+            <h3><span class="tag-gop">GOP</span> candidates</h3>
+            ${candList(r.gop)}
+          </div>
+          <div>
+            <h3>Other parties (for awareness)</h3>
+            ${candList(r.other)}
+          </div>
+        </div>
+      </section>`;
+    })
+    .join("");
+
+  const body = `
+    <section class="hero">
+      <h2>All candidates · every seat labeled</h2>
+      <p>Data as of <strong>${esc(data.asOf)}</strong>. ${esc(data.note)}</p>
+      <p class="muted">GOP = Republican Party of Minnesota. Primary: Aug 11, 2026 · General: Nov 3, 2026.</p>
+    </section>
+    ${sections}
+    <p class="muted">Always verify: <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">Minnesota SOS candidate filings</a>.</p>`;
+  res.send(layout("Candidates", body));
+});
+
+/* ---------- Carry literature form ---------- */
+app.get("/carry", (req, res) => {
+  const data = loadCandidates();
+  const flash = req.session.flash;
+  const err = req.session.err;
+  delete req.session.flash;
+  delete req.session.err;
+
+  const boxes = (data.literature || [])
+    .map((lit) => {
+      const cls = lit.priority === 1 ? "lit-box priority" : "lit-box";
+      return `<label class="${cls}">
+        <input type="checkbox" name="lit" value="${esc(lit.id)}" ${lit.priority === 1 && lit.bundle === "local_three" ? "checked" : ""} />
+        <span>
+          <span class="lbl">${esc(lit.label)}</span>
+          <div class="muted"><span class="tag-gop">${esc(lit.party)}</span> · Seat: ${esc(lit.seat)} · Bundle: ${esc(lit.bundle)}</div>
+        </span>
+      </label>`;
+    })
+    .join("");
+
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    ${err ? `<div class="flash flash-err">${esc(err)}</div>` : ""}
+    <section class="hero">
+      <h2>What literature will you carry?</h2>
+      <p>Check every piece you want to pick up. Gold-bordered boxes are <strong>priority local GOP lit</strong> for winning all three seats. Submit so captains know inventory demand.</p>
+    </section>
+    <form class="stack card" method="post" action="/carry">
+      <label>Your name</label>
+      <input type="text" name="name" required maxlength="100" />
+      <label>Email</label>
+      <input type="email" name="email" required maxlength="160" />
+      <label>Phone</label>
+      <input type="tel" name="phone" maxlength="40" />
+      <label>I drop in</label>
+      <select name="houseDistrict" required>
+        <option value="">Select…</option>
+        <option value="33A">House 33A (Forest Lake / Hugo / Mahtomedi side)</option>
+        <option value="33B">House 33B (Stillwater / Bayport / Scandia side)</option>
+        <option value="BOTH">Both 33A and 33B</option>
+      </select>
+      <label>Town / starting area</label>
+      <input type="text" name="town" maxlength="80" placeholder="e.g. Stillwater, Forest Lake, Hugo…" />
+      <label>Shift preference</label>
+      <select name="shift">
+        <option>Saturday morning</option>
+        <option>Saturday afternoon</option>
+        <option>Weekday evening</option>
+        <option>Anytime — text me</option>
+      </select>
+      <label style="margin-top:1.1rem">Literature to carry <span class="tag-gop">GOP labeled</span></label>
+      <p class="muted">Click the boxes for every piece you want. Captains will stage bundles at pickup.</p>
+      ${boxes}
+      <label>Notes (carpool, quantity, kids helping…)</label>
+      <textarea name="notes" maxlength="800" rows="3"></textarea>
+      <button class="btn" type="submit">Submit my lit request</button>
+    </form>
+    <p class="muted" style="margin-top:1rem"><a href="/candidates">Review candidate names first</a> if you are unsure which federal piece matches a door.</p>`;
+  res.send(layout("Choose literature", body));
+});
+
+app.post("/carry", (req, res) => {
+  let lit = req.body.lit;
+  if (!lit) lit = [];
+  if (!Array.isArray(lit)) lit = [lit];
+  if (!req.body.name || !req.body.email) {
+    req.session.err = "Name and email are required.";
+    return res.redirect("/carry");
+  }
+  if (lit.length === 0) {
+    req.session.err = "Select at least one literature piece.";
+    return res.redirect("/carry");
+  }
+  const data = loadCandidates();
+  const litMap = Object.fromEntries((data.literature || []).map((x) => [x.id, x]));
+  const labels = lit.map((id) => litMap[id]?.label || id);
+
+  const signups = loadJson(SIGNUPS);
+  signups.unshift({
+    id: "s_" + Date.now(),
+    name: String(req.body.name).slice(0, 100),
+    email: String(req.body.email).slice(0, 160),
+    phone: String(req.body.phone || "").slice(0, 40),
+    houseDistrict: String(req.body.houseDistrict || ""),
+    town: String(req.body.town || "").slice(0, 80),
+    shift: String(req.body.shift || ""),
+    literatureIds: lit,
+    literatureLabels: labels,
+    notes: String(req.body.notes || "").slice(0, 800),
+    createdAt: new Date().toISOString(),
+  });
+  saveJson(SIGNUPS, signups.slice(0, 2000));
+
+  req.session.flash =
+    "Thanks! Your literature request is saved. A captain will confirm pickup. You selected: " +
+    labels.join("; ");
+  res.redirect("/carry");
+});
+
+/* ---------- Turf ---------- */
+app.get("/turf", (req, res) => {
+  const body = `
+    <section class="hero">
+      <h2>Turf: SD 33 = House 33A + House 33B</h2>
+      <p>Every volunteer works one house district per shift when possible. Senate 33 lit goes on <strong>every</strong> door in both halves.</p>
+    </section>
+    <div class="grid">
+      <article class="card">
+        <h3>House 33A turf</h3>
+        <p><span class="tag-gop">GOP</span> open seat (Patti Anderson retiring)</p>
+        <ul>
+          <li>Forest Lake (parts)</li>
+          <li>Hugo</li>
+          <li>Mahtomedi / Dellwood area</li>
+          <li>Other 33A Washington County precincts</li>
+        </ul>
+        <p><strong>Always drop:</strong> SD33 Housley (GOP) + 33A GOP house lit + sample ballot.</p>
+        <p class="muted">Skip 33B house piece here unless using combined SD33 slate.</p>
+      </article>
+      <article class="card">
+        <h3>House 33B turf</h3>
+        <p><span class="tag-gop">GOP</span> challenge to incumbent Josiah Hill (DFL)</p>
+        <ul>
+          <li>Stillwater</li>
+          <li>Oak Park Heights</li>
+          <li>Bayport</li>
+          <li>Marine on St. Croix</li>
+          <li>Scandia · May Township</li>
+          <li>Parts of Forest Lake</li>
+        </ul>
+        <p><strong>Always drop:</strong> SD33 Housley (GOP) + 33B GOP house lit + sample ballot.</p>
+      </article>
+    </div>
+    <section class="card" style="margin-top:1rem">
+      <h2>Priority order inside a turf</h2>
+      <ol>
+        <li>High-turnout GOP &amp; independent precincts (persuasion + turnout)</li>
+        <li>Soft DFL / swing blocks near main corridors</li>
+        <li>Low-propensity friendly voters (GOTV only in final weeks)</li>
+      </ol>
+      <p>Captains assign walk sheets. Prefer map apps or printed turfs of 40–70 doors per bag.</p>
+      <p><a class="btn" href="/carry">Request lit for my turf</a></p>
+    </section>`;
+  res.send(layout("Turf", body));
+});
+
+/* ---------- How-to ---------- */
+app.get("/how-to", (req, res) => {
+  const body = `
+    <section class="hero"><h2>How to lit drop (effective + legal)</h2></section>
+    <div class="card">
+      <h3>Before you leave</h3>
+      <ul class="checklist">
+        <li>Confirm house district (33A or 33B) on your walk sheet</li>
+        <li>Carry the right <span class="tag-gop">GOP</span> pieces (use /carry checklist)</li>
+        <li>Water, comfortable shoes, phone charged, highlighter for walk sheet</li>
+        <li>Captain phone number saved</li>
+      </ul>
+      <h3>At each door (30–60 seconds)</h3>
+      <ol>
+        <li>Park legally; work one side of the street.</li>
+        <li>Leave lit on door handle / between doors / on porch — <strong>never in the mailbox</strong>.</li>
+        <li>If someone answers: “Hi, I’m a neighbor volunteer leaving information on Karin Housley and our local house candidate — thank you!” Hand piece; do not debate.</li>
+        <li>Mark: dropped / not home / refused / no access.</li>
+      </ol>
+      <h3>After the shift</h3>
+      <ul class="checklist">
+        <li>Return leftover lit and walk sheet</li>
+        <li>Text captain doors completed</li>
+        <li>Log on <a href="/leaderboard">Team progress</a> if asked</li>
+      </ul>
+      <h3>Winning habits</h3>
+      <ul>
+        <li>Same streets get 2–3 touches over the cycle</li>
+        <li>Pair lit drop with a short canvass in peak weeks on soft IDs</li>
+        <li>Early vote cards from mid-September onward</li>
+      </ul>
+    </div>`;
+  res.send(layout("How to drop", body));
+});
+
+/* ---------- Leaderboard / progress ---------- */
+app.get("/leaderboard", (req, res) => {
+  const signups = loadJson(SIGNUPS);
+  const logs = loadJson(STATS);
+  const litDemand = {};
+  for (const s of signups) {
+    for (const label of s.literatureLabels || []) {
+      litDemand[label] = (litDemand[label] || 0) + 1;
+    }
+  }
+  const demandRows = Object.entries(litDemand)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`)
+    .join("");
+
+  const recent = signups
+    .slice(0, 15)
+    .map(
+      (s) =>
+        `<tr>
+          <td>${esc(s.name)}</td>
+          <td>${esc(s.houseDistrict)}</td>
+          <td>${esc(s.town)}</td>
+          <td class="muted">${esc((s.literatureLabels || []).join("; ").slice(0, 120))}</td>
+        </tr>`
+    )
+    .join("");
+
+  const body = `
+    <section class="hero">
+      <h2>Team progress</h2>
+      <p><strong>${signups.length}</strong> lit requests · <strong>${logs.length}</strong> completed drop logs</p>
+    </section>
+    <div class="two">
+      <div class="card">
+        <h3>Literature demand (volunteer selections)</h3>
+        <table>
+          <thead><tr><th>Piece</th><th>Requests</th></tr></thead>
+          <tbody>${demandRows || "<tr><td colspan=2>No requests yet — be the first on /carry</td></tr>"}</tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Log a completed drop</h3>
+        <form class="stack" method="post" action="/log-drop">
+          <label>Name</label>
+          <input name="name" required />
+          <label>House district</label>
+          <select name="houseDistrict"><option>33A</option><option>33B</option></select>
+          <label>Doors covered</label>
+          <input name="doors" type="text" required placeholder="e.g. 55" />
+          <label>Pieces left (approx)</label>
+          <input name="pieces" type="text" placeholder="e.g. 60" />
+          <button class="btn" type="submit">Log drop</button>
+        </form>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Recent lit requests</h3>
+      <table>
+        <thead><tr><th>Volunteer</th><th>HD</th><th>Town</th><th>Lit chosen</th></tr></thead>
+        <tbody>${recent || "<tr><td colspan=4>None yet</td></tr>"}</tbody>
+      </table>
+    </div>`;
+  res.send(layout("Progress", body));
+});
+
+app.post("/log-drop", (req, res) => {
+  const logs = loadJson(STATS);
+  logs.unshift({
+    id: "d_" + Date.now(),
+    name: String(req.body.name || "").slice(0, 100),
+    houseDistrict: String(req.body.houseDistrict || ""),
+    doors: String(req.body.doors || "").slice(0, 20),
+    pieces: String(req.body.pieces || "").slice(0, 20),
+    at: new Date().toISOString(),
+  });
+  saveJson(STATS, logs.slice(0, 2000));
+  req.session.flash = "Drop logged. Thank you!";
+  res.redirect("/leaderboard");
+});
+
+app.get("/api/health", (req, res) => {
+  const contacts = loadContacts().contacts || [];
+  res.json({
+    ok: true,
+    site: "sd33-litdrop",
+    port: PORT,
+    signups: loadJson(SIGNUPS).length,
+    contacts: contacts.length,
+    demoContacts: contacts.filter((c) => c.isDemo).length,
+  });
+});
+
+/* ========== FIELD: doors, phones, signs, streets ========== */
+
+app.get("/field", (req, res) => {
+  const contacts = loadContacts().contacts || [];
+  const thorough = loadJson(THOROUGH_FILE);
+  const polls = loadJson(POLLS_FILE);
+  const nearPoll = contacts.filter((c) => c.nearPollingPlace).length;
+  const gop = contacts.filter((c) => partyClass(c.partyAffiliation) === "GOP").length;
+  const body = `
+    <section class="hero">
+      <span class="badge pri">Field operations</span>
+      <h2>Door knocks · Phone banks · Yard signs</h2>
+      <p>Prioritize <strong>busy MnDOT / county thoroughfares</strong> and <strong>streets near polling places</strong>. Contact lists show <strong>name, address, phone, party affiliation</strong> when imported from your authorized voter file.</p>
+      <p class="muted">${contacts.length} contacts loaded (${contacts.filter((c) => c.isDemo).length} demo placeholders — replace via import).</p>
+    </section>
+    <div class="grid">
+      <article class="card">
+        <h3>1. Door knocking (primary)</h3>
+        <p>Highest impact for winning SD 33 + 33A + 33B. Start at poll-adjacent blocks, then feeder streets off busy corridors.</p>
+        <p><strong style="color:var(--gop)">Busy street + interested → ask for sign location!</strong></p>
+        <p><a class="btn" href="/field/doors">Open door lists + sign form</a></p>
+      </article>
+      <article class="card">
+        <h3>2. Yard signs</h3>
+        <p>Private yards on Hwy 36, Hwy 95, Manning Ave, CR 96, Forest Lake arterials + every polling approach.</p>
+        <p>Log <strong>sign location, person spoken to, contact</strong> on the form.</p>
+        <p><a class="btn" href="/field/signs">Sign lists + ask form</a></p>
+        <p><a class="btn btn-navy" href="/team/sign-asks">View sign asks</a></p>
+      </article>
+      <article class="card">
+        <h3>3. Phone calling</h3>
+        <p>Call GOP / UNK with phones on file. Reinforce doors and early vote. Log results.</p>
+        <p><a class="btn" href="/field/phones">Phone bank lists</a></p>
+      </article>
+      <article class="card">
+        <h3>Busy streets (DOT + county)</h3>
+        <p>${(thorough.corridors || []).length} priority corridors from MnDOT trunk highways &amp; Washington County CSAH routes.</p>
+        <p><a class="btn btn-navy" href="/field/streets">Corridor map list</a></p>
+      </article>
+      <article class="card">
+        <h3>Polling places</h3>
+        <p>${(polls.electionDay || []).length} Election Day sites + ${(polls.earlyVoteCenters || []).length} early-vote centers listed.</p>
+        <p><a class="btn btn-navy" href="/field/polls">Poll &amp; radius plan</a></p>
+      </article>
+      <article class="card">
+        <h3>Import real homeowners</h3>
+        <p>CSV: name, address, phone, partyAffiliation (GOP/DFL/NP/UNK), houseDistrict, near poll…</p>
+        <p><a class="btn btn-navy" href="/field/import">Import contacts</a></p>
+      </article>
+    </div>
+    <section class="card" style="margin-top:1rem">
+      <h2>Win emphasis (order of operations)</h2>
+      <ol>
+        <li><strong>Signs</strong> on major thoroughfares + poll approaches (visibility before anyone knocks).</li>
+        <li><strong>Doors</strong> on residential streets within ~0.5 mile of each polling place (every weekend).</li>
+        <li><strong>Doors</strong> on side streets off Hwy 36, Hwy 95, Manning, CR 96, Forest Lake arterials.</li>
+        <li><strong>Phones</strong> to GOP/leaners with numbers; chase early vote mid-Sept onward.</li>
+        <li><strong>Re-knock</strong> soft IDs; final week poll-adjacent only for GOTV.</li>
+      </ol>
+      <p class="muted">Stats snapshot: ${nearPoll} contacts tagged near a poll · ${gop} tagged GOP · verify affiliation from voter file.</p>
+    </section>`;
+  res.send(layout("Field HQ", body));
+});
+
+app.get("/field/doors", (req, res) => {
+  const data = loadContacts();
+  const q = {
+    hd: req.query.hd || "",
+    party: req.query.party || "",
+    corridor: req.query.corridor || "",
+    pollOnly: req.query.pollOnly || "",
+    q: req.query.q || "",
+  };
+  let rows = filterContacts(data.contacts || [], q);
+  // Door list: prefer high doorPriority; optional poll-first default sort already by doorPriority
+  if (req.query.pollFirst === "1") {
+    rows = rows.slice().sort((a, b) => {
+      const ap = a.nearPollingPlace ? 1 : 0;
+      const bp = b.nearPollingPlace ? 1 : 0;
+      return bp - ap || (Number(b.doorPriority) || 0) - (Number(a.doorPriority) || 0);
+    });
+  }
+  const thorough = loadJson(THOROUGH_FILE);
+  const corridorOpts = (thorough.corridors || [])
+    .map((c) => `<option value="${esc(c.id)}" ${q.corridor === c.id ? "selected" : ""}>${esc(c.name)}</option>`)
+    .join("");
+
+  const flash = req.session.flash;
+  delete req.session.flash;
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    <section class="hero">
+      <h2>Door knocking lists</h2>
+      <p><strong>Emphasize:</strong> (1) homes near polling places, (2) residential blocks off the busiest thoroughfares. Leave lit + ID support. Never put lit in mailboxes.</p>
+      <p><strong style="color:var(--gop)">On a busy street + interested in a candidate → ask for a yard sign location!</strong></p>
+      <p class="muted">${esc(data.disclaimer || "")}</p>
+    </section>
+    ${signAskCalloutAndForm({ redirect: "/field/doors" })}
+    <form class="card" method="get" action="/field/doors" style="margin-bottom:1rem">
+      <div class="grid" style="align-items:end">
+        <div>
+          <label><strong>House district</strong></label>
+          <select name="hd">
+            <option value="">All</option>
+            <option value="33A" ${q.hd === "33A" ? "selected" : ""}>33A</option>
+            <option value="33B" ${q.hd === "33B" ? "selected" : ""}>33B</option>
+          </select>
+        </div>
+        <div>
+          <label><strong>Party</strong></label>
+          <select name="party">
+            <option value="">All</option>
+            <option value="GOP" ${q.party === "GOP" ? "selected" : ""}>GOP</option>
+            <option value="DFL" ${q.party === "DFL" ? "selected" : ""}>DFL</option>
+            <option value="NP" ${q.party === "NP" ? "selected" : ""}>NP / Independent</option>
+            <option value="UNK" ${q.party === "UNK" ? "selected" : ""}>Unknown</option>
+          </select>
+        </div>
+        <div>
+          <label><strong>Corridor</strong></label>
+          <select name="corridor"><option value="">All streets</option>${corridorOpts}</select>
+        </div>
+        <div>
+          <label><strong>Near poll only</strong></label>
+          <select name="pollOnly">
+            <option value="">No</option>
+            <option value="1" ${q.pollOnly === "1" ? "selected" : ""}>Yes — poll radius first</option>
+          </select>
+        </div>
+        <div>
+          <label><strong>Search</strong></label>
+          <input type="text" name="q" value="${esc(q.q)}" placeholder="name or street" />
+        </div>
+        <div>
+          <button class="btn" type="submit">Filter doors</button>
+          <a class="btn btn-navy" href="/field/doors?pollOnly=1&pollFirst=1">Poll-adjacent only</a>
+        </div>
+      </div>
+    </form>
+    <div class="card">
+      <p><strong>${rows.length}</strong> households · sorted by door priority</p>
+      ${contactTable(rows)}
+      <form method="post" action="/field/log" class="stack" style="margin-top:1rem">
+        <input type="hidden" name="activity" value="door" />
+        <label>Log this shift (name · doors attempted · IDs)</label>
+        <input name="volunteer" placeholder="Your name" required />
+        <input name="count" placeholder="Doors attempted e.g. 48" />
+        <input name="result" placeholder="e.g. 12 support, 20 NH, 5 refuse" />
+        <button class="btn" type="submit">Log door shift</button>
+      </form>
+    </div>
+    <p class="muted" style="margin-top:1rem">Print this page for walk sheets, or export via import reverse (copy table). Best practice: walk poll rings first on Saturdays.</p>`;
+  res.send(layout("Door knocks", body));
+});
+
+app.get("/field/phones", (req, res) => {
+  const data = loadContacts();
+  const q = {
+    hd: req.query.hd || "",
+    party: req.query.party || "GOP",
+    q: req.query.q || "",
+  };
+  let rows = filterContacts(data.contacts || [], q);
+  // Prefer contacts with phone numbers when real data exists
+  rows = rows
+    .slice()
+    .sort(
+      (a, b) =>
+        (Number(b.phonePriority) || 0) - (Number(a.phonePriority) || 0) ||
+        (b.phone ? 1 : 0) - (a.phone ? 1 : 0)
+    );
+
+  const body = `
+    <section class="hero">
+      <h2>Phone calling lists</h2>
+      <p>Call <span class="tag-gop">GOP</span> and unknowns with phones on file. Script: intro → ballot ID (Housley + house candidate) → early vote ask → thank you. Do not call numbers not on your authorized list.</p>
+    </section>
+    <form class="card" method="get" action="/field/phones" style="margin-bottom:1rem">
+      <div class="grid">
+        <div>
+          <label><strong>House district</strong></label>
+          <select name="hd">
+            <option value="">All</option>
+            <option value="33A" ${q.hd === "33A" ? "selected" : ""}>33A</option>
+            <option value="33B" ${q.hd === "33B" ? "selected" : ""}>33B</option>
+          </select>
+        </div>
+        <div>
+          <label><strong>Party filter</strong></label>
+          <select name="party">
+            <option value="">All</option>
+            <option value="GOP" ${q.party === "GOP" ? "selected" : ""}>GOP</option>
+            <option value="UNK" ${q.party === "UNK" ? "selected" : ""}>Unknown</option>
+            <option value="NP" ${q.party === "NP" ? "selected" : ""}>NP/I</option>
+            <option value="DFL" ${q.party === "DFL" ? "selected" : ""}>DFL</option>
+          </select>
+        </div>
+        <div>
+          <label><strong>Search</strong></label>
+          <input name="q" value="${esc(q.q)}" />
+        </div>
+        <div><button class="btn" type="submit">Filter phones</button></div>
+      </div>
+    </form>
+    <div class="card">
+      <p><strong>${rows.length}</strong> records · phones appear after you import voter/phone-appended file</p>
+      ${contactTable(rows, { showPhone: true })}
+      <h3>Call script (30 sec)</h3>
+      <ol>
+        <li>“Hi, I’m a volunteer with the SD 33 team — is this [name]?”</li>
+        <li>“We’re reminding neighbors about Karin Housley for Senate and our house candidate in [33A/33B].”</li>
+        <li>“Can we count on your support? Will you vote early if you can?”</li>
+        <li>Mark: support / undecided / oppose / wrong number / NH.</li>
+      </ol>
+      <form method="post" action="/field/log" class="stack">
+        <input type="hidden" name="activity" value="phone" />
+        <input name="volunteer" placeholder="Your name" required />
+        <input name="count" placeholder="Calls attempted" />
+        <input name="result" placeholder="Results summary" />
+        <button class="btn" type="submit">Log phone shift</button>
+      </form>
+    </div>`;
+  res.send(layout("Phone lists", body));
+});
+
+app.get("/field/signs", (req, res) => {
+  const signs = loadJson(SIGNS_FILE);
+  const thorough = loadJson(THOROUGH_FILE);
+  const contacts = (loadContacts().contacts || []).filter(
+    (c) => c.signOk === "yes" || c.signOk === "ask"
+  );
+  const byPri = (signs.locations || []).slice().sort((a, b) => b.priority - a.priority);
+
+  const locRows = byPri
+    .map(
+      (s) => `<tr>
+        <td>${s.priority}</td>
+        <td><strong>${esc(s.label)}</strong><div class="muted">${esc(s.type)}</div></td>
+        <td>${esc(s.addressFocus)}</td>
+        <td>${esc(s.houseDistrict)}</td>
+        <td>${esc(s.action)}</td>
+      </tr>`
+    )
+    .join("");
+
+  const corridorSign = (thorough.corridors || [])
+    .slice()
+    .sort((a, b) => b.signPriority - a.signPriority)
+    .map(
+      (c) => `<tr>
+        <td>${c.signPriority}</td>
+        <td><strong>${esc(c.name)}</strong><div class="muted">${esc(c.source)}</div></td>
+        <td>${esc((c.towns || []).join(", "))}</td>
+        <td>${esc((c.houseDistricts || []).join(", "))}</td>
+        <td class="muted">${esc(c.signTip)}</td>
+      </tr>`
+    )
+    .join("");
+
+  const flash = req.session.flash;
+  delete req.session.flash;
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    <section class="hero">
+      <h2>Yard sign lists — polls + major thoroughfares</h2>
+      <p>Put signs where cars and voters already go: <strong>MnDOT highways, county arterials, and every polling-place approach</strong>. Always private property with permission.</p>
+      <p><strong style="color:var(--gop)">If on a busy street and they like a candidate — ask for a sign location, then log person + contact below.</strong></p>
+      <ul>${(signs.rules || []).map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
+    </section>
+    ${signAskCalloutAndForm({ redirect: "/field/signs" })}
+    <div class="card">
+      <h3>Priority sign locations (polls + early vote + corridors)</h3>
+      <table>
+        <thead><tr><th>Pri</th><th>Location</th><th>Address focus</th><th>HD</th><th>Action</th></tr></thead>
+        <tbody>${locRows}</tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Busiest streets for signs (DOT / county data)</h3>
+      <table>
+        <thead><tr><th>Sign pri</th><th>Corridor</th><th>Towns</th><th>HD</th><th>Tip</th></tr></thead>
+        <tbody>${corridorSign}</tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Homeowners to ask for signs (from contact file)</h3>
+      <p class="muted">Filtered to signOk = yes or ask. Import real names/phones for this list to work fully.</p>
+      ${contactTable(contacts)}
+      <form method="post" action="/field/log" class="stack" style="margin-top:1rem">
+        <input type="hidden" name="activity" value="sign" />
+        <input name="volunteer" placeholder="Your name" required />
+        <input name="count" placeholder="Signs placed" />
+        <input name="result" placeholder="Locations e.g. Manning x3, Hwy95 gateway x2" />
+        <button class="btn" type="submit">Log sign placement</button>
+      </form>
+    </div>`;
+  res.send(layout("Sign lists", body));
+});
+
+app.get("/field/streets", (req, res) => {
+  const thorough = loadJson(THOROUGH_FILE);
+  const cards = (thorough.corridors || [])
+    .slice()
+    .sort((a, b) => b.busyScore - a.busyScore)
+    .map(
+      (c) => `<article class="card">
+        <h3>${esc(c.name)}</h3>
+        <p><span class="tag-gop">Busy ${c.busyScore}/10</span>
+          · Door pri ${c.doorPriority} · Sign pri ${c.signPriority}</p>
+        <p class="muted">Source: ${esc(c.source)} · HD ${(c.houseDistricts || []).map(esc).join(", ")}</p>
+        <p><strong>Towns:</strong> ${esc((c.towns || []).join(", "))}</p>
+        <p><strong>Segments / addresses focus:</strong></p>
+        <ul>${(c.segments || []).map((s) => `<li>${esc(s)}</li>`).join("")}</ul>
+        <p>${esc(c.signTip)}</p>
+        <p><a class="btn btn-navy" href="/field/doors?corridor=${esc(c.id)}">Door list on this corridor</a></p>
+      </article>`
+    )
+    .join("");
+
+  const body = `
+    <section class="hero">
+      <h2>Busiest streets — MnDOT &amp; county databases</h2>
+      <p>${esc(thorough.source)}</p>
+      <ul>${(thorough.priorityNotes || []).map((n) => `<li>${esc(n)}</li>`).join("")}</ul>
+    </section>
+    <div class="grid">${cards}</div>
+    <p class="muted">Cross-check traffic counts on MnDOT maps and Washington County transportation pages before large sign buys.</p>`;
+  res.send(layout("Busy streets", body));
+});
+
+app.get("/field/polls", (req, res) => {
+  const polls = loadJson(POLLS_FILE);
+  const early = (polls.earlyVoteCenters || [])
+    .map(
+      (p) => `<tr>
+        <td><strong>${esc(p.name)}</strong></td>
+        <td>${esc(p.address)}</td>
+        <td>${esc(p.houseDistrictHint || "")}</td>
+        <td class="muted">${esc(p.signRadiusNote || "")}</td>
+      </tr>`
+    )
+    .join("");
+  const day = (polls.electionDay || [])
+    .map(
+      (p) => `<tr>
+        <td>${p.doorPriority || 10}</td>
+        <td><strong>${esc(p.name)}</strong><div class="muted">${esc(p.precinct)}</div></td>
+        <td>${esc(p.address)}</td>
+        <td>${esc(p.houseDistrict)}</td>
+        <td>${esc((p.nearbyStreets || []).join(", "))}</td>
+        <td><a href="/field/doors?pollOnly=1&hd=${esc(p.houseDistrict)}">Doors</a></td>
+      </tr>`
+    )
+    .join("");
+
+  const body = `
+    <section class="hero">
+      <h2>Polling places — door &amp; sign radius</h2>
+      <p>${esc(polls.source)}</p>
+      <p class="muted">${esc(polls.note || "")}</p>
+    </section>
+    <div class="card">
+      <h3>Early vote centers (sign + lit from day one of early voting)</h3>
+      <table>
+        <thead><tr><th>Site</th><th>Address</th><th>Area</th><th>Sign plan</th></tr></thead>
+        <tbody>${early}</tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Election Day polling places — knock &amp; sign first</h3>
+      <table>
+        <thead><tr><th>Pri</th><th>Polling place</th><th>Address</th><th>HD</th><th>Nearby streets</th><th></th></tr></thead>
+        <tbody>${day}</tbody>
+      </table>
+    </div>
+    <p><a class="btn" href="/field/doors?pollOnly=1">All poll-adjacent door contacts</a>
+    <a class="btn btn-navy" href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">SOS Pollfinder</a></p>`;
+  res.send(layout("Polling places", body));
+});
+
+app.get("/field/import", (req, res) => {
+  const data = loadContacts();
+  const flash = req.session.flash;
+  const err = req.session.err;
+  delete req.session.flash;
+  delete req.session.err;
+  const headers = (data.importFormat && data.importFormat.csvHeaders) || [];
+
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    ${err ? `<div class="flash flash-err">${esc(err)}</div>` : ""}
+    <section class="hero">
+      <h2>Import homeowners / voters</h2>
+      <p>Upload authorized list data: <strong>name, address, phone, party affiliation</strong>, house district, corridor, near poll. This replaces or merges into the contact file used by doors, phones, and signs.</p>
+      <p class="muted">${esc(data.disclaimer)}</p>
+    </section>
+    <div class="two">
+      <div class="card">
+        <h3>Paste CSV</h3>
+        <p class="muted">Header row required:<br/><code style="font-size:0.75rem">${esc(headers.join(","))}</code></p>
+        <form method="post" action="/field/import" class="stack">
+          <label>Mode</label>
+          <select name="mode">
+            <option value="replace">Replace all contacts</option>
+            <option value="merge">Merge by address (add/update)</option>
+          </select>
+          <label>CSV text</label>
+          <textarea name="csv" rows="12" required placeholder="name,address,city,..."></textarea>
+          <button class="btn" type="submit">Import contacts</button>
+        </form>
+        <p><a href="/data/contacts_import_template.csv">Download template CSV</a> (place file in browser via static path if served)</p>
+      </div>
+      <div class="card">
+        <h3>Where to get real data</h3>
+        <ul>
+          <li>Minnesota political party / caucus voter file export</li>
+          <li>NGP VAN / PDI / similar campaign CRM walk lists</li>
+          <li>Phone append vendors used by campaigns (lawful use only)</li>
+          <li>Volunteer-collected sign permission forms (name + phone + address)</li>
+        </ul>
+        <p><strong>Party codes:</strong> GOP, DFL, NP, UNK</p>
+        <p><strong>streetCorridor ids:</strong> th36, th95, cr96, csah15, csah5, forest_lake_arterials, bayport_marine</p>
+        <p>Template file on disk: <code>data/contacts_import_template.csv</code></p>
+      </div>
+    </div>`;
+  res.send(layout("Import contacts", body));
+});
+
+app.post("/field/import", (req, res) => {
+  const raw = String(req.body.csv || "").trim();
+  if (!raw) {
+    req.session.err = "Paste CSV content first.";
+    return res.redirect("/field/import");
+  }
+  const lines = raw.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) {
+    req.session.err = "Need header + at least one data row.";
+    return res.redirect("/field/import");
+  }
+  function parseLine(line) {
+    const out = [];
+    let cur = "";
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQ = !inQ;
+        continue;
+      }
+      if (ch === "," && !inQ) {
+        out.push(cur.trim());
+        cur = "";
+        continue;
+      }
+      cur += ch;
+    }
+    out.push(cur.trim());
+    return out;
+  }
+  const headers = parseLine(lines[0]).map((h) => h.trim());
+  const required = ["name", "address"];
+  for (const r of required) {
+    if (!headers.includes(r)) {
+      req.session.err = `Missing required column: ${r}`;
+      return res.redirect("/field/import");
+    }
+  }
+  const parsed = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseLine(lines[i]);
+    if (!cols.length || cols.every((c) => !c)) continue;
+    const row = {};
+    headers.forEach((h, idx) => {
+      row[h] = cols[idx] || "";
+    });
+    parsed.push({
+      id: "c_" + Date.now() + "_" + i,
+      name: row.name,
+      address: row.address,
+      city: row.city || "",
+      zip: row.zip || "",
+      phone: row.phone || "",
+      email: row.email || "",
+      partyAffiliation: (row.partyAffiliation || "UNK").toUpperCase(),
+      houseDistrict: row.houseDistrict || "",
+      precinct: row.precinct || "",
+      streetCorridor: row.streetCorridor || "",
+      nearPollingPlace: row.nearPollingPlace || "",
+      doorPriority: Number(row.doorPriority) || 5,
+      phonePriority: Number(row.phonePriority) || 5,
+      signOk: row.signOk || "ask",
+      notes: row.notes || "",
+      isDemo: false,
+    });
+  }
+  if (!parsed.length) {
+    req.session.err = "No data rows parsed.";
+    return res.redirect("/field/import");
+  }
+  const file = loadContacts();
+  if (req.body.mode === "merge") {
+    const map = new Map();
+    for (const c of file.contacts || []) {
+      map.set((c.address + "|" + c.city).toLowerCase(), c);
+    }
+    for (const c of parsed) {
+      map.set((c.address + "|" + c.city).toLowerCase(), c);
+    }
+    file.contacts = Array.from(map.values());
+  } else {
+    file.contacts = parsed;
+  }
+  file.disclaimer =
+    file.disclaimer ||
+    "Imported contact data. Use only for lawful campaign purposes.";
+  saveJson(CONTACTS_FILE, file);
+  req.session.flash = `Imported ${parsed.length} contacts (${req.body.mode || "replace"}).`;
+  res.redirect("/field/doors");
+});
+
+app.post("/field/log", (req, res) => {
+  const logs = loadJson(FIELD_LOG);
+  logs.unshift({
+    id: "f_" + Date.now(),
+    activity: String(req.body.activity || ""),
+    volunteer: String(req.body.volunteer || "").slice(0, 100),
+    count: String(req.body.count || "").slice(0, 40),
+    result: String(req.body.result || "").slice(0, 300),
+    at: new Date().toISOString(),
+  });
+  saveJson(FIELD_LOG, logs.slice(0, 3000));
+  req.session.flash = "Field activity logged.";
+  const back =
+    req.body.activity === "phone"
+      ? "/field/phones"
+      : req.body.activity === "sign"
+        ? "/field/signs"
+        : "/field/doors";
+  res.redirect(back);
+});
+
+app.post("/field/sign-ask", (req, res) => {
+  const entry = {
+    id: "sa_" + Date.now(),
+    at: new Date().toISOString(),
+    volunteer: String(req.body.volunteer || "").slice(0, 100),
+    onBusyStreet: String(req.body.onBusyStreet || ""),
+    corridor: String(req.body.corridor || ""),
+    interested: String(req.body.interested || ""),
+    askedForSign: String(req.body.askedForSign || ""),
+    signLocation: String(req.body.signLocation || "").slice(0, 200),
+    city: String(req.body.city || "").slice(0, 80),
+    personSpokenTo: String(req.body.personSpokenTo || "").slice(0, 120),
+    contact: String(req.body.contact || "").slice(0, 160),
+    candidates: String(req.body.candidates || "").slice(0, 200),
+    houseDistrict: String(req.body.houseDistrict || ""),
+    notes: String(req.body.notes || "").slice(0, 500),
+  };
+  const list = loadJson(SIGN_ASKS_FILE);
+  list.unshift(entry);
+  saveJson(SIGN_ASKS_FILE, list.slice(0, 5000));
+  req.session.flash =
+    entry.askedForSign === "yes_got" || entry.signLocation
+      ? `Saved sign ask: ${entry.personSpokenTo || "contact"} @ ${entry.signLocation || "location TBD"}`
+      : "Saved door conversation / sign ask.";
+  let redirect = String(req.body.redirect || "/field/doors");
+  if (!redirect.startsWith("/")) redirect = "/field/doors";
+  res.redirect(redirect);
+});
+
+app.get("/team/sign-asks", (req, res) => {
+  const list = loadJson(SIGN_ASKS_FILE);
+  const yesSigns = list.filter(
+    (s) => s.askedForSign === "yes_got" || (s.signLocation && s.interested === "yes")
+  );
+  const rows = list
+    .map(
+      (s) => `<tr>
+        <td class="muted">${esc((s.at || "").slice(0, 16).replace("T", " "))}</td>
+        <td>${esc(s.volunteer)}</td>
+        <td>${s.onBusyStreet === "yes" ? '<span class="tag-gop">BUSY</span>' : "side"}</td>
+        <td><strong>${esc(s.personSpokenTo)}</strong><div class="muted">${esc(s.contact || "—")}</div></td>
+        <td>${esc(s.signLocation || "—")}<div class="muted">${esc(s.city || "")} ${esc(s.houseDistrict || "")}</div></td>
+        <td>${esc(s.interested)} / ${esc(s.askedForSign)}</td>
+        <td class="muted">${esc(s.candidates || "")} ${esc(s.notes || "")}</td>
+      </tr>`
+    )
+    .join("");
+
+  const body = `
+    <section class="hero">
+      <h2>Sign asks — person, location, contact</h2>
+      <p><strong>${list.length}</strong> logged · <strong>${yesSigns.length}</strong> with interest / sign yes</p>
+      <p class="muted">Rule: on a busy street + interested in candidate → ask for sign location.</p>
+      <p><a class="btn" href="/field/doors">Log from doors</a> <a class="btn btn-navy" href="/field/signs">Sign lists</a></p>
+    </section>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Volunteer</th>
+            <th>Street</th>
+            <th>Person spoken to · contact</th>
+            <th>Sign location</th>
+            <th>Interest / ask</th>
+            <th>Candidates / notes</th>
+          </tr>
+        </thead>
+        <tbody>${rows || "<tr><td colspan=7>None yet — use the form on Door knocks or Sign lists</td></tr>"}</tbody>
+      </table>
+    </div>`;
+  res.send(layout("Sign asks", body));
+});
+
+// Serve template CSV
+app.get("/data/contacts_import_template.csv", (req, res) => {
+  res.type("text/csv");
+  res.sendFile(path.join(DATA, "contacts_import_template.csv"));
+});
+
+/* ---------- Public review portal (share this) ---------- */
+app.get("/review", (req, res) => {
+  const base = phoneShareBase(req);
+  const flash = req.session.flash;
+  delete req.session.flash;
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    <section class="photo-hero shore">
+      <div class="photo-hero-content">
+        <span class="badge pri">Share this page</span>
+        <h2>Review our SD 33 plan — advise changes</h2>
+        <p>You’re invited to look over the volunteer hub for Washington County’s St. Croix Valley races. Tell us what to add, cut, or fix so we win Senate 33, House 33A, and House 33B.</p>
+        <p class="review-stars">★★★★★</p>
+      </div>
+      <span class="photo-credit">Minnesota lake country</span>
+    </section>
+
+    ${phoneLinksBox(req)}
+
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Copy &amp; share (use phone link on mobile)</h3>
+      <p><input class="share-input" id="rev-link" readonly value="${esc(base)}/review" onclick="this.select()" /></p>
+      <button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('rev-link').value);this.textContent='Link copied!'">Copy review link</button>
+      <button type="button" class="btn btn-navy" onclick="navigator.clipboard.writeText('Please review our SD 33 volunteer site and leave advice:\\n${esc(base)}/review');this.textContent='Message copied!'">Copy invite text</button>
+      <p class="muted" style="margin-top:0.75rem">Also: <a href="/my-gop-ballot">${esc(base)}/my-gop-ballot</a> · <a href="/win-playbook">Win playbook</a></p>
+    </div>
+
+    <div class="grid" style="margin-bottom:1rem">
+      <article class="card">
+        <div class="card-photo loon"></div>
+        <h3>1. Try the tools (5 min)</h3>
+        <ul class="checklist">
+          <li><a href="/my-gop-ballot">GOP ballot by address</a> — Lindell listed leading for Governor</li>
+          <li>Check preferred candidates (pre-primary + post package)</li>
+          <li><a href="/field/doors">Doors</a> + busy-street <strong>sign ask</strong></li>
+          <li><a href="/carry">Lit to carry</a> checkboxes</li>
+        </ul>
+      </article>
+      <article class="card">
+        <div class="card-photo autumn"></div>
+        <h3>2. Read the win plan</h3>
+        <ul class="checklist">
+          <li><a href="/win-playbook">Full winning playbook</a></li>
+          <li>Three local seats + top of ticket</li>
+          <li>Poll rings, thoroughfares, early vote</li>
+          <li>What we may still be missing</li>
+        </ul>
+      </article>
+      <article class="card">
+        <div class="card-photo valley"></div>
+        <h3>3. Advise us</h3>
+        <p>What confuses you? What’s missing for a real win? Be blunt.</p>
+        <a class="btn" href="#advise">Leave advice ↓</a>
+      </article>
+    </div>
+
+    <section class="card" style="margin-bottom:1rem">
+      <h3>Snapshot for reviewers</h3>
+      <table>
+        <tr><th>Focus</th><th>Detail</th></tr>
+        <tr><td>Seats to win</td><td>SD 33 (Housley GOP) · HD 33A open · HD 33B challenge</td></tr>
+        <tr><td>Governor (GOP list)</td><td><strong>Mike Lindell leading</strong> (first / LEADING badge), then Qualls, Demuth, others</td></tr>
+        <tr><td>Field emphasis</td><td>Doors &gt; signs on busy streets &gt; phones &gt; lit</td></tr>
+        <tr><td>Busy street rule</td><td>Interested in candidate → ask for sign location + log person &amp; contact</td></tr>
+        <tr><td>Visual brand</td><td>Loons, lakes, St. Croix valley — Minnesota pride</td></tr>
+      </table>
+    </section>
+
+    <section class="card" id="advise">
+      <h2>Your advice &amp; suggested changes</h2>
+      <form class="stack" method="post" action="/share/feedback">
+        <label>Name (optional)</label>
+        <input name="name" maxlength="100" />
+        <label>Email or phone (optional)</label>
+        <input name="contact" maxlength="160" />
+        <label>I am a…</label>
+        <select name="role">
+          <option>Neighbor / voter</option>
+          <option>Volunteer</option>
+          <option>Captain / organizer</option>
+          <option>Candidate / staff</option>
+          <option>Other</option>
+        </select>
+        <label>Overall usefulness</label>
+        <select name="rating">
+          <option value="5">5 — ready to share widely</option>
+          <option value="4">4 — strong, small fixes</option>
+          <option value="3" selected>3 — promising</option>
+          <option value="2">2 — needs work</option>
+          <option value="1">1 — start over</option>
+        </select>
+        <label>What should we add, change, or cut?</label>
+        <textarea name="message" required rows="5" maxlength="2000" placeholder="e.g. need Spanish, clearer Lindell package, more Forest Lake maps, SMS signup, event calendar…"></textarea>
+        <button class="btn btn-gold" type="submit">Submit advice</button>
+      </form>
+      <p class="muted">Organizers read advice at <a href="/team/feedback">/team/feedback</a>.</p>
+    </section>`;
+  res.send(layout("Review & advise", body));
+});
+
+/* ---------- Win playbook (research-backed tactics) ---------- */
+app.get("/win-playbook", (req, res) => {
+  const body = `
+    <section class="photo-hero autumn">
+      <div class="photo-hero-content">
+        <span class="badge pri">Playbook</span>
+        <h2>Best approach to win SD 33 · 33A · 33B</h2>
+        <p>Built from competitive suburban/exurban legislative practice: multiple light touches, poll-adjacent density, early vote, and local trust — with Minnesota character front and center.</p>
+      </div>
+    </section>
+
+    <div class="card" style="margin-bottom:1rem">
+      <h3>North star</h3>
+      <p>Win <strong>three local seats</strong> (Senate 33 + both house halves). Use top-of-ticket energy (<span class="tag-gop">GOP</span> Governor with <strong>Lindell leading</strong> on our list, U.S. Senate, U.S. House) to lift turnout — but never skip the local name on the door piece.</p>
+    </div>
+
+    <div class="two" style="margin-bottom:1rem">
+      <div class="card">
+        <h3>What already works on this site</h3>
+        <ul class="checklist">
+          <li>Address → GOP ballot + checkboxes</li>
+          <li>Pre-primary vs post-primary package</li>
+          <li>Lit carry checklist</li>
+          <li>Doors / phones / signs / poll rings</li>
+          <li>Busy-street sign ask + person + contact log</li>
+          <li>MnDOT/county thoroughfare priorities</li>
+          <li>Share + review + feedback</li>
+          <li>Contact CSV import for real voter file</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Governor display (your request)</h3>
+        <p><span class="badge pri">LEADING</span> <strong>Mike Lindell (GOP)</strong> is first on every Governor list — not Demuth.</p>
+        <p class="muted">Primary Aug 11 · others still listed for honest choice &amp; feedback.</p>
+        <a class="btn" href="/my-gop-ballot">See ballot</a>
+      </div>
+    </div>
+
+    <section class="card" style="margin-bottom:1rem">
+      <h3>Winning tactics (in order)</h3>
+      <div class="tactic"><strong>1. Relational organizing first</strong>Each volunteer lists 20 people they know in SD 33. Text/call them before cold doors. Highest conversion rate in modern campaigns.</div>
+      <div class="tactic"><strong>2. Poll-ring saturation</strong>0.25–0.5 mile around every Election Day site + early vote centers. Doors 2–3× + signs with permission. Final weekend: GOTV only.</div>
+      <div class="tactic"><strong>3. Busy-street signs with permission</strong>Hwy 36, Hwy 95, Manning, CR 96, Forest Lake arterials. Script: if interested → ask sign location → log person + contact. Never ROW without permit.</div>
+      <div class="tactic"><strong>4. Local three always on the piece</strong>Housley (SD33) + 33A GOP + 33B GOP. Top ticket is optional add-on after primary; local names win the legislature.</div>
+      <div class="tactic"><strong>5. Early vote chase</strong>From mid-September: who requested absentee / voted early? Chase supporters who haven’t voted. Washington County early sites listed on Field → Polls.</div>
+      <div class="tactic"><strong>6. Persuasion vs base split</strong>GOP + lean: turnout + signs. NP/swing: short contrast on schools, taxes, costs, safety. Hard DFL: skip for efficiency unless banked.</div>
+      <div class="tactic"><strong>7. Multi-touch cadence</strong>Lit drop → door → text/phone → second door. One contact rarely moves a suburban independent.</div>
+      <div class="tactic"><strong>8. Compliance &amp; trust</strong>No mailbox stuffing. Disclose paid for by. Respect no-soliciting counsel. Happy, short door visits beat long arguments.</div>
+    </section>
+
+    <section class="card" style="margin-bottom:1rem">
+      <h3>Gaps we researched — add these next if you can</h3>
+      <table>
+        <thead><tr><th>Missing piece</th><th>Why it wins</th><th>Status here</th></tr></thead>
+        <tbody>
+          <tr><td>Live VAN / voter file sync</td><td>Real phones, scores, vote history</td><td>CSV import ready — connect file</td></tr>
+          <tr><td>Peer-to-peer texting (Hustle/OpnSesame style)</td><td>Scale personal asks</td><td>Manual phones only — add export</td></tr>
+          <tr><td>Event calendar (parades, fairs, forums)</td><td>Visibility in Stillwater/FL</td><td>Add events page</td></tr>
+          <tr><td>Spanish / accessibility pass</td><td>Broader households</td><td>English first — review asked</td></tr>
+          <tr><td>Donation / ActBlue-or-WinRed link</td><td>Fund mail &amp; signs</td><td>Not wired — add when legal entity set</td></tr>
+          <tr><td>Opposition contrast one-pagers</td><td>Door leave-behind</td><td>Fair contrast only; build post-primary</td></tr>
+          <tr><td>Precinct-level targets &amp; win numbers</td><td>Know exact votes needed</td><td>Turf by 33A/33B; refine with past results</td></tr>
+          <tr><td>SMS/email capture double opt-in</td><td>Re-engage</td><td>Forms capture contact; expand CRM</td></tr>
+          <tr><td>Hosted public URL (not localhost)</td><td>True shareability</td><td>Use LAN IP / host / tunnel for /review</td></tr>
+          <tr><td>Volunteer schedule board</td><td>Fill Saturday shifts</td><td>Shift prefs on lit form; expand calendar</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" style="margin-bottom:1rem">
+      <h3>Weekly rhythm (peak season)</h3>
+      <ul>
+        <li><strong>Tue</strong> phones / texts (GOP + UNK with numbers)</li>
+        <li><strong>Thu</strong> captain huddle — turf, sign inventory, early vote chase list</li>
+        <li><strong>Sat</strong> doors (poll rings AM, busy-corridor feeders PM) + sign asks</li>
+        <li><strong>Sun</strong> optional second canvass or community visibility</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>Visual brand (why loons &amp; lakes)</h3>
+      <div class="gallery">
+        <img src="/images/loon-lake.jpg" alt="Loon" />
+        <img src="/images/st-croix-valley.jpg" alt="Valley" />
+        <img src="/images/mn-lake-shore.jpg" alt="Shore" />
+        <img src="/images/autumn-lakeside.jpg" alt="Autumn" />
+      </div>
+      <p>People vote for neighbors who love this place. The site uses St. Croix valley, lakes, and loon imagery so the campaign feels local — not generic national template.</p>
+      <p><a class="btn btn-gold" href="/review">Send for review</a> <a class="btn" href="/share">Share links</a></p>
+    </section>`;
+  res.send(layout("Win playbook", body));
+});
+
+/* ---------- Share site + collect feedback ---------- */
+app.get("/share", (req, res) => {
+  const base = phoneShareBase(req);
+  const shareUrl = `${base}/my-gop-ballot`;
+  const homeUrl = `${base}/`;
+  const feedbackUrl = `${base}/share#feedback`;
+  const flash = req.session.flash;
+  delete req.session.flash;
+
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    <section class="hero">
+      <span class="badge pri">Share</span>
+      <h2>Share this site for feedback</h2>
+      <p>Best public link for review: <a href="/review"><strong>/review</strong></a> — plan + tools + advice form.</p>
+      <p><a class="btn btn-gold" href="/review">Open full review portal</a></p>
+    </section>
+    ${phoneLinksBox(req)}
+
+    <div class="gallery">
+      <img src="/images/loon-lake.jpg" alt="Loon" />
+      <img src="/images/st-croix-valley.jpg" alt="Valley" />
+      <img src="/images/mn-lake-shore.jpg" alt="Shore" />
+      <img src="/images/autumn-lakeside.jpg" alt="Autumn" />
+    </div>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Links to copy</h3>
+        <p><strong>Review &amp; advise</strong> (best general share)</p>
+        <p><input class="share-input" id="link-review" type="text" readonly value="${esc(base)}/review" onclick="this.select()" /></p>
+        <button type="button" class="btn btn-gold" onclick="navigator.clipboard.writeText(document.getElementById('link-review').value);this.textContent='Copied!';">Copy review link</button>
+
+        <p style="margin-top:1rem"><strong>GOP ballot + picks</strong></p>
+        <p><input class="share-input" id="link-ballot" type="text" readonly value="${esc(shareUrl)}" onclick="this.select()" /></p>
+        <button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('link-ballot').value);this.textContent='Copied!';">Copy ballot link</button>
+
+        <p style="margin-top:1rem"><strong>Home</strong></p>
+        <p><input class="share-input" id="link-home" type="text" readonly value="${esc(homeUrl)}" onclick="this.select()" /></p>
+        <button type="button" class="btn btn-navy" onclick="navigator.clipboard.writeText(document.getElementById('link-home').value);this.textContent='Copied!';">Copy home link</button>
+
+        <p style="margin-top:1rem"><strong>Feedback form</strong></p>
+        <p><input class="share-input" id="link-fb" type="text" readonly value="${esc(feedbackUrl)}" onclick="this.select()" /></p>
+        <button type="button" class="btn btn-navy" onclick="navigator.clipboard.writeText(document.getElementById('link-fb').value);this.textContent='Copied!';">Copy feedback link</button>
+      </article>
+
+      <article class="card">
+        <h3>Text / email blurb</h3>
+        <textarea id="blurb" rows="10" readonly class="share-input" style="max-width:100%">Please review our SD 33 St. Croix Valley volunteer site (lakes, loons, local races). Try the tools and tell us what to change so we win Senate 33 + House 33A + 33B:
+
+${base}/review
+
+GOP ballot by address (Lindell listed leading for Governor):
+${shareUrl}
+
+Thanks!
+</textarea>
+        <button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('blurb').value);this.textContent='Blurb copied!';">Copy message</button>
+        <p class="muted" style="margin-top:0.75rem">On your phone: open this page, copy the link, paste into text/email/Facebook group.</p>
+        <p class="muted"><strong>Note:</strong> On your home Wi‑Fi, others on the same network can use <code>http://YOUR-PC-IP:3050</code> if Windows Firewall allows port 3050. For the public internet, host this app (or use a tunnel) and share that URL instead of localhost.</p>
+      </article>
+    </div>
+
+    <section class="card" id="feedback" style="margin-top:1rem">
+      <h2>Leave feedback</h2>
+      <p class="muted">What works? What’s confusing? Missing candidates? Tell us.</p>
+      <form class="stack" method="post" action="/share/feedback">
+        <label>Your name (optional)</label>
+        <input name="name" maxlength="100" />
+        <label>Email or phone (optional)</label>
+        <input name="contact" maxlength="160" />
+        <label>How useful is this site?</label>
+        <select name="rating">
+          <option value="5">5 — very useful</option>
+          <option value="4">4</option>
+          <option value="3" selected>3 — okay</option>
+          <option value="2">2</option>
+          <option value="1">1 — not useful</option>
+        </select>
+        <label>Feedback</label>
+        <textarea name="message" required rows="4" maxlength="2000" placeholder="e.g. add more towns, unclear checkboxes, want SMS share…"></textarea>
+        <label>I am a…</label>
+        <select name="role">
+          <option>Volunteer</option>
+          <option>Neighbor / voter</option>
+          <option>Captain / organizer</option>
+          <option>Candidate / staff</option>
+          <option>Other</option>
+        </select>
+        <button class="btn" type="submit">Send feedback</button>
+      </form>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <h3>For you (organizer)</h3>
+      <ul>
+        <li><a href="/team/preferences">Candidate pick totals</a> — who people checked</li>
+        <li><a href="/team/feedback">Read feedback</a> — all comments</li>
+        <li><a href="/my-gop-ballot">Ballot tool</a> — same link you share</li>
+      </ul>
+    </section>`;
+  res.send(layout("Share & feedback", body));
+});
+
+app.post("/share/feedback", (req, res) => {
+  const list = loadJson(FEEDBACK_FILE);
+  list.unshift({
+    id: "fb_" + Date.now(),
+    at: new Date().toISOString(),
+    name: String(req.body.name || "").slice(0, 100),
+    contact: String(req.body.contact || "").slice(0, 160),
+    rating: String(req.body.rating || ""),
+    role: String(req.body.role || ""),
+    message: String(req.body.message || "").slice(0, 2000),
+  });
+  saveJson(FEEDBACK_FILE, list.slice(0, 2000));
+  req.session.flash = "Thanks — your feedback was saved.";
+  const ref = String(req.get("referer") || "");
+  if (ref.includes("/review")) return res.redirect("/review#advise");
+  res.redirect("/share#feedback");
+});
+
+app.get("/team/preferences", (req, res) => {
+  const prefs = loadJson(PREFS_FILE);
+  const counts = {};
+  let pre = 0;
+  let post = 0;
+  let fullPkg = 0;
+  for (const p of prefs) {
+    if ((p.phases || []).includes("pre_primary")) pre++;
+    if ((p.phases || []).includes("post_package")) post++;
+    if (p.wantFullPackage) fullPkg++;
+    for (const c of p.preferred || []) {
+      const key = `${c.raceKey}||${c.candidate}`;
+      counts[key] = (counts[key] || 0) + 1;
+    }
+  }
+  const rows = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, n]) => {
+      const [race, name] = k.split("||");
+      return `<tr><td><span class="tag-gop">GOP</span> ${esc(name)}</td><td class="muted">${esc(race)}</td><td><strong>${n}</strong></td></tr>`;
+    })
+    .join("");
+
+  const recent = prefs
+    .slice(0, 25)
+    .map(
+      (p) => `<tr>
+        <td class="muted">${esc((p.at || "").slice(0, 16).replace("T", " "))}</td>
+        <td>${esc(p.name || "—")}</td>
+        <td>${esc(p.address?.city || "")} ${esc(p.houseDistrict || "")}</td>
+        <td>${esc((p.phases || []).join(", "))}${p.wantFullPackage ? " · full package" : ""}</td>
+        <td class="muted">${esc((p.preferred || []).map((x) => x.candidate).join("; ").slice(0, 100))}</td>
+      </tr>`
+    )
+    .join("");
+
+  const body = `
+    <section class="hero">
+      <h2>Preferred candidate totals</h2>
+      <p><strong>${prefs.length}</strong> submissions · Pre-primary: <strong>${pre}</strong> · Post-package: <strong>${post}</strong> · Want full package lit: <strong>${fullPkg}</strong></p>
+      <p><a class="btn" href="/share">Share site</a> <a class="btn btn-navy" href="/team/feedback">Feedback list</a></p>
+    </section>
+    <div class="card">
+      <h3>Most-checked GOP candidates</h3>
+      <table>
+        <thead><tr><th>Candidate</th><th>Race key</th><th>Picks</th></tr></thead>
+        <tbody>${rows || "<tr><td colspan=3>No picks yet — share /my-gop-ballot</td></tr>"}</tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3>Recent submissions</h3>
+      <table>
+        <thead><tr><th>When</th><th>Name</th><th>Area</th><th>Phase</th><th>Picks</th></tr></thead>
+        <tbody>${recent || "<tr><td colspan=5>None yet</td></tr>"}</tbody>
+      </table>
+    </div>`;
+  res.send(layout("Pick totals", body));
+});
+
+app.get("/team/feedback", (req, res) => {
+  const list = loadJson(FEEDBACK_FILE);
+  const rows = list
+    .map(
+      (f) => `<tr>
+        <td class="muted">${esc((f.at || "").slice(0, 16).replace("T", " "))}</td>
+        <td>${esc(f.rating)}/5</td>
+        <td>${esc(f.role)}</td>
+        <td>${esc(f.name || "—")}<div class="muted">${esc(f.contact || "")}</div></td>
+        <td>${esc(f.message)}</td>
+      </tr>`
+    )
+    .join("");
+  const body = `
+    <section class="hero">
+      <h2>Feedback from people</h2>
+      <p><strong>${list.length}</strong> comments · <a href="/share">Share link again</a></p>
+    </section>
+    <div class="card">
+      <table>
+        <thead><tr><th>When</th><th>Rating</th><th>Role</th><th>Who</th><th>Message</th></tr></thead>
+        <tbody>${rows || "<tr><td colspan=5>No feedback yet</td></tr>"}</tbody>
+      </table>
+    </div>`;
+  res.send(layout("Feedback", body));
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  const ips = lanIps();
+  console.log(`SD 33 Field & Lit HQ`);
+  console.log(`  This PC only:  http://localhost:${PORT}`);
+  if (ips.length) {
+    for (const ip of ips) {
+      console.log(`  Phone Wi-Fi:   http://${ip}:${PORT}/review`);
+    }
+  } else {
+    console.log(`  Phone: use your PC Wi-Fi IPv4 from ipconfig, port ${PORT}`);
+  }
+});

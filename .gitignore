@@ -1,0 +1,21 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.npm/
+data/candidate_prefs.json
+data/feedback.json
+data/sign_asks.json
+data/lit_signups.json
+data/drop_logs.json
+data/field_activity.json
+# keep structure / templates / seed data configs
+!data/candidates.json
+!data/geo_lookup.json
+!data/thoroughfares.json
+!data/polling_places.json
+!data/sign_locations.json
+!data/contacts.json
+!data/contacts_import_template.csv

@@ -1,0 +1,3 @@
+name,address,city,zip,phone,email,partyAffiliation,houseDistrict,precinct,streetCorridor,nearPollingPlace,doorPriority,phonePriority,signOk,notes
+Jane Example,123 Oak St N,Stillwater,55082,651-555-0100,,GOP,33B,W1-P1,th95,St. Paul Lutheran Church,10,9,yes,From voter file export
+John Example,456 Lake St S,Forest Lake,55025,651-555-0101,,NP,33A,FL-2,forest_lake_arterials,Forest Lake City Center,8,7,ask,Independent lean

@@ -1,0 +1,95 @@
+{
+  "source": "Public municipal listings (Stillwater, Forest Lake) + Washington County early-vote sites. Confirm Election Day assignments at pollfinder.sos.mn.gov — locations can change.",
+  "asOf": "2026-07-19",
+  "earlyVoteCenters": [
+    {
+      "name": "Washington County Government Center",
+      "address": "14949 62nd Street N, Stillwater, MN 55082",
+      "type": "early_vote",
+      "houseDistrictHint": "33B area",
+      "signRadiusNote": "Priority yard signs within 0.5 mile on 62nd St, Manning approaches, and Hwy 36 feeders (private property only)."
+    },
+    {
+      "name": "Forest Lake Headwaters / Washington County Service Center",
+      "address": "19955 Forest Road N, Forest Lake, MN 55025",
+      "type": "early_vote",
+      "houseDistrictHint": "33A area",
+      "signRadiusNote": "Priority signs on Forest Road N approaches and nearby arterials."
+    }
+  ],
+  "electionDay": [
+    {
+      "name": "St. Paul Lutheran Church",
+      "address": "609 5th Street S, Stillwater, MN 55082",
+      "precinct": "Stillwater Ward 1 Precinct 1",
+      "houseDistrict": "33B",
+      "nearbyStreets": ["5th St S", "S Main St / Hwy 95", "4th St", "Olive St"],
+      "doorPriority": 10,
+      "signPriority": 10
+    },
+    {
+      "name": "Trinity Lutheran Church",
+      "address": "115 4th Street N, Stillwater, MN 55082",
+      "precinct": "Stillwater Ward 2 Precinct 2",
+      "houseDistrict": "33B",
+      "nearbyStreets": ["4th St N", "Main St / Hwy 95", "2nd St", "Myrtle St"],
+      "doorPriority": 10,
+      "signPriority": 10
+    },
+    {
+      "name": "Stillwater Evangelical Free Church",
+      "address": "7671 Manning Ave N, Stillwater, MN 55082",
+      "precinct": "Stillwater Ward 3 Precinct 3",
+      "houseDistrict": "33B",
+      "nearbyStreets": ["Manning Ave N", "Hwy 36 area feeders", "residential side streets off Manning"],
+      "doorPriority": 10,
+      "signPriority": 10
+    },
+    {
+      "name": "Forest Lake Senior Center",
+      "address": "767 4th Street SW, Forest Lake, MN 55025",
+      "precinct": "Forest Lake Precinct 1",
+      "houseDistrict": "33A",
+      "nearbyStreets": ["4th St SW", "Lake St area", "SW residential grid"],
+      "doorPriority": 10,
+      "signPriority": 10
+    },
+    {
+      "name": "Forest Lake City Center (Community Room)",
+      "address": "1408 Lake Street S, Forest Lake, MN 55025",
+      "precinct": "Forest Lake Precinct 2",
+      "houseDistrict": "33A",
+      "nearbyStreets": ["Lake St S", "Broadway", "city center blocks"],
+      "doorPriority": 10,
+      "signPriority": 10
+    },
+    {
+      "name": "Faith Lutheran Church",
+      "address": "886 North Shore Drive, Forest Lake, MN 55025",
+      "precinct": "Forest Lake Precinct 3",
+      "houseDistrict": "33A",
+      "nearbyStreets": ["North Shore Dr", "lakeside approaches"],
+      "doorPriority": 9,
+      "signPriority": 9
+    },
+    {
+      "name": "Hosanna Lutheran Church",
+      "address": "9300 Scandia Trail, Forest Lake, MN 55025",
+      "precinct": "Forest Lake Precinct 4",
+      "houseDistrict": "33A",
+      "nearbyStreets": ["Scandia Trail", "trail corridor residential"],
+      "doorPriority": 9,
+      "signPriority": 9
+    },
+    {
+      "name": "Washington County Service Center (Forest Lake)",
+      "address": "19955 Forest Road N, Forest Lake, MN 55025",
+      "precinct": "Forest Lake Precinct 5",
+      "houseDistrict": "33A",
+      "nearbyStreets": ["Forest Road N", "service center approaches"],
+      "doorPriority": 9,
+      "signPriority": 9
+    }
+  ],
+  "note": "Add Bayport, Marine, Scandia, Hugo, Oak Park Heights, May Township precinct sites from SOS pollfinder before each election. Always verify."
+}

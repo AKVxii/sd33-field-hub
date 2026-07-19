@@ -1,0 +1,19 @@
+{
+  "name": "sd33-litdrop",
+  "version": "1.0.0",
+  "description": "SD 33 volunteer literature drop platform — win Senate 33 + House 33A + House 33B",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node scripts/seed.js",
+    "postinstall": "node -e \"const fs=require('fs');if(!fs.existsSync('data'))fs.mkdirSync('data');\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "morgan": "^1.10.0"
+  }
+}

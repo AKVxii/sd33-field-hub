@@ -1,0 +1,193 @@
+{
+  "asOf": "2026-07-19",
+  "note": "Primary Aug 11, 2026 · General Nov 3, 2026. Lists reflect publicly reported filed/declared candidates. Update after primary. Party labels: GOP = Republican.",
+  "races": {
+    "governor": {
+      "office": "Governor of Minnesota",
+      "scope": "Statewide",
+      "gop": [
+        { "name": "Mike Lindell", "party": "GOP", "note": "LEADING · MyPillow CEO · running mate Phillip Parrish · Trump endorsed", "leading": true },
+        { "name": "Kendall Qualls", "party": "GOP", "note": "MNGOP endorsed · running mate Brian Nicholson" },
+        { "name": "Lisa Demuth", "party": "GOP", "note": "House Speaker · running mate Ryan Wilson" },
+        { "name": "Loner Blue", "party": "GOP", "note": "Running mate Andrew Maass" },
+        { "name": "Raul Estrada", "party": "GOP", "note": "Running mate Joe Kincaid" },
+        { "name": "John Krhin", "party": "GOP", "note": "Running mate Dennis Conn" },
+        { "name": "Ross Nova", "party": "GOP", "note": "Running mate Kerry Busby" }
+      ],
+      "other": [
+        { "name": "Amy Klobuchar", "party": "DFL", "note": "U.S. Senator · DFL endorsed · running mate Ben Schierer" },
+        { "name": "Tom Evenstad", "party": "DFL", "note": "Running mate Jason Haarsager" },
+        { "name": "Bill Gates, Jr.", "party": "DFL", "note": "Running mate Leah Harris" },
+        { "name": "Kobey Layne", "party": "DFL", "note": "Running mate Paul Ference" },
+        { "name": "Po Vang", "party": "DFL", "note": "Running mate Mark Frascone" },
+        { "name": "Ole Savior", "party": "DFL", "note": "Running mate Ashley Johnson" },
+        { "name": "Mohammad Wazwaz", "party": "DFL", "note": "Running mate Murad Alshool" },
+        { "name": "Steve Young", "party": "Green", "note": "Running mate Jane Kirby" }
+      ]
+    },
+    "usSenate": {
+      "office": "U.S. Senate (Minnesota)",
+      "scope": "Statewide",
+      "gop": [
+        { "name": "Adam Schwarze", "party": "GOP", "note": "MNGOP endorsed · former Navy SEAL" },
+        { "name": "Michele Tafoya", "party": "GOP", "note": "Sports broadcaster · NRSC support reported" },
+        { "name": "Royce White", "party": "GOP", "note": "2024 U.S. Senate nominee" },
+        { "name": "Tom Weiler", "party": "GOP", "note": "Retired U.S. Navy officer" },
+        { "name": "Bob Carney Jr.", "party": "GOP", "note": "" },
+        { "name": "Cynthia Gail", "party": "GOP", "note": "" },
+        { "name": "Ahmad R. Hassan", "party": "GOP", "note": "" },
+        { "name": "Joyce Lacey", "party": "GOP", "note": "" },
+        { "name": "Patrick Munro", "party": "GOP", "note": "" },
+        { "name": "Mohamad Muse", "party": "GOP", "note": "" }
+      ],
+      "other": [
+        { "name": "Peggy Flanagan", "party": "DFL", "note": "Lt. Governor · DFL endorsed" },
+        { "name": "Angie Craig", "party": "DFL", "note": "U.S. Rep MN-02" },
+        { "name": "Kurt M. Anderson", "party": "DFL", "note": "" },
+        { "name": "George Kalberer", "party": "DFL", "note": "" },
+        { "name": "Peter J. Murgic", "party": "DFL", "note": "" },
+        { "name": "Billy Nord", "party": "DFL", "note": "" },
+        { "name": "Rebecca Whiting", "party": "Libertarian", "note": "" },
+        { "name": "Marisa Simonetti", "party": "Independent", "note": "" }
+      ]
+    },
+    "usHouse4": {
+      "office": "U.S. House — Minnesota District 4",
+      "scope": "Covers St. Paul + parts of Washington County (Stillwater area of SD 33)",
+      "gop": [
+        { "name": "Paul Wikstrom", "party": "GOP", "note": "MNGOP endorsed" },
+        { "name": "Paul Xiong", "party": "GOP", "note": "" },
+        { "name": "Gene Rechtzigel", "party": "GOP", "note": "" }
+      ],
+      "other": [
+        { "name": "Betty McCollum", "party": "DFL", "note": "Incumbent" },
+        { "name": "Aswar Rahman", "party": "DFL", "note": "" }
+      ]
+    },
+    "usHouse6": {
+      "office": "U.S. House — Minnesota District 6",
+      "scope": "Northern/exurban edges that may touch parts of SD 33 — confirm by address",
+      "gop": [
+        { "name": "Tom Emmer", "party": "GOP", "note": "Incumbent · House GOP leadership" }
+      ],
+      "other": [
+        { "name": "TBD after primary filings", "party": "DFL", "note": "Check SOS candidate finder for full DFL field" }
+      ]
+    },
+    "stateSenate33": {
+      "office": "Minnesota State Senate — District 33",
+      "scope": "Full SD 33 (Stillwater, Forest Lake & surrounding)",
+      "winSeat": true,
+      "gop": [
+        { "name": "Karin Housley", "party": "GOP", "note": "Incumbent · PRIORITY SEAT" }
+      ],
+      "other": [
+        { "name": "Nat Smith", "party": "DFL", "note": "Challenger" }
+      ]
+    },
+    "house33A": {
+      "office": "Minnesota House — District 33A",
+      "scope": "Forest Lake, Hugo, Mahtomedi area (north half of SD 33)",
+      "winSeat": true,
+      "gop": [
+        { "name": "GOP nominee for 33A", "party": "GOP", "note": "Open seat — Patti Anderson (GOP) retiring. Confirm SOS filing / post-primary name" }
+      ],
+      "other": [
+        { "name": "Angela Thompson", "party": "DFL", "note": "DFL candidate reported" }
+      ]
+    },
+    "house33B": {
+      "office": "Minnesota House — District 33B",
+      "scope": "Stillwater, Oak Park Heights, Bayport, Marine, Scandia, May Twp, parts of Forest Lake",
+      "winSeat": true,
+      "gop": [
+        { "name": "GOP nominee for 33B", "party": "GOP", "note": "PRIORITY SEAT vs Josiah Hill (DFL). Confirm SOS filing / post-primary name (2024 GOP nominee was Jessica Johnson)" }
+      ],
+      "other": [
+        { "name": "Josiah Hill", "party": "DFL", "note": "Incumbent" }
+      ]
+    }
+  },
+  "literature": [
+    {
+      "id": "lit_sd33",
+      "label": "State Senate 33 — Karin Housley (GOP)",
+      "party": "GOP",
+      "seat": "SD 33",
+      "priority": 1,
+      "bundle": "local_three"
+    },
+    {
+      "id": "lit_33a",
+      "label": "House 33A — GOP nominee (open seat)",
+      "party": "GOP",
+      "seat": "HD 33A",
+      "priority": 1,
+      "bundle": "local_three"
+    },
+    {
+      "id": "lit_33b",
+      "label": "House 33B — GOP nominee",
+      "party": "GOP",
+      "seat": "HD 33B",
+      "priority": 1,
+      "bundle": "local_three"
+    },
+    {
+      "id": "lit_bundle3",
+      "label": "WIN ALL THREE — SD33 + 33A + 33B combined door piece (GOP)",
+      "party": "GOP",
+      "seat": "SD 33 ticket",
+      "priority": 1,
+      "bundle": "local_three"
+    },
+    {
+      "id": "lit_gov_gop",
+      "label": "Governor — GOP (post-primary nominee lit)",
+      "party": "GOP",
+      "seat": "Governor",
+      "priority": 2,
+      "bundle": "statewide"
+    },
+    {
+      "id": "lit_sen_gop",
+      "label": "U.S. Senate — GOP (post-primary nominee lit)",
+      "party": "GOP",
+      "seat": "U.S. Senate",
+      "priority": 2,
+      "bundle": "statewide"
+    },
+    {
+      "id": "lit_cd4_gop",
+      "label": "U.S. House MN-04 — GOP nominee",
+      "party": "GOP",
+      "seat": "US House 4",
+      "priority": 2,
+      "bundle": "federal"
+    },
+    {
+      "id": "lit_cd6_gop",
+      "label": "U.S. House MN-06 — Tom Emmer (GOP) (if address is CD-6)",
+      "party": "GOP",
+      "seat": "US House 6",
+      "priority": 3,
+      "bundle": "federal"
+    },
+    {
+      "id": "lit_sample_ballot",
+      "label": "GOP sample ballot / straight-ticket reminder card",
+      "party": "GOP",
+      "seat": "All",
+      "priority": 1,
+      "bundle": "gotv"
+    },
+    {
+      "id": "lit_early_vote",
+      "label": "Early vote / absentee how-to card (nonpartisan instructions + GOP slate QR)",
+      "party": "GOP",
+      "seat": "GOTV",
+      "priority": 1,
+      "bundle": "gotv"
+    }
+  ]
+}

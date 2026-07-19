@@ -1,0 +1,136 @@
+{
+  "source": "Compiled from MnDOT trunk highways, Washington County CSAH routes, and high-traffic local arterials in SD 33 / 33A / 33B. Use with official MnDOT traffic maps & county road lists for final siting.",
+  "asOf": "2026-07-19",
+  "priorityNotes": [
+    "Highest visibility for yard signs and door density: arterials + feeder streets within 0.25–0.5 mi of polling places.",
+    "Never place signs in MnDOT right-of-way without permit; prefer private yards with homeowner permission.",
+    "Door knock priority: residential side streets OFF busy corridors (safer, higher contact rate) after seeding signs ON corridor frontage."
+  ],
+  "corridors": [
+    {
+      "id": "th36",
+      "name": "MN Highway 36 (Stillwater Blvd corridor)",
+      "source": "MnDOT trunk highway",
+      "houseDistricts": ["33B", "33A"],
+      "towns": ["Stillwater", "Oak Park Heights", "Lake Elmo edge"],
+      "busyScore": 10,
+      "signPriority": 10,
+      "doorPriority": 7,
+      "segments": [
+        "Hwy 36 / Stillwater Blvd N — Manning Ave (CSAH 15) interchange area",
+        "Hwy 36 west approach toward Lake Elmo Ave / CSAH 17",
+        "Frontage & parallel residential: Osgood Ave, Curve Crest, Greeley St feeders"
+      ],
+      "signTip": "Yard signs on private property facing Hwy 36 and Manning interchange approaches. Highest daily volume in district."
+    },
+    {
+      "id": "th95",
+      "name": "MN Highway 95 (St. Croix Trail / main Stillwater spine)",
+      "source": "MnDOT trunk highway",
+      "houseDistricts": ["33B"],
+      "towns": ["Stillwater", "Bayport", "Marine on St. Croix", "Scandia approach"],
+      "busyScore": 9,
+      "signPriority": 9,
+      "doorPriority": 8,
+      "segments": [
+        "S Main St / Hwy 95 through downtown Stillwater",
+        "Hwy 95 south toward Bayport / 4th St corridor",
+        "Hwy 95 north toward Marine on St. Croix & Scandia"
+      ],
+      "signTip": "Downtown gateway yards and north/south gateways. Pair with door knocks on numbered streets off Main."
+    },
+    {
+      "id": "cr96",
+      "name": "County Road 96 / Dellwood Road (former MN 96)",
+      "source": "Washington County CSAH (MnDOT turnback)",
+      "houseDistricts": ["33A", "33B"],
+      "towns": ["Dellwood", "Grant", "Stillwater Township", "Stillwater"],
+      "busyScore": 8,
+      "signPriority": 9,
+      "doorPriority": 7,
+      "segments": [
+        "Dellwood Rd N from Ramsey line east to MN 95 (Stillwater)",
+        "Junctions with CSAH 15 (Manning), CSAH 5 (Stonebridge), CSAH 11"
+      ],
+      "signTip": "East–west connector between suburbs and Stillwater — prime for signs near junctions."
+    },
+    {
+      "id": "csah15",
+      "name": "CSAH 15 — Manning Avenue N",
+      "source": "Washington County",
+      "houseDistricts": ["33B", "33A"],
+      "towns": ["Stillwater", "Oak Park Heights", "Lake Elmo edge"],
+      "busyScore": 9,
+      "signPriority": 10,
+      "doorPriority": 7,
+      "segments": [
+        "Manning Ave N at Hwy 36 interchange",
+        "Manning Ave N toward Stillwater Evangelical Free / polling area (7671 Manning Ave N)",
+        "Manning north–south residential feeders"
+      ],
+      "signTip": "Top sign corridor: polling traffic + Hwy 36 traffic combine."
+    },
+    {
+      "id": "csah5",
+      "name": "CSAH 5 — Stillwater Blvd / Olive / Owens / Stonebridge Trail",
+      "source": "Washington County",
+      "houseDistricts": ["33B"],
+      "towns": ["Stillwater", "May Township"],
+      "busyScore": 8,
+      "signPriority": 8,
+      "doorPriority": 8,
+      "segments": [
+        "Stillwater Blvd N from Hwy 36 area",
+        "Olive St W · Owens St · Stonebridge Trail N toward Hwy 96 / May Twp"
+      ],
+      "signTip": "Local arterial linking south Stillwater to northern townships."
+    },
+    {
+      "id": "csah12",
+      "name": "CSAH 12 — busy Stillwater connector",
+      "source": "Washington County",
+      "houseDistricts": ["33B"],
+      "towns": ["Stillwater"],
+      "busyScore": 7,
+      "signPriority": 7,
+      "doorPriority": 7,
+      "segments": ["Intersections with Owens St (CSAH 5) and residential collectors"],
+      "signTip": "Secondary arterial for neighborhood saturation."
+    },
+    {
+      "id": "forest_lake_arterials",
+      "name": "Forest Lake arterials (33A focus)",
+      "source": "City / County high-traffic",
+      "houseDistricts": ["33A"],
+      "towns": ["Forest Lake", "Hugo"],
+      "busyScore": 9,
+      "signPriority": 9,
+      "doorPriority": 8,
+      "segments": [
+        "Lake St S / Broadway corridor (City Center area)",
+        "4th St SW near Senior Center polling",
+        "Scandia Trail N (near Hosanna Lutheran polling)",
+        "Forest Road N (County Service Center / early vote area)",
+        "Hwy 61 / Broadway commercial approach (where in district)",
+        "Hugo arterial: Frenchman Rd / 140th St corridors (confirm precinct map)"
+      ],
+      "signTip": "Cluster signs on approach roads to each Forest Lake polling site."
+    },
+    {
+      "id": "bayport_marine",
+      "name": "Bayport · Marine · Scandia connectors",
+      "source": "MnDOT / local",
+      "houseDistricts": ["33B"],
+      "towns": ["Bayport", "Marine on St. Croix", "Scandia", "May Township"],
+      "busyScore": 6,
+      "signPriority": 7,
+      "doorPriority": 8,
+      "segments": [
+        "Hwy 95 through Bayport",
+        "Marine on St. Croix main street approaches",
+        "Scandia Trail / local CSAH feeders"
+      ],
+      "signTip": "Lower volume but high local trust — doors + sparse high-quality signs at gateways."
+    }
+  ]
+}

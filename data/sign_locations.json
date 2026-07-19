@@ -1,0 +1,90 @@
+{
+  "rules": [
+    "Private property only unless you have a city/county/MnDOT permit.",
+    "Never put signs in the public right-of-way of trunk highways without authorization.",
+    "Get homeowner OK; log name/phone/affiliation when known.",
+    "Highest ROI: yards visible from MnDOT/CSAH arterials AND within ~0.5 mi of polling places."
+  ],
+  "locations": [
+    {
+      "id": "sign_poll_sw_w1",
+      "type": "near_polling",
+      "label": "Approaches to St. Paul Lutheran (Stillwater W1)",
+      "addressFocus": "609 5th St S, Stillwater",
+      "houseDistrict": "33B",
+      "thoroughfareIds": ["th95"],
+      "priority": 10,
+      "action": "Doors + yard signs on 5th St S, Main St feeders"
+    },
+    {
+      "id": "sign_poll_sw_w2",
+      "type": "near_polling",
+      "label": "Approaches to Trinity Lutheran (Stillwater W2)",
+      "addressFocus": "115 4th St N, Stillwater",
+      "houseDistrict": "33B",
+      "thoroughfareIds": ["th95"],
+      "priority": 10,
+      "action": "Signs on 4th St N / Main St corridors; knocks on side streets"
+    },
+    {
+      "id": "sign_poll_sw_w3",
+      "type": "near_polling",
+      "label": "Approaches to Stillwater Ev. Free / Manning",
+      "addressFocus": "7671 Manning Ave N",
+      "houseDistrict": "33B",
+      "thoroughfareIds": ["csah15", "th36"],
+      "priority": 10,
+      "action": "Busiest sign zone: Manning + Hwy 36 visibility"
+    },
+    {
+      "id": "sign_early_sw",
+      "type": "near_early_vote",
+      "label": "County Gov Center early vote approaches",
+      "addressFocus": "14949 62nd St N, Stillwater",
+      "houseDistrict": "33B",
+      "thoroughfareIds": ["csah15", "th36"],
+      "priority": 10,
+      "action": "Signs from early-vote open date through Election Day"
+    },
+    {
+      "id": "sign_hwy36",
+      "type": "major_thoroughfare",
+      "label": "MN-36 / Stillwater Blvd frontage",
+      "addressFocus": "Hwy 36 corridor Stillwater–OPH",
+      "houseDistrict": "33B",
+      "thoroughfareIds": ["th36"],
+      "priority": 10,
+      "action": "Homeowner-facing yards only; max daily impressions"
+    },
+    {
+      "id": "sign_hwy95",
+      "type": "major_thoroughfare",
+      "label": "MN-95 gateways Stillwater–Bayport–Marine",
+      "addressFocus": "Hwy 95 spine",
+      "houseDistrict": "33B",
+      "thoroughfareIds": ["th95"],
+      "priority": 9,
+      "action": "North and south gateways + downtown edge yards"
+    },
+    {
+      "id": "sign_cr96",
+      "type": "major_thoroughfare",
+      "label": "CR 96 / Dellwood Rd east–west",
+      "addressFocus": "Dellwood Road corridor",
+      "houseDistrict": "33A/33B",
+      "thoroughfareIds": ["cr96"],
+      "priority": 9,
+      "action": "Junction signs at Manning, Stonebridge, Hwy 95"
+    },
+    {
+      "id": "sign_fl_cluster",
+      "type": "near_polling",
+      "label": "Forest Lake polling cluster (33A)",
+      "addressFocus": "4th St SW · Lake St S · Scandia Trail · Forest Rd N",
+      "houseDistrict": "33A",
+      "thoroughfareIds": ["forest_lake_arterials"],
+      "priority": 10,
+      "action": "One sign team per polling approach; doors in adjacent grids"
+    }
+  ]
+}

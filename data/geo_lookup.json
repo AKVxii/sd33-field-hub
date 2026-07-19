@@ -1,0 +1,40 @@
+{
+  "note": "Town/ZIP heuristics for SD 33 volunteer ballot lookup. Not official GIS — verify at pollfinder.sos.mn.gov for exact precinct.",
+  "cities": {
+    "stillwater": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "oak park heights": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "oakparkheights": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "bayport": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "marine on st croix": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "marine on st. croix": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "marine": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "medium" },
+    "scandia": { "house": "33B", "senate": "33", "usHouse": ["4", "6"], "confidence": "medium" },
+    "may township": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "stillwater township": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "forest lake": { "house": "33A", "senate": "33", "usHouse": ["4", "6"], "confidence": "medium", "note": "Parts of Forest Lake may be 33A or 33B — confirm pollfinder" },
+    "hugo": { "house": "33A", "senate": "33", "usHouse": ["4", "6"], "confidence": "high" },
+    "mahtomedi": { "house": "33A", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "dellwood": { "house": "33A", "senate": "33", "usHouse": ["4"], "confidence": "high" },
+    "grant": { "house": "33A", "senate": "33", "usHouse": ["4"], "confidence": "medium" },
+    "lake elmo": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "low", "note": "Only edges may touch SD 33 — confirm" }
+  },
+  "zips": {
+    "55082": { "house": "33B", "senate": "33", "usHouse": ["4"], "cityHint": "Stillwater / OPH area", "confidence": "high" },
+    "55003": { "house": "33B", "senate": "33", "usHouse": ["4"], "cityHint": "Bayport", "confidence": "high" },
+    "55047": { "house": "33B", "senate": "33", "usHouse": ["4"], "cityHint": "Marine on St. Croix", "confidence": "high" },
+    "55073": { "house": "33B", "senate": "33", "usHouse": ["4", "6"], "cityHint": "Scandia", "confidence": "medium" },
+    "55025": { "house": "33A", "senate": "33", "usHouse": ["4", "6"], "cityHint": "Forest Lake", "confidence": "medium" },
+    "55038": { "house": "33A", "senate": "33", "usHouse": ["4", "6"], "cityHint": "Hugo", "confidence": "high" },
+    "55115": { "house": "33A", "senate": "33", "usHouse": ["4"], "cityHint": "Mahtomedi / Dellwood area", "confidence": "medium" }
+  },
+  "streetHints": {
+    "manning": { "house": "33B", "note": "Manning Ave corridor often 33B / Stillwater" },
+    "stillwater blvd": { "house": "33B" },
+    "dellwood": { "house": "33A", "note": "Dellwood Rd may span; city still rules" },
+    "scandia trail": { "house": "33A", "note": "Forest Lake / Scandia Trail often 33A" },
+    "lake street": { "house": "33A", "note": "Forest Lake Lake St often 33A" },
+    "main street": { "house": "33B", "note": "Stillwater Main often 33B" },
+    "4th street sw": { "house": "33A" },
+    "north shore": { "house": "33A" }
+  }
+}
