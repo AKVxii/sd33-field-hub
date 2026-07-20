@@ -2764,6 +2764,13 @@ app.get("/events", (req, res) => {
 });
 
 /* ---------- General volunteer signup + event ideas ---------- */
+function activityCheck(value, labelHtml) {
+  return `<label class="check-row"><input type="checkbox" name="interest" value="${esc(value)}" /><span>${labelHtml}</span></label>`;
+}
+function campaignCheck(value, labelHtml) {
+  return `<label class="check-row"><input type="checkbox" name="campaigns" value="${esc(value)}" class="campaign-cb" data-campaign="${esc(value)}" /><span>${labelHtml}</span></label>`;
+}
+
 app.get("/volunteer", (req, res) => {
   const flash = req.session.flash;
   delete req.session.flash;
@@ -2771,7 +2778,7 @@ app.get("/volunteer", (req, res) => {
   const events = (loadJson(EVENTS_FILE).events || [])
     .map(
       (e) =>
-        `<option value="${esc(e.id)}" ${eventId === e.id ? "selected" : ""}>${esc(e.title)}</option>`
+        `<option value="${esc(e.id)}" ${eventId === e.id ? "selected" : ""}>${esc(e.title)} — ${esc(e.dayLabel || "")}</option>`
     )
     .join("");
 
@@ -2779,51 +2786,115 @@ app.get("/volunteer", (req, res) => {
     ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
     <section class="hero prose">
       <span class="badge pri">Join the team</span>
-      <h2>General volunteer signup</h2>
-      <p>Sign up once for doors, phones, lit drops, parades, pancake breakfasts, festivals, or event setup. We’ll match you to shifts and community events across SD 33, HD 33A, and HD 33B.</p>
+      <h2>Volunteer signup · St. Croix Valley</h2>
+      <p>Choose activities, preferred candidates, and an event. We’ll text and email a confirmation (when messaging is configured), add the event to your calendar, and notify captains to connect you.</p>
     </section>
 
     <div class="two">
       <section class="card">
         <h3>Volunteer form</h3>
-        <form class="stack" method="post" action="/volunteer">
-          <label>Full name *</label>
-          <input name="name" required maxlength="100" />
-          <label>Email *</label>
-          <input name="email" type="email" required maxlength="160" />
-          <label>Phone</label>
-          <input name="phone" maxlength="40" />
-          <label>City / town</label>
-          <input name="town" maxlength="80" placeholder="Stillwater, Forest Lake, Hugo…" />
-          <label>House district (if known)</label>
-          <select name="houseDistrict">
+        <form class="stack" method="post" action="/volunteer" id="vol-form">
+          <label for="vol-name">Full name *</label>
+          <input id="vol-name" name="name" required maxlength="100" autocomplete="name" />
+
+          <label for="vol-email">Email *</label>
+          <input id="vol-email" name="email" type="email" required maxlength="160" autocomplete="email" />
+
+          <label for="vol-phone">Mobile phone * <span class="muted">(for confirmation text when enabled)</span></label>
+          <input id="vol-phone" name="phone" type="tel" required maxlength="40" autocomplete="tel" placeholder="651-555-0100" />
+
+          <label for="vol-town">City / town</label>
+          <input id="vol-town" name="town" maxlength="80" placeholder="Stillwater, Forest Lake, Hugo…" />
+
+          <label for="vol-hd">House district (if known)</label>
+          <select id="vol-hd" name="houseDistrict">
             <option value="">Not sure</option>
-            <option value="33A">33A</option>
-            <option value="33B">33B</option>
-            <option value="BOTH">Both / either</option>
+            <option value="33A">33A — Stacey Stout turf</option>
+            <option value="33B">33B — Jessica L. Johnson turf</option>
+            <option value="BOTH">Either / both</option>
           </select>
-          <label>I’m most interested in (pick all that apply)</label>
-          <label style="font-weight:500"><input type="checkbox" name="interest" value="doors" /> Door knocking</label>
-          <label style="font-weight:500"><input type="checkbox" name="interest" value="pulsar" /> Get on <strong>Pulsar</strong> (door app) — meet campaign for access</label>
-          <label style="font-weight:500"><input type="checkbox" name="interest" value="phones" /> Phone banking</label>
-          <label style="font-weight:500"><input type="checkbox" name="interest" value="lit" /> Literature drops</label>
-          <label style="font-weight:500"><input type="checkbox" name="interest" value="parades" /> Parades &amp; festivals</label>
-          <label style="font-weight:500"><input type="checkbox" name="interest" value="breakfasts" /> Pancake breakfasts / community meals</label>
-          <label style="font-weight:500"><input type="checkbox" name="interest" value="events" /> Event setup / greeters</label>
-          <label style="font-weight:500"><input type="checkbox" name="interest" value="signs" /> Yard signs</label>
-          <label style="font-weight:500"><input type="checkbox" name="interest" value="captain" /> Town captain / leadership</label>
-          <label>Preferred event (optional)</label>
-          <select name="eventId">
-            <option value="">No specific event</option>
+
+          <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Preferred volunteer activities <span class="muted">(check all that apply)</span></p>
+          <div class="check-list" role="group" aria-label="Volunteer activities">
+            ${activityCheck("doors", "Door knocking")}
+            ${activityCheck("pulsar", "Get on <strong>Pulsar</strong> (door app) — meet campaign for access")}
+            ${activityCheck("phones", "Phone banking")}
+            ${activityCheck("lit", "Literature drops")}
+            ${activityCheck("parades", "Parades &amp; festivals")}
+            ${activityCheck("breakfasts", "Pancake breakfasts / community meals")}
+            ${activityCheck("events", "Event setup / greeters")}
+            ${activityCheck("signs", "Yard signs")}
+            ${activityCheck("captain", "Town captain / leadership")}
+          </div>
+
+          <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Candidates I want to support / connect with</p>
+          <div class="check-list" role="group" aria-label="Preferred candidates">
+            ${campaignCheck("housley", "<strong>Karin Housley</strong> — State Senate 33")}
+            ${campaignCheck("stout", "<strong>Stacey Stout</strong> — House 33A")}
+            ${campaignCheck("johnson", "<strong>Jessica L. Johnson</strong> — House 33B")}
+            ${campaignCheck("lindell", "<strong>Mike Lindell</strong> — Governor (statewide)")}
+            ${campaignCheck("emmer", "<strong>Tom Emmer</strong> — U.S. House MN-06 (note: most of SD 33 is MN-04/MN-08; we’ll still connect you)")}
+            ${campaignCheck("stauber", "<strong>Pete Stauber</strong> — U.S. House MN-08 (Forest Lake / Hugo / Scandia area)")}
+            ${campaignCheck("cd4", "<strong>U.S. House MN-04 GOP field</strong> — Stillwater / Mahtomedi area")}
+          </div>
+          <div id="campaign-kit" class="campaign-kit" aria-live="polite"></div>
+
+          <label for="vol-event">Preferred event (adds to your calendar after signup)</label>
+          <select id="vol-event" name="eventId">
+            <option value="">No specific event yet</option>
             ${events}
           </select>
-          <label>Days / times that work</label>
-          <textarea name="availability" rows="2" maxlength="400" placeholder="e.g. Saturday mornings, Tuesday evenings"></textarea>
-          <label>Notes</label>
-          <textarea name="notes" rows="2" maxlength="800"></textarea>
-          <label style="font-weight:500"><input type="checkbox" name="optIn" value="yes" /> Yes — email/text me about shifts and events (double opt-in)</label>
-          <label style="font-weight:500"><input type="checkbox" name="wearShirt" value="yes" /> I can wear a campaign shirt or sticker at public events</label>
-          <button class="btn btn-gold" type="submit">Submit volunteer signup</button>
+
+          <label for="vol-avail">Days / times that work</label>
+          <textarea id="vol-avail" name="availability" rows="2" maxlength="400" placeholder="e.g. Saturday mornings, Tuesday evenings"></textarea>
+
+          <label for="vol-notes">Notes</label>
+          <textarea id="vol-notes" name="notes" rows="2" maxlength="800"></textarea>
+
+          <div class="check-list">
+            <label class="check-row"><input type="checkbox" name="optIn" value="yes" id="opt-in" />
+              <span>Yes — email and text me about shifts, events, and candidate connections. I can opt out anytime. <span class="muted">(Msg &amp; data rates may apply.)</span></span></label>
+            <label class="check-row"><input type="checkbox" name="wearShirt" value="yes" id="wear-shirt" />
+              <span>I can wear a campaign shirt or sticker at public events</span></label>
+          </div>
+          <div id="shirt-size-box" class="shirt-size-box">
+            <label for="shirt-size"><strong>Shirt size</strong> (if wearing a campaign shirt)</label>
+            <select id="shirt-size" name="shirtSize">
+              <option value="">Select size…</option>
+              <option>XS</option><option>S</option><option>M</option><option>L</option>
+              <option>XL</option><option>2XL</option><option>3XL</option><option>4XL</option>
+            </select>
+            <p class="muted" style="margin:0.4rem 0 0">We’ll use this when captains distribute shirts for parades and festivals.</p>
+          </div>
+
+          <div class="check-list" style="margin-top:1rem">
+            <label class="check-row"><input type="checkbox" name="wantContribute" value="yes" id="want-contrib" />
+              <span><strong>I would like to make a monetary contribution</strong> to a campaign because I don’t have time to volunteer this election cycle; however, I care about our future here in the great state of Minnesota.</span></label>
+          </div>
+          <div id="contrib-box" class="contrib-box">
+            <p><strong>Legal notice (please read):</strong></p>
+            <ul style="margin:0.35rem 0;padding-left:1.2rem;font-size:0.92rem">
+              <li>This form <strong>does not process payments</strong> and does not create a contribution.</li>
+              <li>A captain will connect you to the <strong>proper campaign committee</strong> (or its official giving page, e.g. WinRed or committee link when designated).</li>
+              <li>Contributions are subject to federal and/or Minnesota campaign finance law; they are <strong>not tax-deductible</strong>.</li>
+              <li>Do not send cash or contribution details through this volunteer form.</li>
+              <li>See <a href="/legal">/legal</a> and <a href="/donate">/donate</a>. Confirm with counsel / CFB / FEC as applicable.</li>
+            </ul>
+            <label for="contrib-for">I am most interested in supporting (optional)</label>
+            <select id="contrib-for" name="contributeFor">
+              <option value="">Any / not sure</option>
+              <option value="housley">Karin Housley — SD 33</option>
+              <option value="stout">Stacey Stout — HD 33A</option>
+              <option value="johnson">Jessica L. Johnson — HD 33B</option>
+              <option value="lindell">Mike Lindell — Governor</option>
+              <option value="emmer">Tom Emmer — U.S. House MN-06</option>
+              <option value="stauber">Pete Stauber — U.S. House MN-08</option>
+              <option value="cd4">U.S. House MN-04 GOP nominee</option>
+            </select>
+          </div>
+
+          <button class="btn btn-gold" type="submit">Submit signup</button>
+          <p class="muted" style="max-width:520px">By submitting with opt-in checked, you request a confirmation email/text and agree captains may contact you to connect with preferred campaigns. <a href="/privacy">Privacy</a> · <a href="/legal">Legal</a></p>
         </form>
       </section>
 
@@ -2871,20 +2942,253 @@ app.get("/volunteer", (req, res) => {
       <h3>What to wear at events (summary)</h3>
       <ul>
         <li><strong>Stickers:</strong> always useful for sidewalks and welcome tables</li>
-        <li><strong>Literature:</strong> Housley (Senate 33) + Stout (33A) and/or Johnson (33B)</li>
-        <li><strong>Shirts:</strong> campaign shirts for parades/festivals; softer polos for breakfasts and school settings</li>
+        <li><strong>Literature:</strong> Housley (Senate 33) + Stout (33A) and/or Johnson (33B); plus governor / federal lit if you selected those campaigns</li>
+        <li><strong>Shirts:</strong> campaign shirts for parades/festivals; softer polos for breakfasts and school settings — enter size when you check the shirt box</li>
       </ul>
-      <p class="muted">Captains can issue gear at pickup. See each event card for specific guidance.</p>
-    </section>`;
+      <p class="muted">Captains issue gear after connecting you to preferred campaigns. See <a href="/events">event cards</a> for specifics.</p>
+    </section>
+    <script src="/js/volunteer-form.js?v=2"></script>`;
   sendPage(req, res, "Volunteer signup", body);
 });
 
-app.post("/volunteer", (req, res) => {
-  let interests = req.body.interest;
-  if (!interests) interests = [];
-  if (!Array.isArray(interests)) interests = [interests];
+function asArray(val) {
+  if (!val) return [];
+  return Array.isArray(val) ? val : [val];
+}
+
+function campaignKitFor(codes) {
+  const kits = {
+    housley: {
+      title: "Karin Housley — SD 33",
+      lit: "Senate 33 lit on every door and event table",
+      events: "All SD 33 events (Stillwater, Forest Lake, Hugo, Scandia…)",
+      shirt: "SD 33 / Housley shirt if available",
+    },
+    stout: {
+      title: "Stacey Stout — HD 33A",
+      lit: "House 33A lit (Hugo, Mahtomedi, Dellwood, Forest Lake P-2/4/5)",
+      events: "HD 33A-labeled events on /events?district=33A",
+      shirt: "Stout / 33A shirt if available",
+    },
+    johnson: {
+      title: "Jessica L. Johnson — HD 33B",
+      lit: "House 33B lit (Stillwater, Bayport, Scandia, Marine…)",
+      events: "HD 33B-labeled events on /events?district=33B + Lumberjack Days",
+      shirt: "Johnson / 33B shirt if available",
+    },
+    lindell: {
+      title: "Mike Lindell — Governor (statewide)",
+      lit: "Governor (Lindell) lit when issued by campaign — pair with local SD 33 slate",
+      events: "Statewide / governor events + all SD 33 community events for local ID",
+      shirt: "Lindell / governor shirt if issued by that campaign",
+    },
+    emmer: {
+      title: "Tom Emmer — U.S. House MN-06",
+      lit: "Emmer lit when issued by that campaign. Note: most SD 33 addresses are MN-04 or MN-08 per SOS — we still connect you to Emmer’s team if requested.",
+      events: "MN-06 community events (often outside core SD 33); optional nearby staffing",
+      shirt: "Emmer shirt if issued by that campaign",
+    },
+    stauber: {
+      title: "Pete Stauber — U.S. House MN-08",
+      lit: "Stauber lit for Forest Lake / Hugo / Scandia / Marine turf (CD-8 in SD 33)",
+      events: "Forest Lake, Hugo, Scandia events",
+      shirt: "Stauber shirt if available",
+    },
+    cd4: {
+      title: "U.S. House MN-04 GOP field",
+      lit: "MN-04 GOP lit for Stillwater / Mahtomedi / Bayport / OPH turf",
+      events: "Stillwater Lumberjack Days, Main Street, Mahtomedi area",
+      shirt: "MN-04 campaign shirt if available",
+    },
+  };
+  return codes.map((c) => kits[c]).filter(Boolean);
+}
+
+function buildIcs(event, volunteerName) {
+  if (!event || !event.date) return null;
+  const start = String(event.date).replace(/-/g, "");
+  let end = event.dateEnd ? String(event.dateEnd).replace(/-/g, "") : start;
+  // all-day: end date exclusive in ICS → add 1 day if same day
+  const dtStart = start;
+  let dtEnd = end;
+  if (dtEnd === dtStart) {
+    const d = new Date(event.date + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() + 1);
+    dtEnd = d.toISOString().slice(0, 10).replace(/-/g, "");
+  } else {
+    const d = new Date((event.dateEnd || event.date) + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() + 1);
+    dtEnd = d.toISOString().slice(0, 10).replace(/-/g, "");
+  }
+  const uid = (event.id || "event") + "@sd33-field-hub";
+  const summary = (event.title || "SD 33 volunteer event").replace(/\n/g, " ");
+  const desc = [
+    event.description || "",
+    "Volunteer: " + (volunteerName || ""),
+    "Gear: stickers / lit / shirts per Field Hub event card",
+    "https://sd33-field-hub.onrender.com/events",
+  ]
+    .join("\\n")
+    .replace(/\n/g, "\\n");
+  const loc = [event.locationName, event.address].filter(Boolean).join(", ");
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//SD33 Field Hub//Volunteer//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    "UID:" + uid,
+    "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""),
+    "DTSTART;VALUE=DATE:" + dtStart,
+    "DTEND;VALUE=DATE:" + dtEnd,
+    "SUMMARY:" + summary,
+    "DESCRIPTION:" + desc,
+    "LOCATION:" + loc.replace(/\n/g, " "),
+    "URL:https://sd33-field-hub.onrender.com/events",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
+
+async function notifySignup(entry, eventObj, kits) {
+  const adminEmail = process.env.ADMIN_NOTIFY_EMAIL || process.env.NOTIFY_EMAIL || "";
+  const adminPhone = process.env.ADMIN_NOTIFY_PHONE || "";
+  const subject = `[SD33] New volunteer: ${entry.name}`;
+  const bodyText = [
+    `New Field Hub signup`,
+    `Name: ${entry.name}`,
+    `Email: ${entry.email}`,
+    `Phone: ${entry.phone}`,
+    `Town: ${entry.town || "—"}`,
+    `HD: ${entry.houseDistrict || "—"}`,
+    `Activities: ${(entry.interests || []).join(", ") || "—"}`,
+    `Campaigns: ${(entry.campaigns || []).join(", ") || "—"}`,
+    `Event: ${entry.eventId || "—"} ${eventObj ? "(" + eventObj.title + ")" : ""}`,
+    `Shirt: ${entry.wearShirt ? "yes size=" + (entry.shirtSize || "?") : "no"}`,
+    `Wants to contribute (no payment on form): ${entry.wantContribute ? "YES — reach out with legal committee link" : "no"}`,
+    `Contribute for: ${entry.contributeFor || "—"}`,
+    `Opt-in contact: ${entry.optIn ? "yes" : "no"}`,
+    `Notes: ${entry.notes || "—"}`,
+    `Availability: ${entry.availability || "—"}`,
+    `ACTION: Reach out and connect them to preferred candidates.`,
+    kits.length
+      ? "Kits:\n" + kits.map((k) => `- ${k.title}: lit=${k.lit}`).join("\n")
+      : "",
+  ].join("\n");
+
+  const result = { email: false, sms: false, adminEmail: false, adminSms: false, errors: [] };
+
+  // Volunteer confirmation email (optional SMTP)
+  if (entry.optIn && entry.email && process.env.SMTP_URL) {
+    try {
+      // Lightweight: use fetch to a webhook if NOTIFY_WEBHOOK set, else skip real SMTP without nodemailer dep
+      result.errors.push("SMTP_URL set but nodemailer not bundled — use NOTIFY_WEBHOOK or mailto fallback on confirm page");
+    } catch (e) {
+      result.errors.push(String(e.message || e));
+    }
+  }
+
+  // Webhook notification (Zapier/Make/n8n/email service) — recommended on Render
+  if (process.env.NOTIFY_WEBHOOK) {
+    try {
+      await fetch(process.env.NOTIFY_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "volunteer_signup",
+          subject,
+          text: bodyText,
+          entry,
+          event: eventObj
+            ? { id: eventObj.id, title: eventObj.title, date: eventObj.date }
+            : null,
+          kits,
+          adminEmail,
+          adminPhone,
+        }),
+      });
+      result.email = true;
+      result.adminEmail = true;
+    } catch (e) {
+      result.errors.push("webhook: " + (e.message || e));
+    }
+  }
+
+  // Twilio SMS (optional)
+  if (
+    entry.optIn &&
+    entry.phone &&
+    process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    process.env.TWILIO_FROM
+  ) {
+    try {
+      const to = entry.phone.replace(/[^\d+]/g, "");
+      const msg = `SD33 Field Hub: Thanks ${entry.name.split(" ")[0] || ""}! We got your signup. Captains will connect you to your preferred campaigns. Events: https://sd33-field-hub.onrender.com/events Calendar: https://sd33-field-hub.onrender.com/volunteer/calendar/${entry.id}.ics`;
+      const auth = Buffer.from(
+        process.env.TWILIO_ACCOUNT_SID + ":" + process.env.TWILIO_AUTH_TOKEN
+      ).toString("base64");
+      const params = new URLSearchParams({
+        To: to.startsWith("+") ? to : "+1" + to.replace(/\D/g, "").slice(-10),
+        From: process.env.TWILIO_FROM,
+        Body: msg.slice(0, 320),
+      });
+      const r = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Basic " + auth,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: params.toString(),
+        }
+      );
+      if (r.ok) result.sms = true;
+      else result.errors.push("twilio volunteer: " + (await r.text()).slice(0, 120));
+    } catch (e) {
+      result.errors.push("twilio: " + (e.message || e));
+    }
+  }
+
+  if (adminPhone && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM) {
+    try {
+      const to = adminPhone.replace(/[^\d+]/g, "");
+      const msg = `SD33 new signup: ${entry.name} ${entry.phone} campaigns=${(entry.campaigns || []).join("+") || "none"} contribute=${entry.wantContribute ? "Y" : "N"} — connect them.`;
+      const auth = Buffer.from(
+        process.env.TWILIO_ACCOUNT_SID + ":" + process.env.TWILIO_AUTH_TOKEN
+      ).toString("base64");
+      const params = new URLSearchParams({
+        To: to.startsWith("+") ? to : "+1" + to.replace(/\D/g, "").slice(-10),
+        From: process.env.TWILIO_FROM,
+        Body: msg.slice(0, 320),
+      });
+      const r = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Basic " + auth,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: params.toString(),
+        }
+      );
+      if (r.ok) result.adminSms = true;
+    } catch (e) {
+      result.errors.push("admin sms: " + (e.message || e));
+    }
+  }
+
+  return result;
+}
+
+app.post("/volunteer", async (req, res) => {
+  const interests = asArray(req.body.interest).map(String);
+  const campaigns = asArray(req.body.campaigns).map(String);
   const entry = {
-    id: "vol_" + Date.now(),
+    id: "vol_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
     at: new Date().toISOString(),
     name: String(req.body.name || "").slice(0, 100),
     email: String(req.body.email || "").slice(0, 160),
@@ -2892,17 +3196,123 @@ app.post("/volunteer", (req, res) => {
     town: String(req.body.town || "").slice(0, 80),
     houseDistrict: String(req.body.houseDistrict || ""),
     interests,
+    campaigns,
     eventId: String(req.body.eventId || ""),
     availability: String(req.body.availability || "").slice(0, 400),
     notes: String(req.body.notes || "").slice(0, 800),
     optIn: req.body.optIn === "yes",
     wearShirt: req.body.wearShirt === "yes",
+    shirtSize: String(req.body.shirtSize || "").slice(0, 10),
+    wantContribute: req.body.wantContribute === "yes",
+    contributeFor: String(req.body.contributeFor || "").slice(0, 40),
+    needsCaptainFollowUp: true,
   };
+  if (!entry.name || !entry.email || !entry.phone) {
+    req.session.flash = "Name, email, and phone are required.";
+    return res.redirect("/volunteer");
+  }
+
   const list = loadJson(VOL_SIGNUPS_FILE);
   list.unshift(entry);
-  saveJson(VOL_SIGNUPS_FILE, list.slice(0, 3000));
-  req.session.flash = "Thank you — your volunteer signup was received. A captain will follow up if you opted in.";
-  res.redirect("/volunteer");
+  saveJson(VOL_SIGNUPS_FILE, list.slice(0, 5000));
+
+  const allEvents = loadJson(EVENTS_FILE).events || [];
+  const eventObj = allEvents.find((e) => e.id === entry.eventId) || null;
+  const kits = campaignKitFor(campaigns);
+
+  // Persist ICS text for download route
+  const ics = buildIcs(eventObj, entry.name);
+  if (ics) {
+    entry.ics = ics;
+    // rewrite entry in list
+    list[0] = entry;
+    saveJson(VOL_SIGNUPS_FILE, list.slice(0, 5000));
+  }
+
+  let notify = { email: false, sms: false, adminEmail: false, adminSms: false, errors: [] };
+  try {
+    notify = await notifySignup(entry, eventObj, kits);
+  } catch (e) {
+    notify.errors.push(String(e.message || e));
+  }
+
+  // Confirmation page (calendar + follow-up messaging)
+  const kitHtml = kits.length
+    ? `<div class="card" style="margin-top:1rem"><h3>Your campaign kit (lit / events / shirts)</h3>
+        ${kits
+          .map(
+            (k) => `<div class="campaign-kit is-open" style="display:block;margin-bottom:0.65rem">
+              <strong>${esc(k.title)}</strong>
+              <ul>
+                <li><strong>Literature:</strong> ${esc(k.lit)}</li>
+                <li><strong>Events:</strong> ${esc(k.events)}</li>
+                <li><strong>Shirt:</strong> ${esc(k.shirt)}${entry.wearShirt && entry.shirtSize ? " · size " + esc(entry.shirtSize) : ""}</li>
+              </ul>
+            </div>`
+          )
+          .join("")}
+        <p><a class="btn btn-navy" href="/events">Open events list</a>
+        ${campaigns.includes("stout") ? '<a class="btn" href="/events?district=33A">33A events</a>' : ""}
+        ${campaigns.includes("johnson") ? '<a class="btn" href="/events?district=33B">33B events</a>' : ""}
+        ${campaigns.includes("lindell") || campaigns.includes("emmer") ? '<a class="btn" href="/events?scope=nearby">Nearby / ticket events</a>' : ""}
+        </p></div>`
+    : "";
+
+  const contribHtml = entry.wantContribute
+    ? `<div class="legal-callout"><strong>Contribution interest recorded (no payment taken).</strong>
+        A captain will reach out with the <em>official</em> committee giving link for
+        ${esc(entry.contributeFor || "your preferred campaign")}.
+        Contributions are not tax-deductible. Do not send contribution details by text to random numbers.
+        <a href="/donate">Donate info</a> · <a href="/legal">Legal</a></div>`
+    : "";
+
+  const calHtml = eventObj
+    ? `<p><a class="btn btn-gold" href="/volunteer/calendar/${encodeURIComponent(entry.id)}.ics">Add event to your calendar (.ics)</a></p>
+       <p class="muted">Event: <strong>${esc(eventObj.title)}</strong> — ${esc(eventObj.dayLabel || eventObj.date || "")}</p>`
+    : `<p class="muted">No specific event selected — browse <a href="/events">events</a> and claim a <a href="/schedule">shift</a>.</p>`;
+
+  const notifyHtml = `<div class="card"><h3>Messages</h3>
+    <ul>
+      <li>Captains were notified to <strong>reach out and connect you</strong> to preferred candidates${notify.adminEmail || notify.adminSms ? " (automated notify sent)" : " (saved on captain list — configure NOTIFY_WEBHOOK / Twilio on Render for instant ping)"}.</li>
+      <li>Your confirmation text: ${notify.sms ? "sent" : entry.optIn ? "queued when Twilio is configured on the server" : "enable opt-in next time for texts"}.</li>
+      <li>Your confirmation email: ${notify.email ? "sent" : entry.optIn ? "use calendar download + captains will email; set NOTIFY_WEBHOOK for auto-email" : "opt-in to receive email updates"}.</li>
+    </ul>
+    <p class="muted">Open this email draft to captains if needed:
+      <a href="mailto:${esc(process.env.ADMIN_NOTIFY_EMAIL || "")}?subject=${encodeURIComponent("SD33 volunteer " + entry.name)}&body=${encodeURIComponent("Please connect: " + entry.name + " " + entry.phone + " " + entry.email + " campaigns=" + campaigns.join(","))}">Email captains</a>
+    </p>
+  </div>`;
+
+  const body = `
+    <section class="hero prose">
+      <span class="badge published">Signup complete</span>
+      <h2>Thank you, ${esc(entry.name.split(" ")[0] || entry.name)}!</h2>
+      <p>We have your phone <strong>${esc(entry.phone)}</strong> and email <strong>${esc(entry.email)}</strong>. A captain will connect you to your preferred candidates and gear (lit / stickers / shirts).</p>
+    </section>
+    ${contribHtml}
+    <div class="card">
+      <h3>Your calendar</h3>
+      ${calHtml}
+    </div>
+    ${kitHtml}
+    ${notifyHtml}
+    <p style="margin-top:1rem">
+      <a class="btn btn-gold" href="/pulsar">Request Pulsar (doors)</a>
+      <a class="btn btn-navy" href="/schedule">Claim a shift</a>
+      <a class="btn" href="/win-three">Three-seat win plan</a>
+    </p>`;
+  sendPage(req, res, "Signup confirmed", body);
+});
+
+app.get("/volunteer/calendar/:id.ics", (req, res) => {
+  const id = String(req.params.id || "").replace(/\.ics$/i, "");
+  const list = loadJson(VOL_SIGNUPS_FILE);
+  const entry = list.find((v) => v.id === id);
+  if (!entry || !entry.ics) {
+    return res.status(404).type("text").send("Calendar event not found. Re-submit signup with an event selected.");
+  }
+  res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="sd33-${id.slice(0, 12)}.ics"`);
+  res.send(entry.ics);
 });
 
 app.post("/volunteer/idea", (req, res) => {
@@ -3110,8 +3520,8 @@ app.get("/team/volunteers", (req, res) => {
         `<tr>
           <td>${esc(v.name)}<div class="muted">${esc(v.email)} ${esc(v.phone || "")}</div></td>
           <td>${esc(v.town)} ${esc(v.houseDistrict)}</td>
-          <td>${esc((v.interests || []).join(", "))}</td>
-          <td>${v.optIn ? "opt-in" : "—"}</td>
+          <td>${esc((v.interests || []).join(", "))}<div class="muted">Campaigns: ${esc((v.campaigns || []).join(", ") || "—")}</div></td>
+          <td>${v.optIn ? "opt-in" : "—"} ${v.wantContribute ? "· <strong>WANTS TO GIVE</strong>" : ""} ${v.wearShirt ? "· shirt " + esc(v.shirtSize || "") : ""}</td>
           <td class="muted">${esc((v.at || "").slice(0, 16))}</td>
         </tr>`
     )

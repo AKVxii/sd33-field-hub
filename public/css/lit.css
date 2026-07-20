@@ -454,3 +454,47 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus {
   margin: 0.75rem 0;
   border-radius: 0 8px 8px 0;
 }
+
+/* Volunteer activity checkboxes — aligned rows */
+.check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.85rem;
+  max-width: 520px;
+}
+.check-row {
+  display: grid;
+  grid-template-columns: 1.35rem 1fr;
+  gap: 0.65rem;
+  align-items: start;
+  margin: 0 !important;
+  font-weight: 500 !important;
+  line-height: 1.35;
+  cursor: pointer;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.check-row:hover { background: #f0f6ff; border-color: var(--line); }
+.check-row input[type="checkbox"] {
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  margin: 0.15rem 0 0 !important;
+  max-width: none !important;
+  accent-color: var(--gop);
+  flex-shrink: 0;
+}
+.check-row span { display: block; }
+.shirt-size-box, .contrib-box, .campaign-kit {
+  display: none;
+  margin: 0.5rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  max-width: 520px;
+}
+.shirt-size-box.is-open, .contrib-box.is-open, .campaign-kit.is-open { display: block; }
+.contrib-box { background: #fffbeb; border-color: #e0b84a; }
+.campaign-kit { background: #eef7fb; border-color: #b9d0ea; }
