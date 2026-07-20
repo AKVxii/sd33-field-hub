@@ -505,11 +505,11 @@ function gopBallotForDistricts(districts) {
     });
   }
 
-  add("governor", "Governor of Minnesota");
-  add("usSenate", "U.S. Senate — Minnesota");
-  add("attorneyGeneral", "Minnesota Attorney General");
-  add("secretaryOfState", "Minnesota Secretary of State");
-  add("stateAuditor", "Minnesota State Auditor");
+  add("governor", "Governor & Lt. Governor (GOP tickets only)");
+  add("usSenate", "U.S. Senator — Minnesota (GOP only)");
+  add("attorneyGeneral", "Attorney General (GOP only)");
+  add("secretaryOfState", "Secretary of State (GOP only)");
+  add("stateAuditor", "State Auditor (GOP only)");
 
   const uh = districts.usHouse || [];
   if (uh.includes("4")) add("usHouse4", "U.S. House — Minnesota District 4 (GOP only)");
@@ -1376,6 +1376,11 @@ app.get("/candidates", (req, res) => {
     "usSenate",
     "usHouse4",
     "usHouse8",
+    "secretaryOfState",
+    "stateAuditor",
+    "attorneyGeneral",
+    "countySheriff",
+    "judge10th38",
   ];
   const sections = order
     .map((key) => {
@@ -3285,10 +3290,10 @@ const CAMPAIGN_KIT_MAP = {
     shirt: "Emmer shirt if that campaign issues inventory",
   },
   stauber: {
-    title: "Pete Stauber — U.S. House MN-08 (SD 33 portion)",
-    lit: "Stauber lit for MN-08 communities in SD 33: Forest Lake; Hugo; Marine on St. Croix; May Township; Scandia; Stillwater Township P-1",
+    title: "U.S. House MN-08 GOP — Stauber / Hamilton (SD 33 portion)",
+    lit: "MN-08 GOP lit (Stauber or Hamilton) for: Forest Lake; Hugo; Marine on St. Croix; May Township; Scandia; Stillwater Township P-1",
     events: "Events in all MN-08 / SD 33 communities listed above",
-    shirt: "Stauber shirt if available",
+    shirt: "MN-08 campaign shirt if available",
   },
   cd4: {
     title: "U.S. House MN-04 GOP field (SD 33 portion)",
@@ -3462,17 +3467,17 @@ app.get("/volunteer", (req, res) => {
 
           <p class="camp-group-label">Statewide — Governor, U.S. Senate, SOS, AG, Auditor</p>
           <div class="check-list" role="group" aria-label="Statewide candidates">
-            ${campaignCheck("lindell", "<strong>Mike Lindell</strong> — Governor")}
-            ${campaignCheck("gov_gop", "Governor — <strong>GOP nominee</strong> (post-primary pack)")}
-            ${campaignCheck("us_senate", "<strong>U.S. Senate</strong> — GOP (Schwarze / Tafoya / White field · post-primary nominee lit)")}
-            ${campaignCheck("ag", "<strong>Attorney General</strong> — GOP field / nominee")}
-            ${campaignCheck("sos", "<strong>Secretary of State</strong> — GOP field / nominee")}
-            ${campaignCheck("auditor", "<strong>State Auditor</strong> — GOP field / nominee")}
+            ${campaignCheck("lindell", "<strong>Mike Lindell &amp; Phillip C. Parrish</strong> — Governor / Lt. Governor")}
+            ${campaignCheck("gov_gop", "Governor — other <strong>GOP tickets</strong> (Qualls, Demuth, etc. / post-primary nominee pack)")}
+            ${campaignCheck("us_senate", "<strong>U.S. Senate</strong> — GOP (Schwarze, Tafoya, White, Weiler, Carney, Gail, Hassan, Lacey, Munro)")}
+            ${campaignCheck("ag", "<strong>Attorney General</strong> — Ronald J. Schutz (GOP)")}
+            ${campaignCheck("sos", "<strong>Secretary of State</strong> — Wendy Phillips / Tad Jude (GOP)")}
+            ${campaignCheck("auditor", "<strong>State Auditor</strong> — Nate George / Scott Jensen / Will Finn (GOP)")}
           </div>
 
           <p class="camp-group-label">U.S. House (by district portion within SD 33)</p>
           <div class="check-list" role="group" aria-label="Federal house candidates">
-            ${campaignCheck("stauber", "<strong>Pete Stauber</strong> — U.S. House MN-08 (Forest Lake; Hugo; Marine on St. Croix; May Township; Scandia; Stillwater Twp P-1)")}
+            ${campaignCheck("stauber", "<strong>Pete Stauber / Anthony Hamilton</strong> — U.S. House MN-08 GOP (Forest Lake; Hugo; Marine; May Twp; Scandia; Stillwater Twp P-1)")}
             ${campaignCheck("cd4", "<strong>U.S. House MN-04 GOP</strong> — Wikstrom / field (Bayport; Dellwood; Mahtomedi; Oak Park Heights; Stillwater; Willernie; parts of Stillwater Twp)")}
             ${campaignCheck("emmer", "<strong>Tom Emmer</strong> — U.S. House MN-06 (optional connect; most of SD 33 is MN-04 or MN-08)")}
           </div>

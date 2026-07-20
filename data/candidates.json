@@ -1,6 +1,6 @@
 {
   "asOf": "2026-07-20",
-  "note": "Primary Aug 11, 2026 (canceled where unopposed) · General Nov 3, 2026. House 33A/33B GOP names from Ballotpedia candidate filings. Verify at SOS. Party labels: GOP = Republican. District areas list every community in the district—candidates are presented by district geography, not hometown spin.",
+  "note": "Primary Aug 11, 2026 · General Nov 3, 2026. Statewide and federal names from SOS-style candidate list (user-provided 2026). House 33A/33B local from prior filings. Verify at candidates.sos.mn.gov. Preference form checkboxes are GOP (Republican) only. District areas list every community equally.",
   "districtAreas": {
     "sd33": {
       "label": "Senate District 33",
@@ -75,52 +75,48 @@
   },
   "races": {
     "governor": {
-      "office": "Governor of Minnesota",
+      "office": "Governor & Lt. Governor of Minnesota",
       "scope": "Statewide",
       "gop": [
-        { "name": "Mike Lindell", "party": "GOP", "note": "MyPillow CEO · running mate Phillip Parrish · Trump endorsed", "leading": true },
-        { "name": "Kendall Qualls", "party": "GOP", "note": "MNGOP endorsed · running mate Brian Nicholson" },
-        { "name": "Lisa Demuth", "party": "GOP", "note": "House Speaker · running mate Ryan Wilson" },
-        { "name": "Loner Blue", "party": "GOP", "note": "Running mate Andrew Maass" },
-        { "name": "Raul Estrada", "party": "GOP", "note": "Running mate Joe Kincaid" },
-        { "name": "John Krhin", "party": "GOP", "note": "Running mate Dennis Conn" },
-        { "name": "Ross Nova", "party": "GOP", "note": "Running mate Kerry Busby" }
+        { "name": "Mike Lindell & Phillip C. Parrish", "party": "GOP", "note": "Republican · Governor & Lt. Governor ticket", "leading": true },
+        { "name": "Kendall Qualls & Brian Nicholson", "party": "GOP", "note": "Republican ticket" },
+        { "name": "Lisa Demuth & Ryan Wilson", "party": "GOP", "note": "Republican ticket" },
+        { "name": "Loner Blue & Andrew Maass", "party": "GOP", "note": "Republican ticket" },
+        { "name": "Raul J. Estrada & Joe Kincaid", "party": "GOP", "note": "Republican ticket" },
+        { "name": "John Krhin & Dennis Conn", "party": "GOP", "note": "Republican ticket" },
+        { "name": "Ross Nova & Kerry Busby", "party": "GOP", "note": "Republican ticket" }
       ],
       "other": [
-        { "name": "Amy Klobuchar", "party": "DFL", "note": "U.S. Senator · DFL endorsed · running mate Ben Schierer" },
-        { "name": "Tom Evenstad", "party": "DFL", "note": "Running mate Jason Haarsager" },
-        { "name": "Bill Gates, Jr.", "party": "DFL", "note": "Running mate Leah Harris" },
-        { "name": "Kobey Layne", "party": "DFL", "note": "Running mate Paul Ference" },
-        { "name": "Po Vang", "party": "DFL", "note": "Running mate Mark Frascone" },
-        { "name": "Ole Savior", "party": "DFL", "note": "Running mate Ashley Johnson" },
-        { "name": "Mohammad Wazwaz", "party": "DFL", "note": "Running mate Murad Alshool" },
-        { "name": "Steve Young", "party": "Green", "note": "Running mate Jane Kirby" }
+        { "name": "Amy Klobuchar & Ben Schierer", "party": "DFL", "note": "Democratic-Farmer-Labor ticket" },
+        { "name": "Thomas Evenstad & Jason Haarsager", "party": "DFL", "note": "DFL ticket" },
+        { "name": "Bill E. Gates Jr. & Leah Harris", "party": "DFL", "note": "DFL ticket" },
+        { "name": "Kobey J. Layne & Paul Ference", "party": "DFL", "note": "DFL ticket" },
+        { "name": "Po Vang & Mark Frascone", "party": "DFL", "note": "DFL ticket" },
+        { "name": "Ole \"Viking\" Savior & Ashley \"Skol\" Johnson", "party": "DFL", "note": "DFL ticket" },
+        { "name": "Mohammad Wazwaz & Murad Alshlool", "party": "DFL", "note": "DFL ticket" }
       ]
     },
     "usSenate": {
-      "office": "U.S. Senate (Minnesota)",
+      "office": "U.S. Senator (Minnesota)",
       "scope": "Statewide",
       "gop": [
-        { "name": "Adam Schwarze", "party": "GOP", "note": "MNGOP endorsed · former Navy SEAL" },
-        { "name": "Michele Tafoya", "party": "GOP", "note": "Sports broadcaster · NRSC support reported" },
-        { "name": "Royce White", "party": "GOP", "note": "2024 U.S. Senate nominee" },
-        { "name": "Tom Weiler", "party": "GOP", "note": "Retired U.S. Navy officer" },
-        { "name": "Bob Carney Jr.", "party": "GOP", "note": "" },
-        { "name": "Cynthia Gail", "party": "GOP", "note": "" },
-        { "name": "Ahmad R. Hassan", "party": "GOP", "note": "" },
-        { "name": "Joyce Lacey", "party": "GOP", "note": "" },
-        { "name": "Patrick Munro", "party": "GOP", "note": "" },
-        { "name": "Mohamad Muse", "party": "GOP", "note": "" }
+        { "name": "Adam Schwarze", "party": "GOP", "note": "Republican" },
+        { "name": "Michele Tafoya", "party": "GOP", "note": "Republican" },
+        { "name": "Royce White", "party": "GOP", "note": "Republican" },
+        { "name": "Tom Weiler", "party": "GOP", "note": "Republican" },
+        { "name": "Bob \"Again\" Carney Jr.", "party": "GOP", "note": "Republican" },
+        { "name": "Cynthia Gail", "party": "GOP", "note": "Republican" },
+        { "name": "Ahmad R. (Raafat) Hassan", "party": "GOP", "note": "Republican" },
+        { "name": "Joyce Lacey", "party": "GOP", "note": "Republican" },
+        { "name": "Patrick Munro", "party": "GOP", "note": "Republican" }
       ],
       "other": [
-        { "name": "Peggy Flanagan", "party": "DFL", "note": "Lt. Governor · DFL endorsed" },
-        { "name": "Angie Craig", "party": "DFL", "note": "U.S. Rep MN-02" },
-        { "name": "Kurt M. Anderson", "party": "DFL", "note": "" },
-        { "name": "George Kalberer", "party": "DFL", "note": "" },
-        { "name": "Peter J. Murgic", "party": "DFL", "note": "" },
-        { "name": "Billy Nord", "party": "DFL", "note": "" },
-        { "name": "Rebecca Whiting", "party": "Libertarian", "note": "" },
-        { "name": "Marisa Simonetti", "party": "Independent", "note": "" }
+        { "name": "Peggy Flanagan", "party": "DFL", "note": "Democratic-Farmer-Labor" },
+        { "name": "Angie Craig", "party": "DFL", "note": "Democratic-Farmer-Labor" },
+        { "name": "Kurt Michael Anderson", "party": "DFL", "note": "Democratic-Farmer-Labor" },
+        { "name": "George H. Kalberer", "party": "DFL", "note": "Democratic-Farmer-Labor" },
+        { "name": "Peter John Murgic", "party": "DFL", "note": "Democratic-Farmer-Labor" },
+        { "name": "Billy Nord", "party": "DFL", "note": "Democratic-Farmer-Labor" }
       ]
     },
     "usHouse4": {
@@ -128,9 +124,9 @@
       "districtKey": "cd4_in_sd33",
       "scope": "Within SD 33 (all communities listed equally): Bayport; Dellwood; Mahtomedi; Oak Park Heights; Stillwater; Willernie; parts of Stillwater Township (SOS May 2026). Candidates serve the district—not presented by hometown.",
       "gop": [
-        { "name": "Paul Wikstrom", "party": "GOP", "note": "MNGOP endorsed · MN-04 district candidate" },
-        { "name": "Paul Xiong", "party": "GOP", "note": "MN-04 district candidate" },
-        { "name": "Gene Rechtzigel", "party": "GOP", "note": "MN-04 district candidate" }
+        { "name": "Paul Wikstrom", "party": "GOP", "note": "Republican · MN-04" },
+        { "name": "Paul Xiong", "party": "GOP", "note": "Republican · MN-04" },
+        { "name": "Gene Rechtzigel", "party": "GOP", "note": "Republican · MN-04" }
       ],
       "other": [
         { "name": "Betty McCollum", "party": "DFL", "note": "Incumbent" },
@@ -138,14 +134,17 @@
       ]
     },
     "usHouse8": {
-      "office": "U.S. House — Minnesota District 8",
+      "office": "U.S. Representative — District 8",
       "districtKey": "cd8_in_sd33",
-      "scope": "Within SD 33 (all communities listed equally): Forest Lake; Hugo; Marine on St. Croix; May Township; Scandia; Stillwater Township Precinct 1 (SOS May 2026). Candidates serve the district—not presented by hometown.",
+      "scope": "Within SD 33 (all communities listed equally): Forest Lake; Hugo; Marine on St. Croix; May Township; Scandia; Stillwater Township Precinct 1 (SOS May 2026). GOP checkboxes only on preference form.",
       "gop": [
-        { "name": "Pete Stauber", "party": "GOP", "note": "Incumbent · MN-08 district" }
+        { "name": "Pete Stauber", "party": "GOP", "note": "Republican · U.S. House MN-08" },
+        { "name": "Anthony Hamilton", "party": "GOP", "note": "Republican · U.S. House MN-08" }
       ],
       "other": [
-        { "name": "See SOS candidate finder for DFL field", "party": "DFL", "note": "Confirm filings for 2026" }
+        { "name": "Luke Gulbranson", "party": "DFL", "note": "Democratic-Farmer-Labor" },
+        { "name": "John Munter", "party": "DFL", "note": "Democratic-Farmer-Labor" },
+        { "name": "Trina Swanson", "party": "DFL", "note": "Democratic-Farmer-Labor" }
       ]
     },
     "stateSenate33": {
@@ -185,33 +184,57 @@
       ]
     },
     "attorneyGeneral": {
-      "office": "Minnesota Attorney General",
+      "office": "Attorney General",
       "scope": "Statewide",
       "gop": [
-        { "name": "GOP field / primary nominees", "party": "GOP", "note": "Verify 2026 filings at candidates.sos.mn.gov — pack uses post-primary AG lit when issued" }
+        { "name": "Ronald J. Schutz", "party": "GOP", "note": "Republican" }
       ],
       "other": [
-        { "name": "Keith Ellison", "party": "DFL", "note": "Incumbent" }
+        { "name": "Keith Ellison", "party": "DFL", "note": "Democratic-Farmer-Labor · Incumbent" },
+        { "name": "David J.S. Madgett", "party": "DFL", "note": "Democratic-Farmer-Labor" }
       ]
     },
     "secretaryOfState": {
-      "office": "Minnesota Secretary of State",
+      "office": "Secretary of State",
       "scope": "Statewide",
       "gop": [
-        { "name": "GOP field / primary nominees", "party": "GOP", "note": "Verify 2026 filings at candidates.sos.mn.gov — pack uses post-primary SOS lit when issued" }
+        { "name": "Wendy Phillips", "party": "GOP", "note": "Republican" },
+        { "name": "Tad Jude", "party": "GOP", "note": "Republican" }
       ],
       "other": [
-        { "name": "Steve Simon", "party": "DFL", "note": "Incumbent" }
+        { "name": "Steve Simon", "party": "DFL", "note": "Democratic-Farmer-Labor · Incumbent" }
       ]
     },
     "stateAuditor": {
-      "office": "Minnesota State Auditor",
+      "office": "State Auditor",
       "scope": "Statewide",
       "gop": [
-        { "name": "GOP field / primary nominees", "party": "GOP", "note": "Verify 2026 filings at candidates.sos.mn.gov" }
+        { "name": "Nate George", "party": "GOP", "note": "Republican" },
+        { "name": "Scott Jensen", "party": "GOP", "note": "Republican" },
+        { "name": "Will Finn", "party": "GOP", "note": "Republican" }
       ],
       "other": [
-        { "name": "Julie Blaha", "party": "DFL", "note": "Incumbent" }
+        { "name": "Zack Filipovich", "party": "DFL", "note": "Democratic-Farmer-Labor" }
+      ]
+    },
+    "countySheriff": {
+      "office": "County Sheriff (Washington County — nonpartisan)",
+      "scope": "County · nonpartisan (not on GOP preference checkboxes)",
+      "gop": [],
+      "other": [
+        { "name": "Brian R. Mueller", "party": "NONPARTISAN", "note": "Nonpartisan" },
+        { "name": "Jeremy Bolen", "party": "NONPARTISAN", "note": "Nonpartisan" },
+        { "name": "Henry Mathia", "party": "NONPARTISAN", "note": "Nonpartisan" }
+      ]
+    },
+    "judge10th38": {
+      "office": "Judge — 10th District Court 38 (nonpartisan)",
+      "scope": "Judicial · nonpartisan (not on GOP preference checkboxes)",
+      "gop": [],
+      "other": [
+        { "name": "Ben Lacy", "party": "NONPARTISAN", "note": "Nonpartisan" },
+        { "name": "Rebecca A. Waxse", "party": "NONPARTISAN", "note": "Nonpartisan" },
+        { "name": "Mack Guptil", "party": "NONPARTISAN", "note": "Nonpartisan" }
       ]
     }
   },
