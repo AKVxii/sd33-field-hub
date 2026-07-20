@@ -659,9 +659,9 @@ function layout(title, body, opts = {}) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="St. Croix Valley volunteer field hub for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and volunteer tools for residents and the press." />
+  <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for Forest Lake, Stillwater, and neighboring communities." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=vol5" />
+  <link rel="stylesheet" href="/css/lit.css?v=home6" />
   ${extraHead}
 </head>
 <body>
@@ -694,15 +694,15 @@ function layout(title, body, opts = {}) {
   <footer class="footer" role="contentinfo">
     <div class="wrap">
       <div class="footer-brand">
-        <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" />
-        <img src="/images/mn-lake-shore.jpg" alt="Minnesota lake shoreline" />
-        <img src="/images/st-croix-valley.jpg" alt="St. Croix River valley landscape" />
+        <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" width="72" height="48" loading="lazy" />
+        <img src="/images/forest-lake-scenic.jpg" alt="Forest Lake, Minnesota" width="72" height="48" loading="lazy" />
+        <img src="/images/forest-lake-july4-parade.jpg" alt="Independence Day parade with American flags" width="72" height="48" loading="lazy" />
         <div>
-          <strong>St. Croix Valley Field Hub</strong> · SD 33 · HD 33A · HD 33B<br/>
-          Independent volunteer organizing resource for Washington County / St. Croix Valley.
+          <strong>St. Croix Valley Field Hub</strong> · SD&nbsp;33 · HD&nbsp;33A · HD&nbsp;33B<br/>
+          Independent volunteer organizing resource for Washington County and the St.&nbsp;Croix Valley.
           <strong>Not</strong> an official government website and <strong>not</strong> legal advice.
-          Candidate data from public sources (Minnesota Secretary of State, public filings).
-          Official ballot/precinct: <a href="https://pollfinder.sos.mn.gov/" rel="noopener">pollfinder.sos.mn.gov</a>.
+          Candidate data from public sources (Minnesota Secretary of State and public filings).
+          Official ballot and precinct lookup: <a href="https://pollfinder.sos.mn.gov/" rel="noopener">pollfinder.sos.mn.gov</a>.
         </div>
       </div>
       <p class="legal-bar">
@@ -883,144 +883,192 @@ app.get("/", (req, res) => {
   const highlight = events.find((e) => e.highlight) || events[0];
   const body = `
     ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
-    <section class="photo-hero">
+
+    <section class="photo-hero forest-lake" aria-label="Forest Lake and St. Croix Valley welcome">
       <div class="photo-hero-content">
         <span class="badge pri">Washington County · Minnesota</span>
         <h2>St. Croix Valley Field Hub</h2>
-        <p>A public volunteer resource for Minnesota <strong>Senate District 33</strong> and <strong>House Districts 33A &amp; 33B</strong>—Stillwater, Forest Lake, and neighboring communities along the river and lakes.</p>
+        <p>A public volunteer resource for Minnesota <strong>Senate District&nbsp;33</strong> and <strong>House Districts&nbsp;33A and&nbsp;33B</strong>—Stillwater, Forest Lake, Hugo, and neighboring communities along the lakes and the St.&nbsp;Croix River.</p>
         <div class="cta-row">
-          <a class="btn btn-gold" href="/map">District map &amp; your candidates</a>
-          <a class="btn" href="/events">Events · parades · breakfasts</a>
-          <a class="btn btn-navy" href="/volunteer">Volunteer signup</a>
+          <a class="btn btn-gold" href="/map">District Map &amp; Candidates</a>
+          <a class="btn" href="/events">Events, Parades &amp; Breakfasts</a>
+          <a class="btn btn-navy" href="/volunteer">Volunteer Signup</a>
         </div>
       </div>
-      <span class="photo-credit">Minnesota lakes · St. Croix Valley</span>
+      <span class="photo-credit">Forest Lake, Minnesota · Original illustration for this site</span>
     </section>
 
-    <div class="gallery" aria-label="Regional scenery">
-      <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" />
-      <img src="/images/st-croix-valley.jpg" alt="St. Croix River valley" />
-      <img src="/images/mn-lake-shore.jpg" alt="Minnesota lake shoreline" />
-      <img src="/images/autumn-lakeside.jpg" alt="Autumn lakeside path" />
+    <div class="gallery" aria-label="Forest Lake, Independence Day, and Minnesota heritage">
+      <figure>
+        <img src="/images/forest-lake-scenic.jpg" alt="Scenic view of Forest Lake, Minnesota, with shoreline pines and calm blue water" width="640" height="360" loading="eager" />
+        <figcaption>Forest Lake · The Lake</figcaption>
+      </figure>
+      <figure>
+        <img src="/images/forest-lake-july4-parade.jpg" alt="Small-town Independence Day parade with many American flags and red, white, and blue bunting" width="640" height="360" loading="eager" />
+        <figcaption>Fourth of July · USA Pride</figcaption>
+      </figure>
+      <figure>
+        <img src="/images/forest-lake-waterfront.jpg" alt="Lakeside town waterfront park with American flags and summer greenery" width="640" height="360" loading="lazy" />
+        <figcaption>Town Waterfront</figcaption>
+      </figure>
+      <figure>
+        <img src="/images/st-croix-valley.jpg" alt="St. Croix River valley landscape in summer" width="640" height="360" loading="lazy" />
+        <figcaption>St. Croix Valley</figcaption>
+      </figure>
     </div>
+
+    <p class="image-rights">
+      <strong>Image rights.</strong> Landscape and parade scenes on this page are original illustrations created for the St.&nbsp;Croix Valley Field Hub (not third-party stock).
+      The historic Minnesota state flag (1957–2023 design) appears as a faint heritage watermark beside the loon; it is shown for cultural and educational display only and is not the current official state flag.
+      This site is an independent volunteer resource—not a government website.
+    </p>
+
+    <section class="heritage-band home-section" aria-label="Minnesota loon and historic flag">
+      <div class="heritage-loon" role="img" aria-label="Common loon on a Minnesota lake with a faint historic Minnesota flag watermark">
+        <div class="heritage-loon-caption">
+          <strong>The Loon · Land of 10,000 Lakes</strong>
+          <span>Historic Minnesota flag (1957–2023), faint and present—our heritage, our home</span>
+        </div>
+      </div>
+      <div class="heritage-copy">
+        <h2>Neighbors Who Love This Place</h2>
+        <p>From Forest Lake’s shoreline to Stillwater’s Main Street, this hub is built for people who care about Minnesota’s future—clean language, clear tools, and a path to win the seats that shape our daily lives.</p>
+        <p class="muted" style="margin:0">Parade season, lake evenings, and door-to-door weekends. Sign up, request a bundle pack, and join like-minded residents in your district or nearby.</p>
+        <div class="cta-row">
+          <a class="btn btn-gold" href="/volunteer">Join the Team</a>
+          <a class="btn btn-navy" href="/win-three">Win Path: Three Seats</a>
+        </div>
+      </div>
+    </section>
 
     ${
       highlight
-        ? `<section class="card event-card highlight" style="margin-bottom:1rem">
-      <span class="badge pri">Featured event</span>
-      <h2 style="margin:0.4rem 0">${esc(highlight.title)}</h2>
+        ? `<section class="card event-card highlight home-section">
+      <span class="badge pri">Featured Event</span>
+      <h2 class="section-title" style="margin:0.45rem 0 0.5rem">${esc(highlight.title)}</h2>
       <p><strong>${esc(highlight.dayLabel)}</strong> · ${esc(highlight.time)} · ${esc(highlight.locationName)}</p>
       <p class="prose">${esc(highlight.description)}</p>
       <p class="muted">Districts: ${esc((highlight.districts || []).join(" · "))}</p>
-      <a class="btn" href="/events">Full calendar</a>
-      <a class="btn btn-navy" href="/schedule">Sign up to help</a>
+      <div class="cta-row">
+        <a class="btn" href="/events">Full Calendar</a>
+        <a class="btn btn-navy" href="/schedule">Sign Up to Help</a>
+      </div>
     </section>`
         : ""
     }
 
-    <div class="grid" style="margin-bottom:1rem">
+    <h2 class="section-title">Start Here</h2>
+    <div class="grid home-section">
       <article class="card">
-        <div class="card-photo loon"></div>
-        <h3>Find candidates by address</h3>
-        <p>Enter a street address or click the map. See local, state, and federal races with district overlays highlighted in light map colors.</p>
-        <a class="btn" href="/map">Open district map</a>
+        <div class="card-photo forest-lake" role="img" aria-label="Forest Lake scenic"></div>
+        <h3>Find Candidates by Address</h3>
+        <p>Enter a street address or open the map. View local, state, and federal races with district overlays for Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B.</p>
+        <a class="btn" href="/map">Open District Map</a>
       </article>
       <article class="card">
-        <div class="card-photo valley"></div>
-        <h3>For volunteers</h3>
-        <p>Sign up for doors, parades, pancake breakfasts, and festivals. See what stickers, lit, and shirts to wear at each event.</p>
-        <a class="btn btn-navy" href="/volunteer">Volunteer signup</a>
-        <a class="btn" href="/events">Events list</a>
+        <div class="card-photo parade" role="img" aria-label="Independence Day parade with American flags"></div>
+        <h3>For Volunteers</h3>
+        <p>Sign up for doors, parades, pancake breakfasts, happy hours, and festivals. Choose your candidates, request a bundle pack, and connect with neighbors in your district or nearby.</p>
+        <a class="btn btn-navy" href="/volunteer">Volunteer Signup</a>
+        <a class="btn" href="/events">Events List</a>
       </article>
       <article class="card">
-        <div class="card-photo shore"></div>
-        <h3>For media &amp; residents</h3>
-        <p>Candidate lists, events, and a transparent field roadmap. This is an independent organizing site—not a government page.</p>
-        <a class="btn btn-navy" href="/candidates">Candidate directory</a>
-        <a class="btn btn-gold" href="/roadmap">Capacity roadmap</a>
+        <div class="card-photo waterfront" role="img" aria-label="Lakeside waterfront"></div>
+        <h3>For Media &amp; Residents</h3>
+        <p>Candidate lists, events, and a transparent field roadmap. This is an independent organizing site—not a government page and not legal advice.</p>
+        <a class="btn btn-navy" href="/candidates">Candidate Directory</a>
+        <a class="btn btn-gold" href="/roadmap">Capacity Roadmap</a>
       </article>
     </div>
 
-    <section class="card prose" style="margin-bottom:1rem">
-      <h2>Win path: three seats</h2>
-      <p>Senate District 33 elects one senator and two representatives. Our recruitment and field plan prioritizes:</p>
+    <section class="card prose home-section">
+      <h2 class="section-title">Win Path: Three Seats</h2>
+      <p>Senate District&nbsp;33 elects one senator and two representatives. Our recruitment and field plan prioritizes:</p>
       <ul>
-        <li><strong>SD 33</strong> — Karin Housley (GOP)</li>
-        <li><strong>HD 33A</strong> — Stacey Stout (GOP)</li>
-        <li><strong>HD 33B</strong> — Jessica L. Johnson (GOP)</li>
+        <li><strong>Senate District&nbsp;33</strong> — Karin Housley (GOP)</li>
+        <li><strong>House District&nbsp;33A</strong> — Stacey Stout (GOP)</li>
+        <li><strong>House District&nbsp;33B</strong> — Jessica L. Johnson (GOP)</li>
       </ul>
-      <p>Close races are decided by doors (Pulsar), events, signs on busy streets, and early vote. <a href="/win-three">Full three-seat win plan →</a></p>
-      <p><a class="btn btn-gold" href="/volunteer">Volunteer</a>
-      <a class="btn" href="/pulsar">Get on Pulsar</a>
-      <a class="btn btn-navy" href="/legal">Legal rules for field</a>
-      <a class="btn btn-navy" href="/share">Share this site</a></p>
+      <p>Close races are decided by doors (Pulsar), community events, signs on busy streets (with permission), and early vote. <a href="/win-three">Read the full three-seat win plan →</a></p>
+      <div class="cta-row">
+        <a class="btn btn-gold" href="/volunteer">Volunteer</a>
+        <a class="btn" href="/pulsar">Get on Pulsar</a>
+        <a class="btn btn-navy" href="/legal">Legal Rules for Field</a>
+        <a class="btn btn-navy" href="/share">Share This Site</a>
+      </div>
     </section>
 
-    <div class="grid">
+    <h2 class="section-title">Literature &amp; Field Focus</h2>
+    <div class="grid home-section">
       <article class="card">
-        <h3>Three seats = three pieces of local lit</h3>
+        <h3>Three Seats, Three Pieces of Local Literature</h3>
         <ul class="checklist">
-          <li><span class="tag-gop">GOP</span> State Senate 33 — Karin Housley</li>
-          <li><span class="tag-gop">GOP</span> House 33A — GOP nominee (open seat)</li>
-          <li><span class="tag-gop">GOP</span> House 33B — GOP nominee (challenge Hill)</li>
+          <li><span class="tag-gop">GOP</span> State Senate&nbsp;33 — Karin Housley</li>
+          <li><span class="tag-gop">GOP</span> House&nbsp;33A — Stacey Stout</li>
+          <li><span class="tag-gop">GOP</span> House&nbsp;33B — Jessica L. Johnson</li>
         </ul>
-        <p class="muted">Ideal door kit: combined “Win SD 33” piece <em>or</em> all three singles + sample ballot.</p>
+        <p class="muted">Ideal door kit: a combined “Win SD&nbsp;33” piece <em>or</em> all three singles, plus a sample ballot when available.</p>
       </article>
       <article class="card">
-        <h3>Top-of-ticket (carry after primary)</h3>
+        <h3>Top of Ticket (After the Primary)</h3>
         <ul class="checklist">
-          <li><span class="tag-gop">GOP</span> Governor — primary winner lit</li>
-          <li><span class="tag-gop">GOP</span> U.S. Senate — primary winner lit</li>
-          <li><span class="tag-gop">GOP</span> U.S. House MN-04 or MN-08 (match address — not MN-06 in SD 33)</li>
+          <li><span class="tag-gop">GOP</span> Governor — primary winner literature</li>
+          <li><span class="tag-gop">GOP</span> U.S. Senate — primary winner literature</li>
+          <li><span class="tag-gop">GOP</span> U.S. House MN-04 or MN-08 (match the address; most of SD&nbsp;33 is not MN-06)</li>
         </ul>
-        <p class="muted">Before Aug 11: focus local three seats. After primary: add nominee statewide/federal pieces.</p>
+        <p class="muted">Before August&nbsp;11: focus on the local three seats. After the primary: add nominee statewide and federal pieces.</p>
       </article>
       <article class="card">
-        <h3>Why lit wins here</h3>
-        <p>HD 33B recently decided by ~700 votes. SD 33 and 33A are competitive suburban/exurban turf. Multiple light touches beat one heavy visit.</p>
-        <p class="muted">Goal: every target door gets local GOP slate lit <strong>2–3 times</strong> before Election Day.</p>
+        <h3>Why Literature Wins Here</h3>
+        <p>House District&nbsp;33B was recently decided by roughly 700 votes. Senate District&nbsp;33 and House District&nbsp;33A are competitive suburban and exurban turf. Multiple light touches beat one heavy visit.</p>
+        <p class="muted">Goal: every target door receives local GOP slate literature <strong>two to three times</strong> before Election Day.</p>
       </article>
     </div>
 
-    <section class="card" style="margin-top:1rem">
-      <h2>Phase plan</h2>
-      <div class="phase"><strong>Now → Aug 10 (pre-primary)</strong><br/>
-        Saturdays: 33A + 33B priority turfs. Carry local three + early-vote card. Build volunteer habit. Do not overstock un-nominated statewide primary lit.</div>
-      <div class="phase"><strong>Aug 12–Labor Day</strong><br/>
-        Swap in <span class="tag-gop">GOP</span> primary winners for Governor, U.S. Senate, U.S. House. Re-drop soft IDs and new move-ins.</div>
-      <div class="phase"><strong>September persuasion</strong><br/>
-        High-density Stillwater / Forest Lake / Hugo routes. Combined slate piece. Track “no lit / already had lit” on walk sheets.</div>
-      <div class="phase"><strong>October GOTV</strong><br/>
-        Early vote push. Chase absentees. Sample ballot at doors + churches/community boards where allowed. Double-cover soft Republicans and independents.</div>
-      <div class="phase"><strong>Final 10 days</strong><br/>
-        Only GOTV: “vote early / here’s who is GOP on your ballot.” No new message experiments.</div>
+    <section class="card home-section">
+      <h2 class="section-title">Phase Plan</h2>
+      <div class="phase"><strong>Now Through August&nbsp;10 (Pre-Primary)</strong>
+        Saturdays: prioritize House&nbsp;33A and House&nbsp;33B turf. Carry the local three pieces plus an early-vote card. Build the volunteer habit. Do not overstock un-nominated statewide primary literature.</div>
+      <div class="phase"><strong>August&nbsp;12 Through Labor Day</strong>
+        Swap in <span class="tag-gop">GOP</span> primary winners for Governor, U.S. Senate, and U.S. House. Revisit soft IDs and new move-ins.</div>
+      <div class="phase"><strong>September Persuasion</strong>
+        High-density routes in Stillwater, Forest Lake, and Hugo. Combined slate piece. Track “no literature” and “already had literature” on walk sheets.</div>
+      <div class="phase"><strong>October Get-Out-the-Vote</strong>
+        Early-vote push. Chase absentees. Sample ballots at doors and at churches or community boards where allowed. Double-cover soft Republicans and independents.</div>
+      <div class="phase"><strong>Final Ten Days</strong>
+        Get-out-the-vote only: “Vote early—here is who is GOP on your ballot.” No new message experiments.</div>
     </section>
 
-    <section class="card" style="margin-top:1rem">
-      <h2>Weekly field targets (full SD 33)</h2>
+    <section class="card home-section">
+      <h2 class="section-title">Weekly Field Targets (Full Senate District&nbsp;33)</h2>
       <table>
-        <thead><tr><th>Metric</th><th>Build phase</th><th>Peak Oct</th><th>Why</th></tr></thead>
+        <thead><tr><th>Metric</th><th>Build Phase</th><th>Peak October</th><th>Why</th></tr></thead>
         <tbody>
-          <tr><td>Lit pieces out / week</td><td>3,000–5,000</td><td>8,000–12,000</td><td>Coverage beats perfection</td></tr>
-          <tr><td>Active lit droppers</td><td>25–40</td><td>60–100</td><td>Small teams by town</td></tr>
-          <tr><td>Doors / shift</td><td>40–70</td><td>50–80</td><td>2-hour Saturday shift</td></tr>
-          <tr><td>Touches per target door</td><td>1–2</td><td>2–3</td><td>Memory + trust</td></tr>
+          <tr><td>Literature pieces out per week</td><td>3,000–5,000</td><td>8,000–12,000</td><td>Coverage beats perfection</td></tr>
+          <tr><td>Active literature droppers</td><td>25–40</td><td>60–100</td><td>Small teams by town</td></tr>
+          <tr><td>Doors per shift</td><td>40–70</td><td>50–80</td><td>Two-hour Saturday shift</td></tr>
+          <tr><td>Touches per target door</td><td>1–2</td><td>2–3</td><td>Memory and trust</td></tr>
         </tbody>
       </table>
     </section>
 
-    <section class="card" style="margin-top:1rem">
-      <h2>Rules that win (and stay legal)</h2>
+    <section class="card home-section">
+      <h2 class="section-title">Rules That Win—and Stay Legal</h2>
       <ul>
-        <li>Leave lit where allowed — never block mailboxes (federal law: do <strong>not</strong> put materials in mailboxes).</li>
-        <li>Door hanger or under mat / between screen &amp; door if safe; porch is fine.</li>
-        <li>No arguing. Smile, leave piece, mark walk sheet, move on.</li>
-        <li>Respect “No Soliciting” if your local counsel says so; when in doubt, skip.</li>
+        <li>Leave literature where allowed. Never place materials in U.S. mailboxes (federal law).</li>
+        <li>Use a door hanger, under a mat, or between screen and door when safe; a porch is fine.</li>
+        <li>Do not argue. Smile, leave the piece, mark the walk sheet, and move on.</li>
+        <li>Respect “No Soliciting” when your local counsel advises it; when in doubt, skip.</li>
         <li>Pair new volunteers with a captain the first time.</li>
+        <li>On primary and election day, follow Minnesota’s 100-foot and public-property rules—see <a href="/legal">Legal</a>.</li>
       </ul>
-      <p><a class="btn" href="/how-to">Full how-to guide</a> <a class="btn btn-navy" href="/turf">33A vs 33B turf</a></p>
+      <div class="cta-row">
+        <a class="btn" href="/how-to">Full How-To Guide</a>
+        <a class="btn btn-navy" href="/turf">33A vs. 33B Turf</a>
+        <a class="btn btn-gold" href="/volunteer">Volunteer Signup</a>
+      </div>
     </section>`;
-  sendPage(req, res, "Lit drop plan", body);
+  sendPage(req, res, "Home", body);
 });
 
 /* ---------- Candidates ---------- */
