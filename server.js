@@ -85,6 +85,10 @@ const SCHEDULE_FILE = path.join(DATA, "schedule.json");
 const ROADMAP_FILE = path.join(DATA, "roadmap.json");
 const DISTRICTS_GEO_FILE = path.join(DATA, "districts_geo.json");
 const PRECINCTS_FILE = path.join(DATA, "sd33_precincts.json");
+const VOL_SIGNUPS_FILE = path.join(DATA, "volunteer_signups.json");
+const EVENT_IDEAS_FILE = path.join(DATA, "event_ideas.json");
+if (!fs.existsSync(VOL_SIGNUPS_FILE)) fs.writeFileSync(VOL_SIGNUPS_FILE, "[]");
+if (!fs.existsSync(EVENT_IDEAS_FILE)) fs.writeFileSync(EVENT_IDEAS_FILE, "[]");
 if (!fs.existsSync(SCHEDULE_FILE)) {
   fs.writeFileSync(
     SCHEDULE_FILE,
@@ -634,6 +638,7 @@ function isNavActive(href, currentPath) {
   const path = (currentPath || "/").split("?")[0] || "/";
   if (href === "/") return path === "/";
   if (href === "/field") return path === "/field" || path.startsWith("/field/");
+  if (href === "/volunteer") return path === "/volunteer" || path.startsWith("/volunteer");
   return path === href || path.startsWith(href + "/");
 }
 function navClass(href, currentPath) {
@@ -666,7 +671,8 @@ function layout(title, body, opts = {}) {
         <a href="/"${n("/")}>Home</a>
         <a href="/map"${n("/map")}>District map</a>
         <a href="/events"${n("/events")}>Events</a>
-        <a href="/schedule"${n("/schedule")}>Volunteer board</a>
+        <a href="/volunteer"${n("/volunteer")}>Volunteer signup</a>
+        <a href="/schedule"${n("/schedule")}>Shift board</a>
         <a href="/my-gop-ballot"${n("/my-gop-ballot")}>Find your ballot</a>
         <a href="/candidates"${n("/candidates")}>Candidates</a>
         <a href="/roadmap"${n("/roadmap")}>Roadmap</a>
@@ -864,8 +870,8 @@ app.get("/", (req, res) => {
         <p>A public volunteer resource for Minnesota <strong>Senate District 33</strong> and <strong>House Districts 33A &amp; 33B</strong>—Stillwater, Forest Lake, and neighboring communities along the river and lakes.</p>
         <div class="cta-row">
           <a class="btn btn-gold" href="/map">District map &amp; your candidates</a>
-          <a class="btn" href="/events">Events calendar</a>
-          <a class="btn btn-navy" href="/schedule">Volunteer board</a>
+          <a class="btn" href="/events">Events · parades · breakfasts</a>
+          <a class="btn btn-navy" href="/volunteer">Volunteer signup</a>
         </div>
       </div>
       <span class="photo-credit">Minnesota lakes · St. Croix Valley</span>
@@ -902,8 +908,9 @@ app.get("/", (req, res) => {
       <article class="card">
         <div class="card-photo valley"></div>
         <h3>For volunteers</h3>
-        <p>Claim Saturday shifts, carry literature, log yard-sign asks on busy streets, and help turn out neighbors.</p>
-        <a class="btn btn-navy" href="/schedule">Volunteer board</a>
+        <p>Sign up for doors, parades, pancake breakfasts, and festivals. See what stickers, lit, and shirts to wear at each event.</p>
+        <a class="btn btn-navy" href="/volunteer">Volunteer signup</a>
+        <a class="btn" href="/events">Events list</a>
       </article>
       <article class="card">
         <div class="card-photo shore"></div>
@@ -2602,31 +2609,330 @@ app.get("/map", (req, res) => {
   });
 });
 
-/* ---------- Events ---------- */
+/* ---------- Events + gear + filters ---------- */
+function eventCardHtml(e) {
+  const scope = e.districtScope === "nearby" ? "nearby" : "in";
+  const scopeBadge =
+    scope === "nearby"
+      ? '<span class="badge other">Just outside · voters likely</span>'
+      : '<span class="badge published">In district</span>';
+  const pri =
+    e.priority === "high"
+      ? '<span class="badge pri">Priority</span>'
+      : e.priority === "medium"
+        ? '<span class="badge marked">Medium</span>'
+        : '<span class="badge other">Optional</span>';
+  const gear = e.gear || {};
+  const roles = (e.volunteerRoles || []).map((r) => `<li>${esc(r)}</li>`).join("");
+  const cls = e.highlight ? "card event-card highlight" : "card event-card";
+  return `<article class="${cls}" style="margin-bottom:1rem" data-scope="${scope}" data-district="${esc(
+    (e.districts || []).join(" ")
+  )}" data-type="${esc(e.type || "")}">
+    <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.4rem">
+      ${e.highlight ? '<span class="badge pri">Featured</span>' : ""}
+      ${scopeBadge}
+      ${pri}
+      <span class="badge other">${esc(e.type || "event")}</span>
+    </div>
+    <h2 style="margin:0.35rem 0;font-size:1.25rem">${esc(e.title)}</h2>
+    <p><strong>${esc(e.dayLabel || "Date TBA")}</strong>${e.time ? " · " + esc(e.time) : ""}</p>
+    <p>${esc(e.locationName || "")}${e.address ? " · " + esc(e.address) : ""}</p>
+    <p>${esc(e.description || "")}</p>
+    ${
+      e.nearbyReason
+        ? `<p><strong>Why nearby still matters:</strong> ${esc(e.nearbyReason)}</p>`
+        : ""
+    }
+    <p class="muted"><strong>District labels:</strong> ${esc((e.districts || []).join(" · "))}</p>
+    <div class="card" style="background:#f8fafc;margin:0.75rem 0;box-shadow:none">
+      <h3 style="margin:0 0 0.5rem;font-size:1rem">What to wear / bring as a volunteer</h3>
+      <ul style="margin:0;padding-left:1.2rem">
+        <li><strong>Stickers:</strong> ${esc(gear.stickers || "Ask captain")}</li>
+        <li><strong>Literature:</strong> ${esc(gear.literature || "Match house district + Senate 33")}</li>
+        <li><strong>Shirts:</strong> ${esc(gear.shirts || "Campaign shirt or solid color")}</li>
+      </ul>
+    </div>
+    ${
+      roles
+        ? `<p class="muted"><strong>Roles:</strong></p><ul>${roles}</ul>`
+        : ""
+    }
+    ${e.source ? `<p class="muted">Source / more info: <a href="${esc(e.source)}" target="_blank" rel="noopener">${esc(e.source)}</a></p>` : ""}
+    <p>
+      <a class="btn btn-navy" href="/volunteer?event=${encodeURIComponent(e.id || "")}">Sign up for this event</a>
+      <a class="btn" href="/schedule">Claim a shift</a>
+    </p>
+  </article>`;
+}
+
 app.get("/events", (req, res) => {
-  const events = loadJson(EVENTS_FILE).events || [];
-  const cards = events
-    .map((e) => {
-      const cls = e.highlight ? "card event-card highlight" : "card event-card";
-      return `<article class="${cls}" style="margin-bottom:1rem">
-        ${e.highlight ? '<span class="badge pri">Featured</span>' : `<span class="badge other">${esc(e.type)}</span>`}
-        <h2 style="margin:0.4rem 0">${esc(e.title)}</h2>
-        <p><strong>${esc(e.dayLabel)}</strong>${e.time ? " · " + esc(e.time) : ""}</p>
-        <p>${esc(e.locationName)}${e.address ? " · " + esc(e.address) : ""}</p>
-        <p>${esc(e.description)}</p>
-        <p class="muted">Districts: ${esc((e.districts || []).join(" · "))} · Audience: ${esc(e.audience || "")}</p>
-        <p class="muted">${esc(e.rsvpHint || "")}</p>
-        <a class="btn btn-navy" href="/schedule">Volunteer for this</a>
-      </article>`;
-    })
-    .join("");
+  const data = loadJson(EVENTS_FILE);
+  const events = data.events || [];
+  const filter = req.query.scope || "all"; // all | in | nearby
+  const district = req.query.district || ""; // 33A | 33B | SD33
+  let list = events.slice();
+  if (filter === "in") list = list.filter((e) => e.districtScope !== "nearby");
+  if (filter === "nearby") list = list.filter((e) => e.districtScope === "nearby");
+  if (district === "33A") list = list.filter((e) => (e.districts || []).some((d) => /33A/i.test(d)));
+  if (district === "33B") list = list.filter((e) => (e.districts || []).some((d) => /33B/i.test(d)));
+  if (district === "SD33") list = list.filter((e) => (e.districts || []).some((d) => /SD\s*33|Senate/i.test(d) || e.districtScope === "in"));
+
+  const inCount = events.filter((e) => e.districtScope !== "nearby").length;
+  const nearCount = events.filter((e) => e.districtScope === "nearby").length;
+  const cards = list.map(eventCardHtml).join("");
+
   const body = `
     <section class="hero prose">
-      <h2>Events calendar</h2>
-      <p>Community and field events across Senate District 33 and House Districts 33A and 33B. Residents, volunteers, and the press are welcome at public community events.</p>
+      <span class="badge pri">Events · parades · breakfasts</span>
+      <h2>Local events calendar for volunteers</h2>
+      <p>A working list of festivals, parades, pancake breakfasts, and community gatherings <strong>inside Senate District 33 / House 33A &amp; 33B</strong>, plus suggested events <strong>just outside the lines</strong> that still draw potential voters. Each card says what stickers, literature, and shirts to bring.</p>
+      <p class="muted">${esc(data.note || "")}</p>
+      <div class="cta-row">
+        <a class="btn btn-gold" href="/volunteer">General volunteer signup</a>
+        <a class="btn" href="/volunteer#ideas">Suggest an event idea</a>
+        <a class="btn btn-navy" href="/schedule">Shift board</a>
+      </div>
     </section>
-    ${cards || "<p class=\"muted\">No events posted yet.</p>"}`;
+
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Filter events</h3>
+      <p class="muted">${inCount} in-district · ${nearCount} nearby (outside lines, voters likely)</p>
+      <p style="display:flex;flex-wrap:wrap;gap:0.5rem">
+        <a class="btn ${filter === "all" && !district ? "" : "btn-navy"}" href="/events">All</a>
+        <a class="btn ${filter === "in" ? "" : "btn-navy"}" href="/events?scope=in">In district only</a>
+        <a class="btn ${filter === "nearby" ? "" : "btn-navy"}" href="/events?scope=nearby">Nearby (outside)</a>
+        <a class="btn ${district === "33A" ? "" : "btn-navy"}" href="/events?district=33A">HD 33A</a>
+        <a class="btn ${district === "33B" ? "" : "btn-navy"}" href="/events?district=33B">HD 33B</a>
+        <a class="btn ${district === "SD33" ? "" : "btn-navy"}" href="/events?district=SD33">SD 33</a>
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem;border-left:4px solid var(--gold)">
+      <h3>Quick gear guide (all events)</h3>
+      <table>
+        <thead><tr><th>Setting</th><th>Stickers</th><th>Literature</th><th>Shirts</th></tr></thead>
+        <tbody>
+          <tr><td>Parade</td><td>Yes</td><td>Palm cards matching house district on route + Senate 33</td><td>Matching team shirts</td></tr>
+          <tr><td>Festival / fair</td><td>Yes</td><td>Door lit or palm cards; booth rules apply</td><td>Campaign shirt for booth crew</td></tr>
+          <tr><td>Pancake breakfast</td><td>Subtle</td><td>One-pager if host allows table</td><td>Polo / solid / small logo</td></tr>
+          <tr><td>Karaoke / social</td><td>Welcome table</td><td>Light lit only</td><td>Friendly campaign or solid</td></tr>
+          <tr><td>School / youth sports</td><td>Outside only if OK</td><td>Minimal — respect families</td><td>Solid color preferred</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Always: Housley (SD 33) + Stout (33A) and/or Johnson (33B) by turf. Never put materials in mailboxes. Follow event organizer rules.</p>
+    </div>
+
+    <h2>${list.length} event${list.length === 1 ? "" : "s"}</h2>
+    ${cards || "<p class=\"muted\">No events match this filter.</p>"}
+
+    <section class="card" style="margin-top:1rem">
+      <h3>Don’t see an event?</h3>
+      <p>Submit a parade, breakfast, fair, or festival idea — including events just outside the district that still draw our voters.</p>
+      <a class="btn btn-gold" href="/volunteer#ideas">Submit event idea</a>
+    </section>`;
   sendPage(req, res, "Events", body);
+});
+
+/* ---------- General volunteer signup + event ideas ---------- */
+app.get("/volunteer", (req, res) => {
+  const flash = req.session.flash;
+  delete req.session.flash;
+  const eventId = req.query.event || "";
+  const events = (loadJson(EVENTS_FILE).events || [])
+    .map(
+      (e) =>
+        `<option value="${esc(e.id)}" ${eventId === e.id ? "selected" : ""}>${esc(e.title)}</option>`
+    )
+    .join("");
+
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    <section class="hero prose">
+      <span class="badge pri">Join the team</span>
+      <h2>General volunteer signup</h2>
+      <p>Sign up once for doors, phones, lit drops, parades, pancake breakfasts, festivals, or event setup. We’ll match you to shifts and community events across SD 33, HD 33A, and HD 33B.</p>
+    </section>
+
+    <div class="two">
+      <section class="card">
+        <h3>Volunteer form</h3>
+        <form class="stack" method="post" action="/volunteer">
+          <label>Full name *</label>
+          <input name="name" required maxlength="100" />
+          <label>Email *</label>
+          <input name="email" type="email" required maxlength="160" />
+          <label>Phone</label>
+          <input name="phone" maxlength="40" />
+          <label>City / town</label>
+          <input name="town" maxlength="80" placeholder="Stillwater, Forest Lake, Hugo…" />
+          <label>House district (if known)</label>
+          <select name="houseDistrict">
+            <option value="">Not sure</option>
+            <option value="33A">33A</option>
+            <option value="33B">33B</option>
+            <option value="BOTH">Both / either</option>
+          </select>
+          <label>I’m most interested in (pick all that apply)</label>
+          <label style="font-weight:500"><input type="checkbox" name="interest" value="doors" /> Door knocking</label>
+          <label style="font-weight:500"><input type="checkbox" name="interest" value="phones" /> Phone banking</label>
+          <label style="font-weight:500"><input type="checkbox" name="interest" value="lit" /> Literature drops</label>
+          <label style="font-weight:500"><input type="checkbox" name="interest" value="parades" /> Parades &amp; festivals</label>
+          <label style="font-weight:500"><input type="checkbox" name="interest" value="breakfasts" /> Pancake breakfasts / community meals</label>
+          <label style="font-weight:500"><input type="checkbox" name="interest" value="events" /> Event setup / greeters</label>
+          <label style="font-weight:500"><input type="checkbox" name="interest" value="signs" /> Yard signs</label>
+          <label style="font-weight:500"><input type="checkbox" name="interest" value="captain" /> Town captain / leadership</label>
+          <label>Preferred event (optional)</label>
+          <select name="eventId">
+            <option value="">No specific event</option>
+            ${events}
+          </select>
+          <label>Days / times that work</label>
+          <textarea name="availability" rows="2" maxlength="400" placeholder="e.g. Saturday mornings, Tuesday evenings"></textarea>
+          <label>Notes</label>
+          <textarea name="notes" rows="2" maxlength="800"></textarea>
+          <label style="font-weight:500"><input type="checkbox" name="optIn" value="yes" /> Yes — email/text me about shifts and events (double opt-in)</label>
+          <label style="font-weight:500"><input type="checkbox" name="wearShirt" value="yes" /> I can wear a campaign shirt or sticker at public events</label>
+          <button class="btn btn-gold" type="submit">Submit volunteer signup</button>
+        </form>
+      </section>
+
+      <section class="card" id="ideas">
+        <h3>Suggest an event idea</h3>
+        <p class="muted">Know a parade, fair, pancake breakfast, farmers market, or church meal we should staff? Include events just outside the district if our voters will be there.</p>
+        <form class="stack" method="post" action="/volunteer/idea">
+          <label>Your name</label>
+          <input name="name" maxlength="100" />
+          <label>Contact (email or phone)</label>
+          <input name="contact" maxlength="160" />
+          <label>Event name *</label>
+          <input name="eventName" required maxlength="160" />
+          <label>Date (if known)</label>
+          <input name="eventDate" maxlength="80" placeholder="e.g. first Saturday in September" />
+          <label>Location / city *</label>
+          <input name="location" required maxlength="120" />
+          <label>In district or nearby?</label>
+          <select name="scope">
+            <option value="in">Inside SD 33 / 33A / 33B</option>
+            <option value="nearby">Just outside — voters will be there</option>
+            <option value="unsure">Not sure</option>
+          </select>
+          <label>Event type</label>
+          <select name="eventType">
+            <option>Parade</option>
+            <option>Pancake breakfast</option>
+            <option>Festival / fair</option>
+            <option>Farmers market</option>
+            <option>School / sports</option>
+            <option>Church / community meal</option>
+            <option>Other</option>
+          </select>
+          <label>Why it matters / who attends</label>
+          <textarea name="why" rows="3" maxlength="1000" required placeholder="e.g. Draws Forest Lake and Hugo families…"></textarea>
+          <label>Suggested gear (stickers / lit / shirts)</label>
+          <textarea name="gearIdea" rows="2" maxlength="400" placeholder="Optional"></textarea>
+          <button class="btn" type="submit">Submit idea</button>
+        </form>
+        <p style="margin-top:1.25rem"><a href="/events">← Back to full events list</a></p>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:1rem">
+      <h3>What to wear at events (summary)</h3>
+      <ul>
+        <li><strong>Stickers:</strong> always useful for sidewalks and welcome tables</li>
+        <li><strong>Literature:</strong> Housley (Senate 33) + Stout (33A) and/or Johnson (33B)</li>
+        <li><strong>Shirts:</strong> campaign shirts for parades/festivals; softer polos for breakfasts and school settings</li>
+      </ul>
+      <p class="muted">Captains can issue gear at pickup. See each event card for specific guidance.</p>
+    </section>`;
+  sendPage(req, res, "Volunteer signup", body);
+});
+
+app.post("/volunteer", (req, res) => {
+  let interests = req.body.interest;
+  if (!interests) interests = [];
+  if (!Array.isArray(interests)) interests = [interests];
+  const entry = {
+    id: "vol_" + Date.now(),
+    at: new Date().toISOString(),
+    name: String(req.body.name || "").slice(0, 100),
+    email: String(req.body.email || "").slice(0, 160),
+    phone: String(req.body.phone || "").slice(0, 40),
+    town: String(req.body.town || "").slice(0, 80),
+    houseDistrict: String(req.body.houseDistrict || ""),
+    interests,
+    eventId: String(req.body.eventId || ""),
+    availability: String(req.body.availability || "").slice(0, 400),
+    notes: String(req.body.notes || "").slice(0, 800),
+    optIn: req.body.optIn === "yes",
+    wearShirt: req.body.wearShirt === "yes",
+  };
+  const list = loadJson(VOL_SIGNUPS_FILE);
+  list.unshift(entry);
+  saveJson(VOL_SIGNUPS_FILE, list.slice(0, 3000));
+  req.session.flash = "Thank you — your volunteer signup was received. A captain will follow up if you opted in.";
+  res.redirect("/volunteer");
+});
+
+app.post("/volunteer/idea", (req, res) => {
+  const entry = {
+    id: "idea_" + Date.now(),
+    at: new Date().toISOString(),
+    name: String(req.body.name || "").slice(0, 100),
+    contact: String(req.body.contact || "").slice(0, 160),
+    eventName: String(req.body.eventName || "").slice(0, 160),
+    eventDate: String(req.body.eventDate || "").slice(0, 80),
+    location: String(req.body.location || "").slice(0, 120),
+    scope: String(req.body.scope || ""),
+    eventType: String(req.body.eventType || ""),
+    why: String(req.body.why || "").slice(0, 1000),
+    gearIdea: String(req.body.gearIdea || "").slice(0, 400),
+  };
+  const list = loadJson(EVENT_IDEAS_FILE);
+  list.unshift(entry);
+  saveJson(EVENT_IDEAS_FILE, list.slice(0, 2000));
+  req.session.flash = "Thanks — your event idea was submitted for review.";
+  res.redirect("/volunteer#ideas");
+});
+
+app.get("/team/volunteers", (req, res) => {
+  const vols = loadJson(VOL_SIGNUPS_FILE);
+  const ideas = loadJson(EVENT_IDEAS_FILE);
+  const vrows = vols
+    .slice(0, 100)
+    .map(
+      (v) =>
+        `<tr>
+          <td>${esc(v.name)}<div class="muted">${esc(v.email)} ${esc(v.phone || "")}</div></td>
+          <td>${esc(v.town)} ${esc(v.houseDistrict)}</td>
+          <td>${esc((v.interests || []).join(", "))}</td>
+          <td>${v.optIn ? "opt-in" : "—"}</td>
+          <td class="muted">${esc((v.at || "").slice(0, 16))}</td>
+        </tr>`
+    )
+    .join("");
+  const irows = ideas
+    .slice(0, 50)
+    .map(
+      (i) =>
+        `<tr>
+          <td><strong>${esc(i.eventName)}</strong><div class="muted">${esc(i.eventType)} · ${esc(i.scope)}</div></td>
+          <td>${esc(i.location)} · ${esc(i.eventDate)}</td>
+          <td>${esc(i.why)}</td>
+          <td class="muted">${esc(i.name)} ${esc(i.contact)}</td>
+        </tr>`
+    )
+    .join("");
+  const body = `
+    <section class="hero"><h2>Volunteer signups &amp; event ideas</h2>
+    <p>${vols.length} signups · ${ideas.length} ideas</p></section>
+    <div class="card"><h3>Signups</h3>
+    <table><thead><tr><th>Name</th><th>Town / HD</th><th>Interests</th><th>Opt-in</th><th>When</th></tr></thead>
+    <tbody>${vrows || "<tr><td colspan=5>None yet</td></tr>"}</tbody></table></div>
+    <div class="card" style="margin-top:1rem"><h3>Event ideas</h3>
+    <table><thead><tr><th>Event</th><th>Where / when</th><th>Why</th><th>From</th></tr></thead>
+    <tbody>${irows || "<tr><td colspan=4>None yet</td></tr>"}</tbody></table></div>`;
+  sendPage(req, res, "Volunteer admin", body);
 });
 
 /* ---------- Volunteer schedule board ---------- */
