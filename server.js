@@ -458,25 +458,37 @@ function gopBallotForDistricts(districts) {
   const out = [];
   const post = phase.mode === "post_primary" && phase.winnersUploaded;
 
+  function partyNorm(p) {
+    const x = String(p || "").toUpperCase();
+    if (x === "GOP" || x === "R" || x === "REPUBLICAN") return "GOP";
+    if (x === "DFL" || x === "D" || x.includes("DEMOCRATIC")) return "DFL";
+    if (x.includes("NONPARTISAN") || x === "NP") return "NONPARTISAN";
+    return p || "OTHER";
+  }
+  function mapCand(c, forceParty) {
+    return {
+      name: c.name,
+      party: forceParty || partyNorm(c.party),
+      note: c.note || "",
+      leading: !!c.leading,
+      nominee: false,
+    };
+  }
   function add(key, label) {
     const r = races[key];
     if (!r) return;
-    // GOP only — never list DFL/other for checkboxes
+    // GOP only for checkboxes
     let candidates = (r.gop || [])
       .filter((c) => {
-        const p = String(c.party || "GOP").toUpperCase();
-        return p === "GOP" || p === "R" || p === "REPUBLICAN" || !c.party;
+        const p = partyNorm(c.party || "GOP");
+        return p === "GOP" || !c.party;
       })
-      .map((c) => ({
-        name: c.name,
-        party: "GOP",
-        note: c.note || "",
-        leading: !!c.leading,
-        nominee: false,
-      }));
-    if (!candidates.length) return;
+      .map((c) => mapCand(c, "GOP"));
+    // Other parties / nonpartisan — display only (right column)
+    const others = (r.other || []).map((c) => mapCand(c));
+    if (!candidates.length && !others.length) return;
     const winName = phase.winners && phase.winners[key];
-    if (post && winName) {
+    if (post && winName && candidates.length) {
       candidates = candidates
         .filter((c) => c.name === winName || /field|nominee|primary/i.test(c.name))
         .map((c) => ({
@@ -502,6 +514,7 @@ function gopBallotForDistricts(districts) {
       label: label || r.office,
       winSeat: !!r.winSeat,
       candidates,
+      others,
     });
   }
 
@@ -541,10 +554,21 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
     ? `<div class="flash">Thank you. Your preferred candidates have been saved. You may update them at any time.</div>`
     : "";
 
+  function partyBadgeHtml(party) {
+    const p = String(party || "OTHER").toUpperCase();
+    if (p === "GOP" || p === "REPUBLICAN") return '<span class="tag-gop">REPUBLICAN</span>';
+    if (p === "DFL" || p.includes("DEMOCRATIC")) return '<span class="badge dfl">DFL</span>';
+    if (p === "NONPARTISAN" || p === "NP") return '<span class="badge other">NONPARTISAN</span>';
+    return `<span class="badge other">${esc(party || "OTHER")}</span>`;
+  }
+
   const raceBlocks = (ballot.races || [])
     .map((r) => {
-      const cands = (r.candidates || [])
-        .filter((c) => String(c.party || "GOP").toUpperCase() === "GOP")
+      const gopList = (r.candidates || []).filter(
+        (c) => String(c.party || "GOP").toUpperCase() === "GOP"
+      );
+      const otherList = r.others || [];
+      const cands = gopList
         .map((c, idx) => {
           const val = `${r.key}||${c.name}`;
           const id = `c_${r.key}_${idx}`.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -560,22 +584,71 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
             isPost && c.nominee ? "checked" : ""
           } />
             <span>
-              <span class="lbl"><span class="tag-gop">GOP</span> ${esc(c.name)}${lead}</span>
+              <span class="lbl">${partyBadgeHtml("GOP")} <strong>${esc(c.name)}</strong>${lead}</span>
               ${c.note ? `<div class="muted">${esc(c.note)}</div>` : ""}
             </span>
           </label>`;
         })
         .join("");
-      if (!cands) return "";
-      return `<section class="card" style="margin-bottom:0.85rem">
+      const otherHtml = otherList.length
+        ? otherList
+            .map(
+              (c) =>
+                `<div class="other-cand-row">
+                  <span class="other-cand-name">${esc(c.name)}</span>
+                  ${partyBadgeHtml(c.party)}
+                  ${c.note ? `<div class="muted" style="font-size:0.85rem">${esc(c.note)}</div>` : ""}
+                </div>`
+            )
+            .join("")
+        : `<p class="muted" style="margin:0;font-size:0.88rem">No other-party filings listed for this office in our file.</p>`;
+      if (!cands && !otherList.length) return "";
+      return `<section class="card race-split-card" style="margin-bottom:0.85rem">
         <h3>${esc(r.label || r.office)} ${r.winSeat ? '<span class="badge pri">Local Priority Seat</span>' : ""}</h3>
-        <p class="muted">${esc(r.scope || "")} · <strong>GOP only</strong> — check preferred Republican candidate(s)${
-          isPost ? " (nominees highlighted for the general election)" : " (pre-primary)"
-        }</p>
-        ${cands}
+        <p class="muted" style="margin-bottom:0.75rem">${esc(r.scope || "")}</p>
+        <div class="race-split">
+          <div class="race-gop-col">
+            <h4 class="race-col-title gop-title">Republican (GOP) — select preferred</h4>
+            <p class="muted" style="font-size:0.85rem;margin:0 0 0.5rem">Check one or more. Only GOP can be selected.</p>
+            ${cands || '<p class="muted">No Republican candidates listed for this office.</p>'}
+          </div>
+          <div class="race-other-col">
+            <h4 class="race-col-title other-title">Other candidates (display only)</h4>
+            <p class="muted" style="font-size:0.85rem;margin:0 0 0.5rem">DFL, other parties, or nonpartisan — not checkable on this form.</p>
+            ${otherHtml}
+          </div>
+        </div>
       </section>`;
     })
     .join("");
+
+  const issuesContrastHtml = `
+    <section class="card issues-contrast home-section" aria-label="Issues contrast for the district">
+      <h2 class="section-title" style="margin-top:0">Taxes, Education &amp; Roads — Why This District Needs a Different Direction</h2>
+      <p class="muted">Examples of DFL leadership positions that leave money and flexibility off the table for St.&nbsp;Croix Valley families. <strong>Not legal advice</strong> and not a claim about every vote by every local nominee—verify records and confirm with campaigns. Sources linked where noted.</p>
+      <div class="issues-grid">
+        <article class="issue-card">
+          <h3>Education — federal $1,700 scholarship tax credit</h3>
+          <p>Congress created a <strong>federal tax credit of up to $1,700</strong> for donations to scholarship-granting organizations that can help K–12 families with tutoring, tuition, special education, and materials. States must <strong>opt in</strong> for residents to fully use the program for local students.</p>
+          <p><strong>What DFL leadership did:</strong> Governor Tim Walz said he will <strong>not</strong> opt Minnesota into the federal education scholarship tax credit. At the Legislature, DFL members blocked or stalled Republican bills (e.g. HF&nbsp;3490) to opt Minnesota in—including fights that held up broader education work. Committee debate framed the federal credit as a “voucher” and refused to advance the opt-in.</p>
+          <p><strong>Why that hurts SD&nbsp;33:</strong> Families in Forest Lake, Stillwater, Hugo, Mahtomedi, and neighboring towns forgo federal support that could expand learning options <em>at no cost to the state budget</em>. Neighboring states that opt in capture help our kids miss. Local schools and parents lose a tool other Americans already have.</p>
+          <p class="muted" style="font-size:0.85rem">See: Minnesota House Session Daily (HF 3490 / $1,700 credit debate); MPR News coverage of Walz refusing the opt-in (Mar 2026).</p>
+        </article>
+        <article class="issue-card">
+          <h3>Taxes — high costs, little relief for working families</h3>
+          <p>Under DFL control of the governorship and, for long stretches, majorities that set tax and budget direction, Minnesota has remained among the higher-tax states while costs for housing, energy, and childcare stay elevated for suburban/exurban households.</p>
+          <p><strong>What voters should demand:</strong> Tax policy that keeps more earnings with families who live and work along Hwy&nbsp;61, Hwy&nbsp;36, and the St.&nbsp;Croix Valley—not policies that treat high state spending as automatic.</p>
+          <p><strong>Why that hurts SD&nbsp;33:</strong> Competitive districts like 33A/33B turn on kitchen-table math. When state tax and fee pressure rises, seniors on fixed incomes, young families buying first homes, and small employers feel it first.</p>
+        </article>
+        <article class="issue-card">
+          <h3>Roads &amp; infrastructure — corridors that move our district</h3>
+          <p>SD&nbsp;33 depends on safe, well-funded roads: Hwy&nbsp;36, Hwy&nbsp;61, Manning Avenue, CR&nbsp;96, and Main Street corridors that connect Stillwater, Forest Lake, Hugo, Bayport, and every township in between.</p>
+          <p><strong>The problem under one-party DFL executive direction:</strong> Major state resources have been steered toward metro priorities and large new spending packages while everyday road maintenance, congestion, and rural/suburban safety remain under pressure. Local residents still wait for practical fixes on the routes they drive every day.</p>
+          <p><strong>Why that hurts SD&nbsp;33:</strong> Commuters, school buses, and small businesses pay the price of delayed repairs and under-prioritized corridors. Strong representation means fighting for road dollars and project schedules that match how people actually live here—not only downtown-centric agendas.</p>
+        </article>
+      </div>
+      <p class="muted" style="margin:0.85rem 0 0">Check <strong>Republican (GOP)</strong> candidates on the left for each office. Other-party names on the right are shown for ballot awareness only.</p>
+    </section>`;
 
   const notes = (districts.notes || []).map((n) => `<li>${esc(n)}</li>`).join("");
 
@@ -649,6 +722,7 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
     ${
       formVals.submitted
         ? `
+    ${issuesContrastHtml}
     <div class="card" style="margin-bottom:1rem">
       <h3>District Match</h3>
       <p><strong>Address:</strong> ${esc(formVals.street || formVals.q || "—")}${
@@ -879,7 +953,7 @@ function layout(title, body, opts = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for every community in the district." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=addr1" />
+  <link rel="stylesheet" href="/css/lit.css?v=ballot2" />
   ${extraHead}
 </head>
 <body>

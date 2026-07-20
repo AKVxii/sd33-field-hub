@@ -561,6 +561,81 @@ form.card label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
 .cta-row { display: flex; flex-wrap: wrap; gap: 0.55rem; margin-top: 1rem; }
 .review-stars { color: var(--gold); letter-spacing: 0.1em; font-size: 1.1rem; }
 
+/* Ballot: GOP prominent left, others right */
+.race-split {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 780px) {
+  .race-split { grid-template-columns: 1fr; }
+}
+.race-gop-col {
+  background: linear-gradient(180deg, #fff8f8 0%, #fff 40%);
+  border: 2px solid #c41e3a;
+  border-radius: 12px;
+  padding: 0.85rem 0.9rem;
+}
+.race-other-col {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85rem 0.9rem;
+}
+.race-col-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+.race-col-title.gop-title { color: #9f1239; }
+.race-col-title.other-title { color: #475569; }
+.other-cand-row {
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+.other-cand-row:last-child { border-bottom: 0; }
+.other-cand-name {
+  font-weight: 600;
+  color: #334155;
+  margin-right: 0.35rem;
+}
+.issues-contrast {
+  border-left: 4px solid var(--gop);
+  margin-bottom: 1rem;
+}
+.issues-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+}
+.issue-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.85rem 0.95rem;
+}
+.issue-card h3 {
+  margin: 0 0 0.45rem;
+  color: var(--navy);
+  font-size: 1rem;
+}
+.issue-card p {
+  margin: 0 0 0.55rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.race-split-card .lit-box.cand-pick {
+  border-color: #fecdd3;
+}
+.race-split-card .lit-box.cand-pick:hover {
+  border-color: var(--gop);
+  background: #fff1f2;
+}
+
 /* Home page address lookup — first thing after hero */
 .home-address-box {
   border-left: 4px solid var(--gop);
