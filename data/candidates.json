@@ -106,8 +106,53 @@
       "other": [
         { "name": "Josiah Hill", "party": "DFL", "note": "Incumbent" }
       ]
+    },
+    "attorneyGeneral": {
+      "office": "Minnesota Attorney General",
+      "scope": "Statewide",
+      "gop": [
+        { "name": "GOP field / primary nominees", "party": "GOP", "note": "Verify 2026 filings at candidates.sos.mn.gov — pack uses post-primary AG lit when issued" }
+      ],
+      "other": [
+        { "name": "Keith Ellison", "party": "DFL", "note": "Incumbent" }
+      ]
+    },
+    "secretaryOfState": {
+      "office": "Minnesota Secretary of State",
+      "scope": "Statewide",
+      "gop": [
+        { "name": "GOP field / primary nominees", "party": "GOP", "note": "Verify 2026 filings at candidates.sos.mn.gov — pack uses post-primary SOS lit when issued" }
+      ],
+      "other": [
+        { "name": "Steve Simon", "party": "DFL", "note": "Incumbent" }
+      ]
+    },
+    "stateAuditor": {
+      "office": "Minnesota State Auditor",
+      "scope": "Statewide",
+      "gop": [
+        { "name": "GOP field / primary nominees", "party": "GOP", "note": "Verify 2026 filings at candidates.sos.mn.gov" }
+      ],
+      "other": [
+        { "name": "Julie Blaha", "party": "DFL", "note": "Incumbent" }
+      ]
     }
   },
+  "volunteerBundleCampaigns": [
+    { "id": "local_three", "label": "Win all three local — Housley + Stout + Johnson bundle", "office": "Local priority", "tier": "local", "autoLit": ["lit_bundle3", "lit_sd33", "lit_33a", "lit_33b"] },
+    { "id": "housley", "label": "Karin Housley — State Senate 33", "office": "State Senate 33", "tier": "local", "autoLit": ["lit_sd33"] },
+    { "id": "stout", "label": "Stacey Stout — House 33A", "office": "House 33A", "tier": "local", "autoLit": ["lit_33a"] },
+    { "id": "johnson", "label": "Jessica L. Johnson — House 33B", "office": "House 33B", "tier": "local", "autoLit": ["lit_33b"] },
+    { "id": "lindell", "label": "Mike Lindell — Governor", "office": "Governor", "tier": "statewide", "autoLit": ["lit_gov_gop"] },
+    { "id": "gov_gop", "label": "Governor — GOP nominee (post-primary pack)", "office": "Governor", "tier": "statewide", "autoLit": ["lit_gov_gop"] },
+    { "id": "us_senate", "label": "U.S. Senate — GOP (Schwarze / Tafoya / White field · post-primary nominee)", "office": "U.S. Senate", "tier": "statewide", "autoLit": ["lit_sen_gop"] },
+    { "id": "ag", "label": "Attorney General — GOP field / nominee", "office": "Attorney General", "tier": "statewide", "autoLit": ["lit_ag_gop"] },
+    { "id": "sos", "label": "Secretary of State — GOP field / nominee", "office": "Secretary of State", "tier": "statewide", "autoLit": ["lit_sos_gop"] },
+    { "id": "auditor", "label": "State Auditor — GOP field / nominee", "office": "State Auditor", "tier": "statewide", "autoLit": ["lit_auditor_gop"] },
+    { "id": "stauber", "label": "Pete Stauber — U.S. House MN-08", "office": "U.S. House MN-08", "tier": "federal", "autoLit": ["lit_cd8_gop"] },
+    { "id": "cd4", "label": "U.S. House MN-04 GOP (Wikstrom / field)", "office": "U.S. House MN-04", "tier": "federal", "autoLit": ["lit_cd4_gop"] },
+    { "id": "emmer", "label": "Tom Emmer — U.S. House MN-06 (connect outside core SD 33)", "office": "U.S. House MN-06", "tier": "federal", "autoLit": ["lit_emmer"] }
+  ],
   "literature": [
     {
       "id": "lit_sd33",
@@ -188,6 +233,46 @@
       "seat": "GOTV",
       "priority": 1,
       "bundle": "gotv"
+    },
+    {
+      "id": "lit_ag_gop",
+      "label": "Attorney General — GOP (post-primary nominee lit)",
+      "party": "GOP",
+      "seat": "Attorney General",
+      "priority": 2,
+      "bundle": "statewide"
+    },
+    {
+      "id": "lit_sos_gop",
+      "label": "Secretary of State — GOP (post-primary nominee lit)",
+      "party": "GOP",
+      "seat": "Secretary of State",
+      "priority": 2,
+      "bundle": "statewide"
+    },
+    {
+      "id": "lit_auditor_gop",
+      "label": "State Auditor — GOP (post-primary nominee lit)",
+      "party": "GOP",
+      "seat": "State Auditor",
+      "priority": 2,
+      "bundle": "statewide"
+    },
+    {
+      "id": "lit_emmer",
+      "label": "Tom Emmer — U.S. House MN-06 lit (when campaign issues for incorporation)",
+      "party": "GOP",
+      "seat": "US House 6",
+      "priority": 3,
+      "bundle": "federal"
+    },
+    {
+      "id": "lit_full_slate",
+      "label": "Full GOP slate reminder card (local + statewide + federal offices on ballot)",
+      "party": "GOP",
+      "seat": "All",
+      "priority": 1,
+      "bundle": "full_pack"
     }
   ]
 }

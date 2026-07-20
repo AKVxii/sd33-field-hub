@@ -4,6 +4,8 @@
   var shirtSelect = document.getElementById("shirt-size");
   var contribCb = document.getElementById("want-contrib");
   var contribBox = document.getElementById("contrib-box");
+  var teamLeadCb = document.getElementById("team-lead");
+  var teamLeadBox = document.getElementById("team-lead-box");
   var kit = document.getElementById("campaign-kit");
   var form = document.getElementById("vol-form");
 
@@ -34,8 +36,19 @@
     });
     toggle(contribCb, contribBox);
   }
+  if (teamLeadCb) {
+    teamLeadCb.addEventListener("change", function () {
+      toggle(teamLeadCb, teamLeadBox);
+    });
+    toggle(teamLeadCb, teamLeadBox);
+  }
 
   var kits = {
+    local_three: {
+      title: "Win all three local",
+      html:
+        "<strong>Pack:</strong> Housley + Stout + Johnson lit (or joint piece)<br/><strong>Events:</strong> all in-district<br/><strong>Team:</strong> priority turf for team leads",
+    },
     housley: {
       title: "Karin Housley — SD 33",
       html:
@@ -44,32 +57,57 @@
     stout: {
       title: "Stacey Stout — HD 33A",
       html:
-        "<strong>Lit:</strong> 33A piece<br/><strong>Events:</strong> <a href='/events?district=33A'>33A list</a> (Hugo, Mahtomedi, FL 33A)<br/><strong>Shirt:</strong> Stout / 33A",
+        "<strong>Lit:</strong> 33A piece<br/><strong>Events:</strong> <a href='/events?district=33A'>33A list</a><br/><strong>Shirt:</strong> Stout / 33A",
     },
     johnson: {
       title: "Jessica L. Johnson — HD 33B",
       html:
-        "<strong>Lit:</strong> 33B piece<br/><strong>Events:</strong> <a href='/events?district=33B'>33B list</a> + Lumberjack Days<br/><strong>Shirt:</strong> Johnson / 33B",
+        "<strong>Lit:</strong> 33B piece<br/><strong>Events:</strong> <a href='/events?district=33B'>33B list</a><br/><strong>Shirt:</strong> Johnson / 33B",
     },
     lindell: {
       title: "Mike Lindell — Governor",
       html:
-        "<strong>Auto kit:</strong> Governor lit when campaign issues it + local SD 33 slate to incorporate<br/><strong>Events:</strong> community + statewide governor presence<br/><strong>Shirt:</strong> Lindell shirt if that campaign issues inventory (enter size above)",
+        "<strong>Pack:</strong> Governor lit when issued + local slate to incorporate<br/><strong>Events:</strong> district + statewide<br/><strong>Shirt:</strong> if campaign issues",
+    },
+    gov_gop: {
+      title: "Governor — GOP nominee pack",
+      html:
+        "<strong>Pack:</strong> post-primary governor lit<br/><strong>Events:</strong> full community calendar",
+    },
+    us_senate: {
+      title: "U.S. Senate — GOP",
+      html:
+        "<strong>Pack:</strong> U.S. Senate GOP lit (post-primary nominee when issued)<br/><strong>Events:</strong> district + nearby with federal palm cards",
+    },
+    ag: {
+      title: "Attorney General — GOP",
+      html:
+        "<strong>Pack:</strong> AG lit when field / nominee issues<br/><strong>Events:</strong> full-slate tables",
+    },
+    sos: {
+      title: "Secretary of State — GOP",
+      html:
+        "<strong>Pack:</strong> SOS lit when field / nominee issues<br/><strong>Events:</strong> full-slate tables",
+    },
+    auditor: {
+      title: "State Auditor — GOP",
+      html:
+        "<strong>Pack:</strong> Auditor lit when field / nominee issues<br/><strong>Events:</strong> full-slate tables",
     },
     emmer: {
       title: "Tom Emmer — MN-06",
       html:
-        "<strong>Note:</strong> Most SD 33 addresses are MN-04 or MN-08 (SOS), not MN-06. We’ll still connect you to Emmer’s team.<br/><strong>Auto kit:</strong> Emmer lit/shirt when that campaign provides inventory for you to incorporate<br/><strong>Events:</strong> nearby / ticket + district events list",
+        "<strong>Note:</strong> Most SD 33 is MN-04/08 (SOS).<br/><strong>Pack:</strong> Emmer lit/shirt when campaign provides<br/><strong>Events:</strong> nearby + district",
     },
     stauber: {
       title: "Pete Stauber — MN-08",
       html:
-        "<strong>Lit:</strong> Stauber for Forest Lake / Hugo / Scandia turf<br/><strong>Events:</strong> FL, Hugo, Scandia<br/><strong>Shirt:</strong> if available",
+        "<strong>Lit:</strong> Stauber for FL / Hugo / Scandia<br/><strong>Events:</strong> FL, Hugo, Scandia",
     },
     cd4: {
       title: "U.S. House MN-04",
       html:
-        "<strong>Lit:</strong> MN-04 GOP field lit for Stillwater / Mahtomedi area<br/><strong>Events:</strong> Stillwater Main Street, Lumberjack Days",
+        "<strong>Lit:</strong> MN-04 GOP (Wikstrom / field) for Stillwater / Mahtomedi<br/><strong>Events:</strong> Lumberjack Days, Main Street",
     },
   };
 
@@ -82,7 +120,7 @@
       return;
     }
     var html =
-      "<h4 style='margin:0 0 0.5rem'>Your selected campaigns — lit / events / shirts</h4>";
+      "<h4 style='margin:0 0 0.5rem'>Your bundle pack preview — lit / events / peers</h4>";
     for (var i = 0; i < cbs.length; i++) {
       var k = kits[cbs[i].value];
       if (!k) continue;
@@ -94,7 +132,7 @@
         "</div>";
     }
     html +=
-      "<p class='muted' style='margin:0'>After you submit, captains are notified to reach out, connect you to preferred candidates, and issue gear. Lindell / Emmer / federal inventory only when that campaign provides it.</p>";
+      "<p class='muted' style='margin:0'>After submit: pack queued · captains connect you · peer intros for happy hours / breakfasts / lunches · Pulsar/DB after meet if requested · team lead assignment if checked. Statewide/federal lit only when those campaigns provide inventory. Verify filings at candidates.sos.mn.gov.</p>";
     kit.innerHTML = html;
     kit.classList.add("is-open");
   }

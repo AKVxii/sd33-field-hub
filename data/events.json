@@ -422,6 +422,96 @@
         "shirts": "Campaign shirts only outside restricted zone"
       },
       "volunteerRoles": ["Legal-distance greeters", "Private-property signs", "Chase lists"]
+    },
+    {
+      "id": "vol-happy-hour-stillwater",
+      "title": "Volunteer happy hour — connect & plan (Stillwater)",
+      "type": "happy_hour",
+      "status": "planned",
+      "date": "2026-08-14",
+      "dayLabel": "Thursday, August 14, 2026 (recurring vibe — confirm with captains)",
+      "time": "5:30 p.m. – 7:00 p.m.",
+      "locationName": "Stillwater area (venue TBA)",
+      "address": "Stillwater, MN 55082",
+      "districts": ["SD 33", "HD 33B"],
+      "districtScope": "in",
+      "priority": "high",
+      "description": "Like-minded neighbors meet for a casual happy hour: meet your small team, swap door tips, and plan weekend shifts through the general election. Social first; light welcome table.",
+      "audience": "Volunteers, team leads, new signups",
+      "highlight": true,
+      "gear": {
+        "stickers": "Welcome-table only",
+        "literature": "Sample pack for team leads",
+        "shirts": "Optional campaign or solid color"
+      },
+      "volunteerRoles": ["Host greeter", "Team lead table", "New-volunteer buddy"]
+    },
+    {
+      "id": "vol-breakfast-forest-lake",
+      "title": "Volunteer pancake breakfast & turf brief (Forest Lake / Hugo)",
+      "type": "breakfast",
+      "status": "planned",
+      "date": "2026-08-22",
+      "dayLabel": "Saturday, August 22, 2026",
+      "time": "8:00 a.m. – 10:00 a.m.",
+      "locationName": "Forest Lake / Hugo area (venue TBA)",
+      "address": "Forest Lake / Hugo, MN",
+      "districts": ["SD 33", "HD 33A"],
+      "districtScope": "in",
+      "priority": "high",
+      "description": "Breakfast with 33A-focused volunteers: meet neighbors, pick up lit packs, and pair with a team lead for Saturday doors.",
+      "audience": "Volunteers and family-friendly greeters",
+      "highlight": true,
+      "gear": {
+        "stickers": "Subtle table stickers",
+        "literature": "33A + SD 33 pack for pickup",
+        "shirts": "Polo or solid preferred"
+      },
+      "volunteerRoles": ["Table host", "Pack handout", "Buddy matcher"]
+    },
+    {
+      "id": "vol-lunch-st-croix",
+      "title": "Working lunch — team leads & small teams (St. Croix Valley)",
+      "type": "lunch",
+      "status": "planned",
+      "date": "2026-09-10",
+      "dayLabel": "Wednesday, September 10, 2026",
+      "time": "12:00 p.m. – 1:15 p.m.",
+      "locationName": "St. Croix Valley (rotating towns)",
+      "address": "SD 33 towns — confirm with captain",
+      "districts": ["SD 33", "HD 33A", "HD 33B"],
+      "districtScope": "in",
+      "priority": "medium",
+      "description": "Short working lunch for team leads and small teams: calendar through general election, pack inventory, and peer introductions.",
+      "audience": "Team leads and determined volunteers",
+      "gear": {
+        "stickers": "Optional",
+        "literature": "Pack samples for leads",
+        "shirts": "Business casual"
+      },
+      "volunteerRoles": ["Team lead host", "Note-taker", "New lead mentor"]
+    },
+    {
+      "id": "vol-nearby-meetup",
+      "title": "Nearby-district volunteer mixer (just outside SD 33 lines)",
+      "type": "social",
+      "status": "planned",
+      "date": "2026-09-18",
+      "dayLabel": "Thursday, September 18, 2026",
+      "time": "6:00 p.m. – 7:30 p.m.",
+      "locationName": "Washington County edge towns (TBA)",
+      "address": "Nearby — voters from SD 33 often attend",
+      "districts": ["SD 33"],
+      "districtScope": "nearby",
+      "priority": "medium",
+      "description": "Optional mixer for volunteers who also work nearby events just outside district lines. Good for Emmer/CD4/CD8 cross-training and full-slate packs.",
+      "audience": "Volunteers open to nearby + in-district events",
+      "gear": {
+        "stickers": "Yes",
+        "literature": "Full slate pack samples",
+        "shirts": "Campaign or solid"
+      },
+      "volunteerRoles": ["Greeter", "Cross-district buddy"]
     }
   ]
 }

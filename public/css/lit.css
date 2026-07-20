@@ -541,3 +541,17 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus {
 .contrib-box { background: #fffbeb; border-color: #e0b84a; }
 .campaign-kit { background: #eef7fb; border-color: #b9d0ea; }
 .shirt-size-box select { max-width: 12rem; }
+.camp-section-title { font-weight: 700; margin: 1.1rem 0 0.25rem; }
+.camp-hint { margin: 0 0 0.65rem; max-width: 520px; font-size: 0.9rem; }
+.camp-group-label {
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--navy);
+  margin: 0.85rem 0 0.35rem;
+  max-width: 520px;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--line);
+}
+#team-lead-box.is-open label { margin-top: 0.5rem; }
