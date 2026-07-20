@@ -809,7 +809,6 @@ function layout(title, body, opts = {}) {
         <a href="/win-three"${n("/win-three")}>Win SD 33</a>
         <a href="/share"${n("/share")}>Share</a>
         <a href="/legal"${n("/legal")}>Legal</a>
-        <a href="/launch"${n("/launch")}>Launch &amp; costs</a>
         <a href="/field"${n("/field")}>Field tools</a>
       </nav>
     </div>
@@ -2990,7 +2989,6 @@ app.get("/events", (req, res) => {
       <div class="cta-row">
         <a class="btn btn-gold" href="/volunteer">Volunteer signup · add to calendar</a>
         <a class="btn" href="/volunteer#ideas">Suggest an event idea</a>
-        <a class="btn btn-navy" href="/launch">Launch checklist &amp; costs</a>
       </div>
     </section>
 
@@ -4475,122 +4473,7 @@ app.get("/accessibility", (req, res) => {
 });
 
 /* ---------- Legal / privacy / win three seats ---------- */
-/* ---------- Launch checklist, permissions, cost-through-November ---------- */
-app.get("/launch", (req, res) => {
-  const body = `
-    <section class="hero prose">
-      <span class="badge pri">Official launch</span>
-      <h2>Launch Settings, Permissions &amp; Cost Through November</h2>
-      <p>Checklist to run the St. Croix Valley Field Hub publicly through Election Day (November&nbsp;3, 2026). Figures are planning estimates in USD—not bids. Confirm with counsel, your host, and any paid ads platform.</p>
-    </section>
-
-    <section class="card home-section">
-      <h2 class="section-title">1. Technical Settings (Render / hosting)</h2>
-      <table>
-        <thead><tr><th>Setting</th><th>Recommended</th><th>Why</th></tr></thead>
-        <tbody>
-          <tr><td>Host plan</td><td>Render <strong>Starter</strong> or higher (not free sleep)</td><td>Free tier sleeps 15–30+ minutes; media and volunteers bounce</td></tr>
-          <tr><td>Custom domain</td><td>e.g. field.yourcommittee.org</td><td>Looks official; easier to share and SEO</td></tr>
-          <tr><td>HTTPS</td><td>On (automatic on Render)</td><td>Required for trust and some browser features</td></tr>
-          <tr><td><code>SESSION_SECRET</code></td><td>Long random string</td><td>Secure sessions / flash messages</td></tr>
-          <tr><td><code>PUBLIC_URL</code></td><td>Your live HTTPS URL</td><td>Correct links in emails and calendar files</td></tr>
-          <tr><td><code>NOTIFY_WEBHOOK</code></td><td>Zapier / Make / n8n URL</td><td>Email + SMS you on every volunteer signup</td></tr>
-          <tr><td><code>ADMIN_NOTIFY_EMAIL</code> / <code>PHONE</code></td><td>Captain contacts</td><td>Who gets “connect this volunteer”</td></tr>
-          <tr><td>Twilio (optional)</td><td><code>TWILIO_*</code> env vars</td><td>Auto text to volunteers after signup</td></tr>
-          <tr><td>Auto-deploy</td><td>GitHub <code>main</code> → Render</td><td>Already wired if repo connected</td></tr>
-          <tr><td>Backups</td><td>Export <code>data/*.json</code> weekly</td><td>Signups live on disk; free disk is not forever</td></tr>
-        </tbody>
-      </table>
-      <p class="muted">Env templates: see <code>.env.example</code> in the repo. After changing env vars, restart the Render service.</p>
-    </section>
-
-    <section class="card home-section">
-      <h2 class="section-title">2. Programs &amp; Tools to Pair with the Site</h2>
-      <ul>
-        <li><strong>Pulsar</strong> (or campaign walk app) — door lists after captain meet</li>
-        <li><strong>Google Calendar</strong> or shared committee calendar — publish Field Hub events</li>
-        <li><strong>Zapier / Make</strong> — webhook → Gmail + SMS to captains</li>
-        <li><strong>Twilio</strong> — optional automated volunteer texts (TCPA opt-in already on form)</li>
-        <li><strong>Google Search Console</strong> + <strong>Bing Webmaster</strong> — claim domain for search visibility</li>
-        <li><strong>Meta Business Suite</strong> — Facebook/Instagram posts using event “Copy social post”</li>
-        <li><strong>Canva</strong> — share graphics (use your original Field Hub images)</li>
-        <li><strong>WinRed / committee donate page</strong> — only when legal entity is ready (link on /donate)</li>
-      </ul>
-    </section>
-
-    <section class="card home-section">
-      <h2 class="section-title">3. Permissions &amp; Legal (before “official” launch)</h2>
-      <ol>
-        <li><strong>Committee / counsel sign-off</strong> — “Paid for by…” language if a registered committee funds the site or ads</li>
-        <li><strong>Minnesota CFB / FEC</strong> — as applicable for state vs federal activity; see <a href="/legal">/legal</a></li>
-        <li><strong>SMS consent</strong> — form already requires opt-in; honor STOP; keep records</li>
-        <li><strong>Email</strong> — CAN-SPAM: physical address in footers if commercial; unsubscribe path</li>
-        <li><strong>Voter / walk data</strong> — no public dump of voter file; Pulsar access campaign-controlled</li>
-        <li><strong>Event presence</strong> — private property and festival booth permits; 100-foot election-day rules</li>
-        <li><strong>Photos</strong> — site uses original illustrations; do not post private-property photos without rights</li>
-        <li><strong>Privacy page</strong> — keep <a href="/privacy">/privacy</a> accurate to how you store signups</li>
-      </ol>
-      <p class="muted"><strong>Not legal advice.</strong> Have counsel review before paid advertising or formal committee branding.</p>
-    </section>
-
-    <section class="card home-section">
-      <h2 class="section-title">4. Cost to Maintain Through November 2026 (planning range)</h2>
-      <p class="muted">Roughly mid-July through early November ≈ <strong>3.5–4 months</strong>. Low = careful volunteer-run; mid = solid public ops; high = paid ads + pro tools.</p>
-      <table>
-        <thead><tr><th>Category</th><th>Low / mo</th><th>Mid / mo</th><th>High / mo</th><th>Notes</th></tr></thead>
-        <tbody>
-          <tr><td>Hosting (Render / similar)</td><td>$0–7</td><td>$7–25</td><td>$25–50</td><td>Paid plan if you need no-sleep + custom domain</td></tr>
-          <tr><td>Domain name</td><td>~$1–2</td><td>$1–2</td><td>$2–3</td><td>~$12–20/year total</td></tr>
-          <tr><td>Notify (Zapier free → paid)</td><td>$0</td><td>$20–30</td><td>$50+</td><td>Email/SMS automation</td></tr>
-          <tr><td>Twilio SMS</td><td>$0–5</td><td>$10–25</td><td>$40–80</td><td>Usage-based; only if auto-text</td></tr>
-          <tr><td>Search / SEO tools</td><td>$0</td><td>$0–20</td><td>$50–100</td><td>Search Console free; optional paid SEO</td></tr>
-          <tr><td>Paid search (Google Ads)</td><td>$0</td><td>$100–300</td><td>$500–2,000+</td><td>Optional “push on searches”</td></tr>
-          <tr><td>Social boosts (Meta)</td><td>$0</td><td>$50–150</td><td>$200–500</td><td>Boost event + volunteer posts</td></tr>
-          <tr><td>Backup / storage</td><td>$0</td><td>$0–5</td><td>$10</td><td>Google Drive / Dropbox export</td></tr>
-        </tbody>
-      </table>
-      <h3 style="margin-top:1.1rem">Estimated total through early November</h3>
-      <ul>
-        <li><strong>Lean launch (site + domain + free notify):</strong> about <strong>$50–120</strong> total</li>
-        <li><strong>Solid public ops (no-sleep host + Zapier + light SMS + light social):</strong> about <strong>$400–900</strong> total</li>
-        <li><strong>Growth (host + automation + meaningful Google/Meta ads):</strong> about <strong>$1,500–8,000+</strong> total depending on ad spend</li>
-      </ul>
-      <p class="muted">Committee staff time is the largest “cost” and is not included above. Literature, shirts, and yard signs are separate field budgets.</p>
-    </section>
-
-    <section class="card home-section">
-      <h2 class="section-title">5. Search Visibility (“pushing on searches”)</h2>
-      <ol>
-        <li>Add a custom domain and set <code>PUBLIC_URL</code></li>
-        <li>Submit sitemap or key URLs in Google Search Console: home, /map, /volunteer, /events, /candidates, /legal</li>
-        <li>Post weekly to Facebook/NextDoor with event “Copy social post” + link</li>
-        <li>Ask local pages/groups (with permission) to share the volunteer link</li>
-        <li>Optional Google Ads: keywords like “volunteer Stillwater MN”, “SD 33 election”, “Forest Lake Republican volunteer” — use committee ad accounts and disclaimers</li>
-        <li>Do not buy misleading “government” ads; this site is independent</li>
-      </ol>
-    </section>
-
-    <section class="card home-section">
-      <h2 class="section-title">6. Go-Live Checklist</h2>
-      <ul class="checklist">
-        <li>Render paid plan or always-on host</li>
-        <li>Custom domain + HTTPS live</li>
-        <li>Env: SESSION_SECRET, PUBLIC_URL, NOTIFY_WEBHOOK, ADMIN_NOTIFY_*</li>
-        <li>Test volunteer signup → captain notify + calendar download</li>
-        <li>Test /events past-event hiding and community filters</li>
-        <li>Counsel review of /legal, /donate, paid-for-by if applicable</li>
-        <li>Weekly JSON backup of volunteer_signups and candidate_prefs</li>
-        <li>Search Console property verified</li>
-        <li>Social bio links point to /volunteer</li>
-      </ul>
-      <div class="cta-row">
-        <a class="btn btn-gold" href="/volunteer">Test volunteer form</a>
-        <a class="btn btn-navy" href="/events">Upcoming events</a>
-        <a class="btn" href="/legal">Legal</a>
-      </div>
-    </section>`;
-  sendPage(req, res, "Launch & Costs", body);
-});
+/* Launch/hosting/cost notes are NOT on the public site — see docs/LAUNCH-AND-COSTS.md */
 
 app.get("/legal", (req, res) => {
   const body = `
