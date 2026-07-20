@@ -87,8 +87,10 @@ const DISTRICTS_GEO_FILE = path.join(DATA, "districts_geo.json");
 const PRECINCTS_FILE = path.join(DATA, "sd33_precincts.json");
 const VOL_SIGNUPS_FILE = path.join(DATA, "volunteer_signups.json");
 const EVENT_IDEAS_FILE = path.join(DATA, "event_ideas.json");
+const PULSAR_FILE = path.join(DATA, "pulsar_requests.json");
 if (!fs.existsSync(VOL_SIGNUPS_FILE)) fs.writeFileSync(VOL_SIGNUPS_FILE, "[]");
 if (!fs.existsSync(EVENT_IDEAS_FILE)) fs.writeFileSync(EVENT_IDEAS_FILE, "[]");
+if (!fs.existsSync(PULSAR_FILE)) fs.writeFileSync(PULSAR_FILE, "[]");
 if (!fs.existsSync(SCHEDULE_FILE)) {
   fs.writeFileSync(
     SCHEDULE_FILE,
@@ -639,6 +641,7 @@ function isNavActive(href, currentPath) {
   if (href === "/") return path === "/";
   if (href === "/field") return path === "/field" || path.startsWith("/field/");
   if (href === "/volunteer") return path === "/volunteer" || path.startsWith("/volunteer");
+  if (href === "/pulsar") return path === "/pulsar" || path.startsWith("/pulsar");
   return path === href || path.startsWith(href + "/");
 }
 function navClass(href, currentPath) {
@@ -672,6 +675,7 @@ function layout(title, body, opts = {}) {
         <a href="/map"${n("/map")}>District map</a>
         <a href="/events"${n("/events")}>Events</a>
         <a href="/volunteer"${n("/volunteer")}>Volunteer signup</a>
+        <a href="/pulsar"${n("/pulsar")}>Pulsar (doors)</a>
         <a href="/schedule"${n("/schedule")}>Shift board</a>
         <a href="/my-gop-ballot"${n("/my-gop-ballot")}>Find your ballot</a>
         <a href="/candidates"${n("/candidates")}>Candidates</a>
@@ -1335,9 +1339,10 @@ app.get("/field", (req, res) => {
     <div class="grid">
       <article class="card">
         <h3>1. Door knocking (primary)</h3>
-        <p>Highest impact for winning SD 33 + 33A + 33B. Start at poll-adjacent blocks, then feeder streets off busy corridors.</p>
+        <p>Highest impact for winning SD 33 + 33A + 33B. <strong>Walk lists use Pulsar</strong> — request access and meet a candidate campaign for your login.</p>
         <p><strong style="color:var(--gop)">Busy street + interested → ask for sign location!</strong></p>
-        <p><a class="btn" href="/field/doors">Open door lists + sign form</a></p>
+        <p><a class="btn btn-gold" href="/pulsar">Get on Pulsar</a>
+        <a class="btn" href="/field/doors">Door tips + sign form</a></p>
       </article>
       <article class="card">
         <h3>2. Yard signs</h3>
@@ -1412,6 +1417,9 @@ app.get("/field/doors", (req, res) => {
       <h2>Door knocking lists</h2>
       <p><strong>Emphasize:</strong> (1) homes near polling places, (2) residential blocks off the busiest thoroughfares. Leave lit + ID support. Never put lit in mailboxes.</p>
       <p><strong style="color:var(--gop)">On a busy street + interested in a candidate → ask for a yard sign location!</strong></p>
+      <p><strong>Walk lists run in Pulsar.</strong> Request access and meet a candidate campaign to get on Pulsar before your first solo shift.</p>
+      <p><a class="btn btn-gold" href="/pulsar">Get on Pulsar</a>
+      <a class="btn btn-navy" href="/schedule">Door shifts</a></p>
       <p class="muted">${esc(data.disclaimer || "")}</p>
     </section>
     ${signAskCalloutAndForm({ redirect: "/field/doors" })}
@@ -2774,6 +2782,7 @@ app.get("/volunteer", (req, res) => {
           </select>
           <label>I’m most interested in (pick all that apply)</label>
           <label style="font-weight:500"><input type="checkbox" name="interest" value="doors" /> Door knocking</label>
+          <label style="font-weight:500"><input type="checkbox" name="interest" value="pulsar" /> Get on <strong>Pulsar</strong> (door app) — meet campaign for access</label>
           <label style="font-weight:500"><input type="checkbox" name="interest" value="phones" /> Phone banking</label>
           <label style="font-weight:500"><input type="checkbox" name="interest" value="lit" /> Literature drops</label>
           <label style="font-weight:500"><input type="checkbox" name="interest" value="parades" /> Parades &amp; festivals</label>
@@ -2893,6 +2902,180 @@ app.post("/volunteer/idea", (req, res) => {
   saveJson(EVENT_IDEAS_FILE, list.slice(0, 2000));
   req.session.flash = "Thanks — your event idea was submitted for review.";
   res.redirect("/volunteer#ideas");
+});
+
+/* ---------- Pulsar (door knocking app access) ---------- */
+app.get("/pulsar", (req, res) => {
+  const flash = req.session.flash;
+  delete req.session.flash;
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    <section class="hero prose">
+      <span class="badge pri">Door knocking</span>
+      <h2>Pulsar — our door-knocking tool</h2>
+      <p><strong>Pulsar</strong> is the app used for organized door knocking in this district: walk lists, turf, voter IDs, and results. You cannot self-create a full campaign login. Access is issued after you connect with a candidate campaign or field captain.</p>
+    </section>
+
+    <div class="grid" style="margin-bottom:1rem">
+      <article class="card">
+        <h3>How to get on Pulsar</h3>
+        <ol>
+          <li><strong>Sign up below</strong> to request Pulsar access.</li>
+          <li><strong>Meet a candidate’s campaign</strong> (or field captain) for training and account activation.</li>
+          <li>Install / open Pulsar as directed and log in with the credentials they provide.</li>
+          <li>Join a Saturday door shift with a buddy until you are comfortable solo.</li>
+        </ol>
+        <p class="muted">Accounts are campaign-controlled for data security and compliance. This Field Hub does not store voter-file passwords.</p>
+      </article>
+      <article class="card">
+        <h3>Which campaign?</h3>
+        <p>Ask for Pulsar through the team you are walking for:</p>
+        <ul>
+          <li><strong>State Senate SD 33</strong> — Karin Housley (GOP)</li>
+          <li><strong>House 33A</strong> — Stacey Stout (GOP)</li>
+          <li><strong>House 33B</strong> — Jessica L. Johnson (GOP)</li>
+          <li>Or the joint field team coordinating St. Croix Valley turf</li>
+        </ul>
+        <p><a class="btn btn-navy" href="/volunteer">General volunteer signup</a>
+        <a class="btn" href="/schedule">Door shifts</a></p>
+      </article>
+    </div>
+
+    <div class="two">
+      <section class="card">
+        <h3>Request Pulsar access</h3>
+        <form class="stack" method="post" action="/pulsar">
+          <label>Full name *</label>
+          <input name="name" required maxlength="100" />
+          <label>Email *</label>
+          <input name="email" type="email" required maxlength="160" />
+          <label>Phone *</label>
+          <input name="phone" required maxlength="40" />
+          <label>City / town</label>
+          <input name="town" maxlength="80" />
+          <label>I want to walk for *</label>
+          <select name="campaign" required>
+            <option value="">Select…</option>
+            <option value="housley">Senate 33 — Karin Housley</option>
+            <option value="stout">House 33A — Stacey Stout</option>
+            <option value="johnson">House 33B — Jessica L. Johnson</option>
+            <option value="joint">Joint / any St. Croix Valley doors</option>
+            <option value="unsure">Not sure yet</option>
+          </select>
+          <label>House district turf (if known)</label>
+          <select name="houseDistrict">
+            <option value="">Not sure</option>
+            <option value="33A">33A</option>
+            <option value="33B">33B</option>
+            <option value="BOTH">Either / both</option>
+          </select>
+          <label>Door-knocking experience</label>
+          <select name="experience">
+            <option value="none">New — never used a walk app</option>
+            <option value="some">Some doors / other apps</option>
+            <option value="pulsar">Already used Pulsar before</option>
+            <option value="captain">Ready to lead turf</option>
+          </select>
+          <label>I can meet a campaign for setup *</label>
+          <select name="meet" required>
+            <option value="yes_saturday">Yes — Saturday door shift</option>
+            <option value="yes_weekday">Yes — weekday evening</option>
+            <option value="yes_call">Yes — phone/Zoom first</option>
+            <option value="need_times">Need times offered to me</option>
+          </select>
+          <label>Preferred meet times</label>
+          <textarea name="meetTimes" rows="2" maxlength="400" placeholder="e.g. Saturdays after 10 a.m., Tuesday evenings"></textarea>
+          <label>Device you’ll use</label>
+          <select name="device">
+            <option value="iphone">iPhone</option>
+            <option value="android">Android</option>
+            <option value="either">Either / not sure</option>
+          </select>
+          <label>Notes</label>
+          <textarea name="notes" rows="2" maxlength="800" placeholder="Prior campaigns, neighborhood you know best…"></textarea>
+          <label style="font-weight:500"><input type="checkbox" name="optIn" value="yes" required /> I understand a campaign captain must approve my Pulsar login and may contact me to schedule a meet.</label>
+          <label style="font-weight:500"><input type="checkbox" name="contactOk" value="yes" required /> Yes — email/text me about Pulsar setup and door shifts</label>
+          <button class="btn btn-gold" type="submit">Request Pulsar access</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h3>What happens after you submit</h3>
+        <ol>
+          <li>Your request is saved for the field team.</li>
+          <li>A captain from the campaign you selected contacts you.</li>
+          <li>You meet (in person or call) for a short training and account invite.</li>
+          <li>You download/open <strong>Pulsar</strong> with the invite they send — not a public self-serve signup.</li>
+          <li>You pull turf in Pulsar and walk doors (often with a buddy the first time).</li>
+        </ol>
+        <div class="card" style="background:#fffbeb;border:1px solid #e0b84a;box-shadow:none;margin-top:1rem">
+          <h3 style="margin-top:0">Important</h3>
+          <p style="margin:0">There is no public “create account” button that grants campaign voter data. If someone online asks you for money or a password to “join Pulsar,” stop and contact your campaign captain instead.</p>
+        </div>
+        <p style="margin-top:1rem"><a class="btn btn-navy" href="/field/doors">Door lists &amp; field tips</a></p>
+      </section>
+    </div>`;
+  sendPage(req, res, "Pulsar access", body);
+});
+
+app.post("/pulsar", (req, res) => {
+  const entry = {
+    id: "pul_" + Date.now(),
+    at: new Date().toISOString(),
+    name: String(req.body.name || "").slice(0, 100),
+    email: String(req.body.email || "").slice(0, 160),
+    phone: String(req.body.phone || "").slice(0, 40),
+    town: String(req.body.town || "").slice(0, 80),
+    campaign: String(req.body.campaign || ""),
+    houseDistrict: String(req.body.houseDistrict || ""),
+    experience: String(req.body.experience || ""),
+    meet: String(req.body.meet || ""),
+    meetTimes: String(req.body.meetTimes || "").slice(0, 400),
+    device: String(req.body.device || ""),
+    notes: String(req.body.notes || "").slice(0, 800),
+    optIn: req.body.optIn === "yes",
+    contactOk: req.body.contactOk === "yes",
+    status: "pending_campaign_meet",
+  };
+  if (!entry.name || !entry.email || !entry.phone || !entry.campaign) {
+    req.session.flash = "Please complete name, email, phone, and campaign.";
+    return res.redirect("/pulsar");
+  }
+  const list = loadJson(PULSAR_FILE);
+  list.unshift(entry);
+  saveJson(PULSAR_FILE, list.slice(0, 3000));
+  req.session.flash =
+    "Request received. A campaign captain will contact you to meet and get you on Pulsar. Check your email/phone.";
+  res.redirect("/pulsar");
+});
+
+app.get("/team/pulsar", (req, res) => {
+  const list = loadJson(PULSAR_FILE);
+  const rows = list
+    .map(
+      (p) => `<tr>
+        <td class="muted">${esc((p.at || "").slice(0, 16).replace("T", " "))}</td>
+        <td><strong>${esc(p.name)}</strong><div class="muted">${esc(p.email)} · ${esc(p.phone)}</div></td>
+        <td>${esc(p.campaign)} · HD ${esc(p.houseDistrict || "?")}</td>
+        <td>${esc(p.experience)} · ${esc(p.device)}</td>
+        <td>${esc(p.meet)}<div class="muted">${esc(p.meetTimes || "")}</div></td>
+        <td class="muted">${esc(p.status || "pending")}</td>
+      </tr>`
+    )
+    .join("");
+  const body = `
+    <section class="hero">
+      <h2>Pulsar access requests</h2>
+      <p><strong>${list.length}</strong> pending / recent · Contact volunteers to schedule campaign meet &amp; issue login</p>
+      <p><a class="btn" href="/pulsar">Public Pulsar page</a></p>
+    </section>
+    <div class="card">
+      <table>
+        <thead><tr><th>When</th><th>Volunteer</th><th>Campaign</th><th>Experience</th><th>Meet</th><th>Status</th></tr></thead>
+        <tbody>${rows || "<tr><td colspan=6>No requests yet</td></tr>"}</tbody>
+      </table>
+    </div>`;
+  sendPage(req, res, "Pulsar requests", body);
 });
 
 app.get("/team/volunteers", (req, res) => {
