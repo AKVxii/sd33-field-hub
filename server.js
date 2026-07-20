@@ -766,7 +766,7 @@ function layout(title, body, opts = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for Forest Lake, Stillwater, and neighboring communities." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=home7" />
+  <link rel="stylesheet" href="/css/lit.css?v=home8" />
   ${extraHead}
 </head>
 <body>
@@ -1002,32 +1002,27 @@ app.get("/", (req, res) => {
           <a class="btn btn-navy" href="/volunteer">Volunteer Signup</a>
         </div>
       </div>
-      <span class="photo-credit">Forest Lake, Minnesota · Lakeside park character · Original illustration for this site</span>
     </section>
 
-    <div class="gallery" aria-label="Forest Lake, Minnesota and Independence Day">
+    <div class="gallery" aria-label="Local scenery">
       <figure>
-        <img src="/images/forest-lake-scenic.jpg?v=2" alt="Lakeside Memorial Park style beach and shoreline on Forest Lake in Forest Lake, Minnesota" width="640" height="360" loading="eager" />
-        <figcaption>Forest Lake · Lakeside Park</figcaption>
+        <img src="/images/forest-lake-scenic.jpg?v=3" alt="Public beach and park shoreline on the lake in Forest Lake, Minnesota" width="640" height="360" loading="eager" />
       </figure>
       <figure>
-        <img src="/images/forest-lake-july4-parade.jpg?v=2" alt="Downtown Forest Lake Broadway corridor with American flags for Independence Day" width="640" height="360" loading="eager" />
-        <figcaption>Forest Lake · Fourth of July</figcaption>
+        <img src="/images/forest-lake-july4-parade.jpg?v=3" alt="Downtown street with American flags leading toward the lake" width="640" height="360" loading="eager" />
       </figure>
       <figure>
-        <img src="/images/forest-lake-waterfront.jpg?v=2" alt="Aerial view of Forest Lake, Minnesota, with multi-bay lake and suburban shoreline" width="640" height="360" loading="lazy" />
-        <figcaption>Forest Lake · The Lake</figcaption>
+        <img src="/images/forest-lake-waterfront.jpg?v=3" alt="Aerial view of the multi-bay lake and suburban shoreline in Forest Lake, Minnesota" width="640" height="360" loading="lazy" />
       </figure>
       <figure>
-        <img src="/images/mn-flag-historic.jpg?v=2" alt="Original historic Minnesota state flag, 1957 to 2023 design with state seal" width="640" height="360" loading="lazy" />
-        <figcaption>Original Minnesota Flag</figcaption>
+        <img src="/images/mn-flag-historic.jpg?v=3" alt="Historic Minnesota state flag with Great Seal, 1957 to 2023 design" width="640" height="360" loading="lazy" />
       </figure>
     </div>
 
     <p class="image-rights">
-      <strong>Image rights.</strong> Forest Lake and community scenes are original illustrations created for this Field Hub (inspired by Lakeside Memorial Park, Broadway / Lake Street, and the multi-bay lake—not third-party stock photographs).
-      The flag shown is the <strong>original Minnesota state flag (1957–2023)</strong> with the Great Seal and nineteen stars—not the 2024 North Star redesign. Heritage and educational display only.
-      This site is an independent volunteer resource—not a government website.
+      <strong>Image rights.</strong> Community scenes are original illustrations for this Field Hub, reflecting Forest Lake, Minnesota (public lakeside park, Broadway / Lake Street character, and the multi-bay lake)—not third-party stock photographs.
+      The flag is the historic Minnesota state flag (1957–2023 seal design), not the 2024 redesign. Heritage display only.
+      Independent volunteer resource—not a government website.
     </p>
 
     <section class="values-band home-section" aria-label="Our standards for candidates">
@@ -1035,22 +1030,12 @@ app.get("/", (req, res) => {
       <p>We value the true merit and leadership of each candidate for our community—integrity, competence, and service over slogans. We favor transparency: clear public records, honest debate, and open field practices so neighbors can judge who will serve Forest Lake, Stillwater, and the St.&nbsp;Croix Valley with accountability.</p>
     </section>
 
-    <section class="heritage-band home-section" aria-label="Minnesota loon and original state flag">
-      <div class="heritage-loon" role="img" aria-label="Common loon on a Minnesota lake">
-        <div class="heritage-loon-caption">
-          <strong>The Loon · Land of 10,000 Lakes</strong>
-          <span>Minnesota communities · local seats that matter</span>
-        </div>
-      </div>
-      <div class="heritage-flag" role="img" aria-label="Original Minnesota state flag, 1957 to 2023 design">
-        <div class="heritage-flag-caption">
-          <strong>Original Minnesota Flag</strong>
-          1957–2023 seal design · not the 2024 redesign
-        </div>
-      </div>
+    <section class="heritage-band home-section" aria-label="Minnesota loon and historic state flag">
+      <div class="heritage-loon" role="img" aria-label="Common loon on a Minnesota lake"></div>
+      <div class="heritage-flag" role="img" aria-label="Historic Minnesota state flag, 1957 to 2023 design"></div>
       <div class="heritage-copy">
         <h2>Forest Lake &amp; Neighboring Towns</h2>
-        <p>From Forest Lake’s shoreline and Broadway corridor to Stillwater and Hugo, this hub offers professional field tools for residents who care about Minnesota’s future and the legislative seats that shape daily life in Senate District&nbsp;33.</p>
+        <p>From the shoreline and main streets of Forest Lake to Stillwater and Hugo, this hub offers professional field tools for residents who care about Minnesota’s future and the legislative seats that shape daily life in Senate District&nbsp;33.</p>
         <p class="muted" style="margin:0">Volunteer for doors, community events, and literature. Choose candidates on merit. Request a bundle pack and connect with neighbors in your district or nearby.</p>
         <div class="cta-row">
           <a class="btn btn-gold" href="/volunteer">Join the Team</a>
@@ -2312,22 +2297,18 @@ app.get("/win-playbook", (req, res) => {
       <div class="gallery" aria-label="St. Croix Valley and Minnesota lakes">
         <figure>
           <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" />
-          <figcaption>Minnesota Loon</figcaption>
         </figure>
         <figure>
-          <img src="/images/forest-lake-scenic.jpg" alt="Forest Lake, Minnesota" />
-          <figcaption>Forest Lake</figcaption>
+          <img src="/images/forest-lake-scenic.jpg?v=3" alt="Public lakeside park in Forest Lake, Minnesota" />
         </figure>
         <figure>
           <img src="/images/st-croix-valley.jpg" alt="St. Croix River valley" />
-          <figcaption>St. Croix Valley</figcaption>
         </figure>
         <figure>
-          <img src="/images/forest-lake-july4-parade.jpg" alt="Independence Day community parade" />
-          <figcaption>Community Events</figcaption>
+          <img src="/images/forest-lake-july4-parade.jpg?v=3" alt="Downtown street with American flags near the lake" />
         </figure>
       </div>
-      <p>Photography and original illustrations reflect Washington County and the St.&nbsp;Croix Valley for a professional local presentation.</p>
+      <p>Original illustrations reflect Washington County and the St.&nbsp;Croix Valley for a professional local presentation.</p>
       <p><a class="btn btn-gold" href="/review">Send for Review</a> <a class="btn" href="/share">Share Links</a></p>
     </section>`;
   sendPage(req, res, "Field Guide", body);
