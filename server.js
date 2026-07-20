@@ -1130,7 +1130,10 @@ function layout(title, body, opts = {}) {
   <meta name="description" content="${esc(metaDesc)}" />
   ${robots}
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=tag1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/lit.css?v=ux2" />
   ${extraHead}
 </head>
 <body class="${PRIVATE_DEVELOPMENT ? "private-dev" : ""}">
@@ -1138,41 +1141,55 @@ function layout(title, body, opts = {}) {
   ${privateDevBannerHtml()}
   <header class="top" role="banner">
     <div class="wrap top-inner">
-      <h1>St. Croix Valley Field Hub</h1>
-      <p class="site-tagline">${esc(siteTagline)}</p>
-      <p>Minnesota Senate District&nbsp;33 · House Districts&nbsp;33A &amp;&nbsp;33B · Washington County${
-        PRIVATE_DEVELOPMENT ? " · <strong>Private development</strong>" : ""
-      }</p>
+      <div class="brand-row">
+        <div class="brand-text">
+          <p class="brand-kicker">Minnesota · SD 33 · HD 33A · HD 33B</p>
+          <h1>St. Croix Valley Field Hub</h1>
+          <p class="site-tagline">${esc(siteTagline)}</p>
+          <p class="brand-meta">Washington County${
+            PRIVATE_DEVELOPMENT ? " · <span class=\"pill-dev\">Private development</span>" : ""
+          }</p>
+        </div>
+      </div>
       <nav class="nav" id="primary-nav" aria-label="Primary">
         <a href="/"${n("/")}>Home</a>
-        <a href="/map"${n("/map")}>District map</a>
-        <a href="/events"${n("/events")}>Events calendar</a>
-        <a href="/volunteer"${n("/volunteer")}>Volunteer signup</a>
-        <a href="/pulsar"${n("/pulsar")}>Pulsar (doors)</a>
-        <a href="/schedule"${n("/schedule")}>Shift board</a>
         <a href="/my-gop-ballot"${n("/my-gop-ballot")}>Find your ballot</a>
+        <a href="/map"${n("/map")}>Map</a>
+        <a href="/events"${n("/events")}>Events</a>
+        <a href="/volunteer"${n("/volunteer")}>Volunteer</a>
         <a href="/candidates"${n("/candidates")}>Candidates</a>
-        <a href="/roadmap"${n("/roadmap")}>Roadmap</a>
-        <a href="/win-playbook"${n("/win-playbook")}>Field guide</a>
-        <a href="/donate"${n("/donate")}>Support</a>
-        <a href="/es"${n("/es")}>Español</a>
-        <a href="/win-three"${n("/win-three")}>Win SD 33</a>
-        <a href="/share"${n("/share")}>Share</a>
-        <a href="/legal"${n("/legal")}>Legal</a>
-        <a href="/field"${n("/field")}>Field tools</a>
+        <details class="nav-more">
+          <summary>More</summary>
+          <div class="nav-more-panel">
+            <a href="/pulsar"${n("/pulsar")}>Pulsar (doors)</a>
+            <a href="/schedule"${n("/schedule")}>Shift board</a>
+            <a href="/roadmap"${n("/roadmap")}>Roadmap</a>
+            <a href="/win-playbook"${n("/win-playbook")}>Field guide</a>
+            <a href="/win-three"${n("/win-three")}>Win SD 33</a>
+            <a href="/field"${n("/field")}>Field tools</a>
+            <a href="/donate"${n("/donate")}>Support</a>
+            <a href="/share"${n("/share")}>Share</a>
+            <a href="/legal"${n("/legal")}>Legal</a>
+            <a href="/es"${n("/es")}>Español</a>
+          </div>
+        </details>
       </nav>
     </div>
   </header>
   <main id="main" class="wrap main" role="main">${body}</main>
   <footer class="footer" role="contentinfo">
-    <div class="wrap">
+    <div class="wrap footer-grid">
       <div class="footer-brand">
-        <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" width="72" height="48" loading="lazy" />
-        <img src="/images/forest-lake-scenic.jpg" alt="Forest Lake, Minnesota" width="72" height="48" loading="lazy" />
-        <img src="/images/forest-lake-july4-parade.jpg" alt="Independence Day parade with American flags" width="72" height="48" loading="lazy" />
+        <div class="footer-thumbs" aria-hidden="true">
+          <img src="/images/loon-lake.jpg" alt="" width="72" height="48" loading="lazy" />
+          <img src="/images/forest-lake-scenic.jpg" alt="" width="72" height="48" loading="lazy" />
+          <img src="/images/forest-lake-july4-parade.jpg" alt="" width="72" height="48" loading="lazy" />
+        </div>
         <div>
-          <strong>St. Croix Valley Field Hub</strong> · SD&nbsp;33 · HD&nbsp;33A · HD&nbsp;33B<br/>
-          <em>A volunteer-built district organizing and voter-information hub supporting candidates and community engagement in Minnesota Senate District&nbsp;33.</em><br/>
+          <strong class="footer-name">St. Croix Valley Field Hub</strong>
+          <span class="footer-districts">SD&nbsp;33 · HD&nbsp;33A · HD&nbsp;33B</span>
+          <p class="footer-tagline">A volunteer-built district organizing and voter-information hub supporting candidates and community engagement in Minnesota Senate District&nbsp;33.</p>
+          <p class="footer-legal-copy">
           ${
             PRIVATE_DEVELOPMENT
               ? `Under <strong>private development</strong>. Not currently operating as a public campaign, political committee, fundraising platform, or live volunteer-organizing service.
@@ -1181,31 +1198,44 @@ function layout(title, body, opts = {}) {
           <strong>Not</strong> an official government website and <strong>not</strong> legal advice.
           Candidate data from public sources (Minnesota Secretary of State and public filings).`
           }
-          Official ballot and precinct lookup: <a href="https://pollfinder.sos.mn.gov/" rel="noopener">pollfinder.sos.mn.gov</a>.
+          </p>
+          <p class="footer-sos">Official ballot: <a href="https://pollfinder.sos.mn.gov/" rel="noopener">pollfinder.sos.mn.gov</a>
+          · <a href="https://myballotmn.sos.mn.gov/" rel="noopener">myballotmn.sos.mn.gov</a></p>
         </div>
       </div>
-      <p class="legal-bar">
-        <strong>Compliance:</strong>
-        <a href="/legal">Legal &amp; election rules</a> ·
-        <a href="/privacy">Privacy</a> ·
-        <a href="/accessibility">Accessibility</a> ·
-        <a href="/win-three">Win the three seats</a> ·
-        <a href="/review">Feedback</a>
-      </p>
-      <p class="muted" style="font-size:0.82rem;max-width:70ch">
+      <div class="footer-links-col">
+        <h3>Explore</h3>
+        <ul class="footer-link-list">
+          <li><a href="/my-gop-ballot">Find your ballot</a></li>
+          <li><a href="/map">District map</a></li>
+          <li><a href="/events">Events calendar</a></li>
+          <li><a href="/volunteer">Volunteer</a></li>
+          <li><a href="/candidates">Candidates</a></li>
+        </ul>
+      </div>
+      <div class="footer-links-col">
+        <h3>Compliance</h3>
+        <ul class="footer-link-list">
+          <li><a href="/legal">Legal &amp; election rules</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="/accessibility">Accessibility</a></li>
+          <li><a href="/review">Feedback</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <p class="muted footer-fine">
         ${
           PRIVATE_DEVELOPMENT
             ? "No volunteer registrations, contributions, campaign requests, or voter information are being accepted through this development site."
-            : `Campaign materials paid for by a committee must include required “Paid for by…” disclaimers under Minnesota and, where applicable, federal law.
-        Update committee language with counsel when a legal entity funds this site or printed materials.`
+            : `Campaign materials paid for by a committee must include required “Paid for by…” disclaimers under Minnesota and, where applicable, federal law.`
         }
-        No campaigning inside a polling place or within <strong>100 feet</strong> of the building (or anywhere on public property where a polling place is located) on primary/election day — Minn. Stat. §§ 204C.06, 211B.11.
-        Never place literature in U.S. mailboxes (federal law).
+        Poll rules: no campaigning inside a polling place or within <strong>100 feet</strong> of the building (or on public property where a polling place is located) — Minn. Stat. §§ 204C.06, 211B.11.
+        Never place literature in U.S. mailboxes.
       </p>
-      <p class="muted">Development host: <a href="https://sd33-field-hub.onrender.com">sd33-field-hub.onrender.com</a></p>
     </div>
   </footer>
-  <script src="/js/nav-active.js?v=nav3"></script>
+  <script src="/js/nav-active.js?v=nav4"></script>
   ${extraFoot}
 </body>
 </html>`;
