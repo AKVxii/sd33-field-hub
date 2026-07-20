@@ -1,6 +1,6 @@
 {
-  "asOf": "2026-07-19",
-  "note": "Primary Aug 11, 2026 · General Nov 3, 2026. Lists reflect publicly reported filed/declared candidates. Update after primary. Party labels: GOP = Republican.",
+  "asOf": "2026-07-20",
+  "note": "Primary Aug 11, 2026 (canceled where unopposed) · General Nov 3, 2026. House 33A/33B GOP names from Ballotpedia candidate filings. Verify at SOS. Party labels: GOP = Republican.",
   "races": {
     "governor": {
       "office": "Governor of Minnesota",
@@ -90,10 +90,10 @@
       "scope": "Forest Lake, Hugo, Mahtomedi area (north half of SD 33)",
       "winSeat": true,
       "gop": [
-        { "name": "GOP nominee for 33A", "party": "GOP", "note": "Open seat — Patti Anderson (GOP) retiring. Confirm SOS filing / post-primary name" }
+        { "name": "Stacey Stout", "party": "GOP", "note": "Republican nominee · open seat (Patti Anderson retiring) · primary canceled; advanced unopposed · staceystout.com" }
       ],
       "other": [
-        { "name": "Angela Thompson", "party": "DFL", "note": "DFL candidate reported" }
+        { "name": "Angela Thompson", "party": "DFL", "note": "DFL nominee · general election Nov. 3, 2026" }
       ]
     },
     "house33B": {
@@ -101,7 +101,7 @@
       "scope": "Stillwater, Oak Park Heights, Bayport, Marine, Scandia, May Twp, parts of Forest Lake",
       "winSeat": true,
       "gop": [
-        { "name": "GOP nominee for 33B", "party": "GOP", "note": "PRIORITY SEAT vs Josiah Hill (DFL). Confirm SOS filing / post-primary name (2024 GOP nominee was Jessica Johnson)" }
+        { "name": "Jessica L. Johnson", "party": "GOP", "note": "Republican nominee · challenging incumbent Josiah Hill · primary canceled; advanced unopposed" }
       ],
       "other": [
         { "name": "Josiah Hill", "party": "DFL", "note": "Incumbent" }
@@ -119,7 +119,7 @@
     },
     {
       "id": "lit_33a",
-      "label": "House 33A — GOP nominee (open seat)",
+      "label": "House 33A — Stacey Stout (GOP)",
       "party": "GOP",
       "seat": "HD 33A",
       "priority": 1,
@@ -127,7 +127,7 @@
     },
     {
       "id": "lit_33b",
-      "label": "House 33B — GOP nominee",
+      "label": "House 33B — Jessica L. Johnson (GOP)",
       "party": "GOP",
       "seat": "HD 33B",
       "priority": 1,
@@ -135,7 +135,7 @@
     },
     {
       "id": "lit_bundle3",
-      "label": "WIN ALL THREE — SD33 + 33A + 33B combined door piece (GOP)",
+      "label": "WIN ALL THREE — Housley + Stout + Johnson combined door piece (GOP)",
       "party": "GOP",
       "seat": "SD 33 ticket",
       "priority": 1,
