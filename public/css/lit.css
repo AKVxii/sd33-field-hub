@@ -207,9 +207,6 @@ a { color: #1a4f8b; }
 .cand-name { font-weight: 700; }
 .note { color: var(--muted); font-size: 0.85rem; width: 100%; }
 
-.phase { border-left: 4px solid var(--gop); padding-left: 0.85rem; margin: 0.85rem 0; }
-.phase strong { color: var(--navy); }
-
 table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 th, td { text-align: left; padding: 0.55rem 0.65rem; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 0.92rem; }
 th { background: var(--sky); color: var(--navy); }

@@ -669,7 +669,7 @@ function layout(title, body, opts = {}) {
   <header class="top" role="banner">
     <div class="wrap top-inner">
       <h1>St. Croix Valley Field Hub</h1>
-      <p>Minnesota Senate District 33 · House Districts 33A &amp; 33B · Washington County</p>
+      <p>Minnesota Senate District&nbsp;33 · House Districts&nbsp;33A &amp;&nbsp;33B · Washington County</p>
       <nav class="nav" id="primary-nav" aria-label="Primary">
         <a href="/"${n("/")}>Home</a>
         <a href="/map"${n("/map")}>District map</a>
