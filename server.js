@@ -809,6 +809,7 @@ function layout(title, body, opts = {}) {
         <a href="/win-three"${n("/win-three")}>Win SD 33</a>
         <a href="/share"${n("/share")}>Share</a>
         <a href="/legal"${n("/legal")}>Legal</a>
+        <a href="/launch"${n("/launch")}>Launch &amp; costs</a>
         <a href="/field"${n("/field")}>Field tools</a>
       </nav>
     </div>
@@ -1004,7 +1005,8 @@ app.get("/api/gop-ballot", (req, res) => {
 app.get("/", (req, res) => {
   const flash = req.session.flash;
   delete req.session.flash;
-  const events = loadJson(EVENTS_FILE).events || [];
+  const todayHome = todayYmd();
+  const events = (loadJson(EVENTS_FILE).events || []).filter((e) => isEventUpcoming(e, todayHome));
   const highlight = events.find((e) => e.highlight) || events[0];
   const body = `
     ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
@@ -2871,14 +2873,17 @@ function eventCardHtml(e) {
   const gear = e.gear || {};
   const roles = (e.volunteerRoles || []).map((r) => `<li>${esc(r)}</li>`).join("");
   const cls = e.highlight ? "card event-card highlight" : "card event-card";
+  const gCal = googleCalendarUrl(e);
+  const share = e.socialShare || `${e.title} — ${e.dayLabel || e.date || ""}. https://sd33-field-hub.onrender.com/events`;
   return `<article class="${cls}" style="margin-bottom:1rem" data-scope="${scope}" data-district="${esc(
     (e.districts || []).join(" ")
-  )}" data-type="${esc(e.type || "")}">
+  )}" data-type="${esc(e.type || "")}" data-community="${esc(e.community || "")}">
     <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.4rem">
       ${e.highlight ? '<span class="badge pri">Featured</span>' : ""}
       ${scopeBadge}
       ${pri}
       <span class="badge other">${esc(e.type || "event")}</span>
+      ${e.community ? `<span class="badge published">${esc(e.community)}</span>` : ""}
     </div>
     <h2 style="margin:0.35rem 0;font-size:1.25rem">${esc(e.title)}</h2>
     <p><strong>${esc(e.dayLabel || "Date TBA")}</strong>${e.time ? " · " + esc(e.time) : ""}</p>
@@ -2889,7 +2894,9 @@ function eventCardHtml(e) {
         ? `<p><strong>Why nearby still matters:</strong> ${esc(e.nearbyReason)}</p>`
         : ""
     }
-    <p class="muted"><strong>District labels:</strong> ${esc((e.districts || []).join(" · "))}</p>
+    <p class="muted"><strong>District labels:</strong> ${esc((e.districts || []).join(" · "))}${
+      e.community ? ` · <strong>Community:</strong> ${esc(e.community)}` : ""
+    }</p>
     <div class="card" style="background:#f8fafc;margin:0.75rem 0;box-shadow:none">
       <h3 style="margin:0 0 0.5rem;font-size:1rem">What to wear / bring as a volunteer</h3>
       <ul style="margin:0;padding-left:1.2rem">
@@ -2904,25 +2911,57 @@ function eventCardHtml(e) {
         : ""
     }
     ${e.source ? `<p class="muted">Source / more info: <a href="${esc(e.source)}" target="_blank" rel="noopener">${esc(e.source)}</a></p>` : ""}
-    <p>
-      <a class="btn btn-navy" href="/volunteer?event=${encodeURIComponent(e.id || "")}">Sign up for this event</a>
-      <a class="btn" href="/schedule">Claim a shift</a>
+    <p class="cta-row">
+      <a class="btn btn-gold" href="/volunteer?event=${encodeURIComponent(e.id || "")}">Sign up · add to calendar</a>
+      ${gCal ? `<a class="btn btn-navy" href="${esc(gCal)}" target="_blank" rel="noopener">Google Calendar</a>` : ""}
+      <a class="btn" href="/events/${encodeURIComponent(e.id || "")}.ics">Apple / Outlook (.ics)</a>
+      <button type="button" class="btn" onclick="navigator.clipboard.writeText(${JSON.stringify(share)});this.textContent='Copied!'">Copy social post</button>
     </p>
   </article>`;
 }
 
+/** Hide past events; keep undated recurring items only if no end before today */
+function isEventUpcoming(e, todayStr) {
+  if (!e || !e.date) return false;
+  const end = e.dateEnd || e.date;
+  return String(end) >= todayStr;
+}
+
+function todayYmd() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function googleCalendarUrl(event) {
+  if (!event || !event.date) return "";
+  const title = encodeURIComponent(event.title || "SD 33 event");
+  const details = encodeURIComponent(
+    [event.description || "", event.socialShare || "", "https://sd33-field-hub.onrender.com/events"].join("\n\n")
+  );
+  const loc = encodeURIComponent([event.locationName, event.address].filter(Boolean).join(", "));
+  const startT = (event.timeStart || "09:00").replace(":", "");
+  const endT = (event.timeEnd || "12:00").replace(":", "");
+  const start = String(event.date).replace(/-/g, "") + "T" + startT + "00";
+  const endDate = String(event.dateEnd || event.date).replace(/-/g, "");
+  const end = endDate + "T" + endT + "00";
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${loc}`;
+}
+
 app.get("/events", (req, res) => {
   const data = loadJson(EVENTS_FILE);
-  const events = data.events || [];
+  const today = todayYmd();
+  const events = (data.events || []).filter((e) => isEventUpcoming(e, today));
   const filter = req.query.scope || "all"; // all | in | nearby
   const district = req.query.district || ""; // 33A | 33B | SD33
   const typeFilter = String(req.query.type || ""); // social | breakfast | happy_hour | lunch
-  let list = events.slice();
+  const community = String(req.query.community || "");
+  let list = events.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
   if (filter === "in") list = list.filter((e) => e.districtScope !== "nearby");
   if (filter === "nearby") list = list.filter((e) => e.districtScope === "nearby");
   if (district === "33A") list = list.filter((e) => (e.districts || []).some((d) => /33A/i.test(d)));
   if (district === "33B") list = list.filter((e) => (e.districts || []).some((d) => /33B/i.test(d)));
   if (district === "SD33") list = list.filter((e) => (e.districts || []).some((d) => /SD\s*33|Senate/i.test(d) || e.districtScope === "in"));
+  if (community) list = list.filter((e) => String(e.community || "").toLowerCase() === community.toLowerCase());
   if (typeFilter === "social") {
     list = list.filter((e) =>
       /social|happy_hour|breakfast|lunch|karaoke/i.test(String(e.type || ""))
@@ -2931,28 +2970,35 @@ app.get("/events", (req, res) => {
     list = list.filter((e) => String(e.type || "").toLowerCase() === typeFilter.toLowerCase());
   }
 
+  const communities = [...new Set(events.map((e) => e.community).filter(Boolean))].sort();
   const inCount = events.filter((e) => e.districtScope !== "nearby").length;
   const nearCount = events.filter((e) => e.districtScope === "nearby").length;
   const cards = list.map(eventCardHtml).join("");
+  const communityBtns = communities
+    .map(
+      (c) =>
+        `<a class="btn ${community === c ? "" : "btn-navy"}" href="/events?community=${encodeURIComponent(c)}">${esc(c)}</a>`
+    )
+    .join("");
 
   const body = `
     <section class="hero prose">
-      <span class="badge pri">Events · parades · breakfasts · happy hours</span>
-      <h2>Local events calendar for volunteers</h2>
-      <p>Festivals, parades, pancake breakfasts, happy hours, working lunches, and community gatherings <strong>inside Senate District 33 / House 33A &amp; 33B</strong>, plus events <strong>just outside the lines</strong>. Meet like-minded neighbors; each card lists stickers, literature, and shirts.</p>
+      <span class="badge pri">Events · by community · social-ready</span>
+      <h2>Upcoming Events Calendar</h2>
+      <p>Upcoming only (as of <strong>${esc(today)}</strong>). Past events are removed automatically. Browse by <strong>community</strong>, district, or type. Each card has gear, roles, Google Calendar, .ics, and a ready-to-post social caption.</p>
       <p class="muted">${esc(data.note || "")}</p>
       <div class="cta-row">
-        <a class="btn btn-gold" href="/volunteer">Volunteer signup · request pack</a>
+        <a class="btn btn-gold" href="/volunteer">Volunteer signup · add to calendar</a>
         <a class="btn" href="/volunteer#ideas">Suggest an event idea</a>
-        <a class="btn btn-navy" href="/schedule">Shift board</a>
+        <a class="btn btn-navy" href="/launch">Launch checklist &amp; costs</a>
       </div>
     </section>
 
     <div class="card" style="margin-bottom:1rem">
       <h3>Filter events</h3>
-      <p class="muted">${inCount} in-district · ${nearCount} nearby · choose either or all on the <a href="/volunteer">volunteer form</a></p>
-      <p style="display:flex;flex-wrap:wrap;gap:0.5rem">
-        <a class="btn ${filter === "all" && !district && !typeFilter ? "" : "btn-navy"}" href="/events">All</a>
+      <p class="muted">${list.length} showing · ${inCount} in-district upcoming · ${nearCount} nearby · past events hidden</p>
+      <p style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.65rem">
+        <a class="btn ${filter === "all" && !district && !typeFilter && !community ? "" : "btn-navy"}" href="/events">All upcoming</a>
         <a class="btn ${filter === "in" ? "" : "btn-navy"}" href="/events?scope=in">In district only</a>
         <a class="btn ${filter === "nearby" ? "" : "btn-navy"}" href="/events?scope=nearby">Nearby (outside)</a>
         <a class="btn ${typeFilter === "social" ? "" : "btn-navy"}" href="/events?type=social">Happy hour · breakfast · lunch · social</a>
@@ -2960,6 +3006,8 @@ app.get("/events", (req, res) => {
         <a class="btn ${district === "33B" ? "" : "btn-navy"}" href="/events?district=33B">HD 33B</a>
         <a class="btn ${district === "SD33" ? "" : "btn-navy"}" href="/events?district=SD33">SD 33</a>
       </p>
+      <p class="muted" style="margin:0 0 0.35rem"><strong>By community</strong> (no city left out):</p>
+      <p style="display:flex;flex-wrap:wrap;gap:0.5rem">${communityBtns}</p>
     </div>
 
     <div class="card" style="margin-bottom:1rem;border-left:4px solid var(--gold)">
@@ -3153,10 +3201,13 @@ app.get("/volunteer", (req, res) => {
   const flash = req.session.flash;
   delete req.session.flash;
   const eventId = req.query.event || "";
+  const today = todayYmd();
   const events = (loadJson(EVENTS_FILE).events || [])
+    .filter((e) => isEventUpcoming(e, today))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
     .map(
       (e) =>
-        `<option value="${esc(e.id)}" ${eventId === e.id ? "selected" : ""}>${esc(e.title)} — ${esc(e.dayLabel || "")}</option>`
+        `<option value="${esc(e.id)}" ${eventId === e.id ? "selected" : ""}>${esc(e.community ? e.community + " · " : "")}${esc(e.title)} — ${esc(e.dayLabel || e.date || "")}</option>`
     )
     .join("");
 
@@ -3447,31 +3498,48 @@ function asArray(val) {
 
 function buildIcs(event, volunteerName) {
   if (!event || !event.date) return null;
-  const start = String(event.date).replace(/-/g, "");
-  let end = event.dateEnd ? String(event.dateEnd).replace(/-/g, "") : start;
-  // all-day: end date exclusive in ICS → add 1 day if same day
-  const dtStart = start;
-  let dtEnd = end;
-  if (dtEnd === dtStart) {
-    const d = new Date(event.date + "T12:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 1);
-    dtEnd = d.toISOString().slice(0, 10).replace(/-/g, "");
-  } else {
-    const d = new Date((event.dateEnd || event.date) + "T12:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 1);
-    dtEnd = d.toISOString().slice(0, 10).replace(/-/g, "");
-  }
-  const uid = (event.id || "event") + "@sd33-field-hub";
+  const uid = (event.id || "event") + "-" + Date.now() + "@sd33-field-hub";
   const summary = (event.title || "SD 33 volunteer event").replace(/\n/g, " ");
   const desc = [
     event.description || "",
-    "Volunteer: " + (volunteerName || ""),
+    volunteerName ? "Volunteer: " + volunteerName : "",
+    event.community ? "Community: " + event.community : "",
     "Gear: stickers / lit / shirts per Field Hub event card",
     "https://sd33-field-hub.onrender.com/events",
   ]
+    .filter(Boolean)
     .join("\\n")
     .replace(/\n/g, "\\n");
   const loc = [event.locationName, event.address].filter(Boolean).join(", ");
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  let dtStartLine;
+  let dtEndLine;
+  if (event.timeStart) {
+    // Local America/Chicago wall time as floating local (no Z) for phone calendars
+    const s = String(event.date).replace(/-/g, "") + "T" + String(event.timeStart).replace(":", "") + "00";
+    const endDate = String(event.dateEnd || event.date).replace(/-/g, "");
+    const e =
+      endDate +
+      "T" +
+      String(event.timeEnd || event.timeStart || "12:00").replace(":", "") +
+      "00";
+    dtStartLine = "DTSTART;TZID=America/Chicago:" + s;
+    dtEndLine = "DTEND;TZID=America/Chicago:" + e;
+  } else {
+    const start = String(event.date).replace(/-/g, "");
+    let end = event.dateEnd ? String(event.dateEnd).replace(/-/g, "") : start;
+    if (end === start) {
+      const d = new Date(event.date + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() + 1);
+      end = d.toISOString().slice(0, 10).replace(/-/g, "");
+    } else {
+      const d = new Date((event.dateEnd || event.date) + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() + 1);
+      end = d.toISOString().slice(0, 10).replace(/-/g, "");
+    }
+    dtStartLine = "DTSTART;VALUE=DATE:" + start;
+    dtEndLine = "DTEND;VALUE=DATE:" + end;
+  }
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -3480,13 +3548,18 @@ function buildIcs(event, volunteerName) {
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
     "UID:" + uid,
-    "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""),
-    "DTSTART;VALUE=DATE:" + dtStart,
-    "DTEND;VALUE=DATE:" + dtEnd,
+    "DTSTAMP:" + stamp,
+    dtStartLine,
+    dtEndLine,
     "SUMMARY:" + summary,
     "DESCRIPTION:" + desc,
     "LOCATION:" + loc.replace(/\n/g, " "),
     "URL:https://sd33-field-hub.onrender.com/events",
+    "BEGIN:VALARM",
+    "TRIGGER:-PT1H",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Reminder: SD 33 volunteer event",
+    "END:VALARM",
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
@@ -3787,11 +3860,31 @@ app.post("/volunteer", async (req, res) => {
   const calUrl = eventObj
     ? `/volunteer/calendar/${encodeURIComponent(entry.id)}.ics`
     : "";
+  const gCal = eventObj ? googleCalendarUrl(eventObj) : "";
   const calHtml = eventObj
-    ? `<p><a class="btn btn-gold" id="cal-download" href="${calUrl}">Add event to your calendar (.ics)</a></p>
-       <p class="muted">Event: <strong>${esc(eventObj.title)}</strong> — ${esc(eventObj.dayLabel || eventObj.date || "")}. Your calendar file should start downloading; if not, tap the button.</p>
-       <script>try{var a=document.getElementById("cal-download");if(a){setTimeout(function(){window.location.href=a.getAttribute("href");},600);}}catch(e){}</script>`
-    : `<p class="muted">No specific event selected — browse <a href="${scopeHref}">events for your scope</a> and claim a <a href="/schedule">shift</a>.</p>`;
+    ? `<p><strong>${esc(eventObj.title)}</strong> — ${esc(eventObj.dayLabel || eventObj.date || "")}${
+        eventObj.community ? " · " + esc(eventObj.community) : ""
+      }</p>
+       <p class="cta-row">
+         <a class="btn btn-gold" id="cal-download" href="${calUrl}">Download to calendar (.ics)</a>
+         ${gCal ? `<a class="btn btn-navy" id="gcal-open" href="${esc(gCal)}" target="_blank" rel="noopener">Open in Google Calendar</a>` : ""}
+         <a class="btn" href="/events/${encodeURIComponent(eventObj.id)}.ics">Direct event .ics</a>
+       </p>
+       <p class="muted">Your calendar file downloads automatically. On iPhone: open the file → Add to Calendar. On Android/Gmail: use Google Calendar. Outlook: open the .ics file.</p>
+       <script>
+         (function(){
+           try {
+             var a = document.getElementById("cal-download");
+             if (a) setTimeout(function(){ window.location.href = a.getAttribute("href"); }, 400);
+             var g = document.getElementById("gcal-open");
+             if (g && /Android|iPhone|iPad/i.test(navigator.userAgent) === false) {
+               /* desktop: also open Google Calendar tab shortly after */
+               setTimeout(function(){ /* keep user on confirm page; they can click Google */ }, 0);
+             }
+           } catch (e) {}
+         })();
+       </script>`
+    : `<p class="muted">No specific event selected — pick one on <a href="${scopeHref}">upcoming events</a> (signup will send it to your calendar).</p>`;
 
   const selfEmailBody = [
     "Thanks for signing up with the SD 33 Field Hub.",
@@ -3863,6 +3956,19 @@ app.get("/volunteer/calendar/:id.ics", (req, res) => {
   res.setHeader("Content-Type", "text/calendar; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="sd33-${id.slice(0, 12)}.ics"`);
   res.send(entry.ics);
+});
+
+/** Public .ics for any upcoming event (no signup required) */
+app.get("/events/:id.ics", (req, res) => {
+  const id = String(req.params.id || "").replace(/\.ics$/i, "");
+  const event = (loadJson(EVENTS_FILE).events || []).find((e) => e.id === id);
+  if (!event || !isEventUpcoming(event, todayYmd())) {
+    return res.status(404).type("text").send("Event not found or already past.");
+  }
+  const ics = buildIcs(event, "");
+  res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="sd33-event-${id.slice(0, 24)}.ics"`);
+  res.send(ics);
 });
 
 app.post("/volunteer/idea", (req, res) => {
@@ -4299,6 +4405,123 @@ app.get("/accessibility", (req, res) => {
 });
 
 /* ---------- Legal / privacy / win three seats ---------- */
+/* ---------- Launch checklist, permissions, cost-through-November ---------- */
+app.get("/launch", (req, res) => {
+  const body = `
+    <section class="hero prose">
+      <span class="badge pri">Official launch</span>
+      <h2>Launch Settings, Permissions &amp; Cost Through November</h2>
+      <p>Checklist to run the St. Croix Valley Field Hub publicly through Election Day (November&nbsp;3, 2026). Figures are planning estimates in USD—not bids. Confirm with counsel, your host, and any paid ads platform.</p>
+    </section>
+
+    <section class="card home-section">
+      <h2 class="section-title">1. Technical Settings (Render / hosting)</h2>
+      <table>
+        <thead><tr><th>Setting</th><th>Recommended</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Host plan</td><td>Render <strong>Starter</strong> or higher (not free sleep)</td><td>Free tier sleeps 15–30+ minutes; media and volunteers bounce</td></tr>
+          <tr><td>Custom domain</td><td>e.g. field.yourcommittee.org</td><td>Looks official; easier to share and SEO</td></tr>
+          <tr><td>HTTPS</td><td>On (automatic on Render)</td><td>Required for trust and some browser features</td></tr>
+          <tr><td><code>SESSION_SECRET</code></td><td>Long random string</td><td>Secure sessions / flash messages</td></tr>
+          <tr><td><code>PUBLIC_URL</code></td><td>Your live HTTPS URL</td><td>Correct links in emails and calendar files</td></tr>
+          <tr><td><code>NOTIFY_WEBHOOK</code></td><td>Zapier / Make / n8n URL</td><td>Email + SMS you on every volunteer signup</td></tr>
+          <tr><td><code>ADMIN_NOTIFY_EMAIL</code> / <code>PHONE</code></td><td>Captain contacts</td><td>Who gets “connect this volunteer”</td></tr>
+          <tr><td>Twilio (optional)</td><td><code>TWILIO_*</code> env vars</td><td>Auto text to volunteers after signup</td></tr>
+          <tr><td>Auto-deploy</td><td>GitHub <code>main</code> → Render</td><td>Already wired if repo connected</td></tr>
+          <tr><td>Backups</td><td>Export <code>data/*.json</code> weekly</td><td>Signups live on disk; free disk is not forever</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Env templates: see <code>.env.example</code> in the repo. After changing env vars, restart the Render service.</p>
+    </section>
+
+    <section class="card home-section">
+      <h2 class="section-title">2. Programs &amp; Tools to Pair with the Site</h2>
+      <ul>
+        <li><strong>Pulsar</strong> (or campaign walk app) — door lists after captain meet</li>
+        <li><strong>Google Calendar</strong> or shared committee calendar — publish Field Hub events</li>
+        <li><strong>Zapier / Make</strong> — webhook → Gmail + SMS to captains</li>
+        <li><strong>Twilio</strong> — optional automated volunteer texts (TCPA opt-in already on form)</li>
+        <li><strong>Google Search Console</strong> + <strong>Bing Webmaster</strong> — claim domain for search visibility</li>
+        <li><strong>Meta Business Suite</strong> — Facebook/Instagram posts using event “Copy social post”</li>
+        <li><strong>Canva</strong> — share graphics (use your original Field Hub images)</li>
+        <li><strong>WinRed / committee donate page</strong> — only when legal entity is ready (link on /donate)</li>
+      </ul>
+    </section>
+
+    <section class="card home-section">
+      <h2 class="section-title">3. Permissions &amp; Legal (before “official” launch)</h2>
+      <ol>
+        <li><strong>Committee / counsel sign-off</strong> — “Paid for by…” language if a registered committee funds the site or ads</li>
+        <li><strong>Minnesota CFB / FEC</strong> — as applicable for state vs federal activity; see <a href="/legal">/legal</a></li>
+        <li><strong>SMS consent</strong> — form already requires opt-in; honor STOP; keep records</li>
+        <li><strong>Email</strong> — CAN-SPAM: physical address in footers if commercial; unsubscribe path</li>
+        <li><strong>Voter / walk data</strong> — no public dump of voter file; Pulsar access campaign-controlled</li>
+        <li><strong>Event presence</strong> — private property and festival booth permits; 100-foot election-day rules</li>
+        <li><strong>Photos</strong> — site uses original illustrations; do not post private-property photos without rights</li>
+        <li><strong>Privacy page</strong> — keep <a href="/privacy">/privacy</a> accurate to how you store signups</li>
+      </ol>
+      <p class="muted"><strong>Not legal advice.</strong> Have counsel review before paid advertising or formal committee branding.</p>
+    </section>
+
+    <section class="card home-section">
+      <h2 class="section-title">4. Cost to Maintain Through November 2026 (planning range)</h2>
+      <p class="muted">Roughly mid-July through early November ≈ <strong>3.5–4 months</strong>. Low = careful volunteer-run; mid = solid public ops; high = paid ads + pro tools.</p>
+      <table>
+        <thead><tr><th>Category</th><th>Low / mo</th><th>Mid / mo</th><th>High / mo</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Hosting (Render / similar)</td><td>$0–7</td><td>$7–25</td><td>$25–50</td><td>Paid plan if you need no-sleep + custom domain</td></tr>
+          <tr><td>Domain name</td><td>~$1–2</td><td>$1–2</td><td>$2–3</td><td>~$12–20/year total</td></tr>
+          <tr><td>Notify (Zapier free → paid)</td><td>$0</td><td>$20–30</td><td>$50+</td><td>Email/SMS automation</td></tr>
+          <tr><td>Twilio SMS</td><td>$0–5</td><td>$10–25</td><td>$40–80</td><td>Usage-based; only if auto-text</td></tr>
+          <tr><td>Search / SEO tools</td><td>$0</td><td>$0–20</td><td>$50–100</td><td>Search Console free; optional paid SEO</td></tr>
+          <tr><td>Paid search (Google Ads)</td><td>$0</td><td>$100–300</td><td>$500–2,000+</td><td>Optional “push on searches”</td></tr>
+          <tr><td>Social boosts (Meta)</td><td>$0</td><td>$50–150</td><td>$200–500</td><td>Boost event + volunteer posts</td></tr>
+          <tr><td>Backup / storage</td><td>$0</td><td>$0–5</td><td>$10</td><td>Google Drive / Dropbox export</td></tr>
+        </tbody>
+      </table>
+      <h3 style="margin-top:1.1rem">Estimated total through early November</h3>
+      <ul>
+        <li><strong>Lean launch (site + domain + free notify):</strong> about <strong>$50–120</strong> total</li>
+        <li><strong>Solid public ops (no-sleep host + Zapier + light SMS + light social):</strong> about <strong>$400–900</strong> total</li>
+        <li><strong>Growth (host + automation + meaningful Google/Meta ads):</strong> about <strong>$1,500–8,000+</strong> total depending on ad spend</li>
+      </ul>
+      <p class="muted">Committee staff time is the largest “cost” and is not included above. Literature, shirts, and yard signs are separate field budgets.</p>
+    </section>
+
+    <section class="card home-section">
+      <h2 class="section-title">5. Search Visibility (“pushing on searches”)</h2>
+      <ol>
+        <li>Add a custom domain and set <code>PUBLIC_URL</code></li>
+        <li>Submit sitemap or key URLs in Google Search Console: home, /map, /volunteer, /events, /candidates, /legal</li>
+        <li>Post weekly to Facebook/NextDoor with event “Copy social post” + link</li>
+        <li>Ask local pages/groups (with permission) to share the volunteer link</li>
+        <li>Optional Google Ads: keywords like “volunteer Stillwater MN”, “SD 33 election”, “Forest Lake Republican volunteer” — use committee ad accounts and disclaimers</li>
+        <li>Do not buy misleading “government” ads; this site is independent</li>
+      </ol>
+    </section>
+
+    <section class="card home-section">
+      <h2 class="section-title">6. Go-Live Checklist</h2>
+      <ul class="checklist">
+        <li>Render paid plan or always-on host</li>
+        <li>Custom domain + HTTPS live</li>
+        <li>Env: SESSION_SECRET, PUBLIC_URL, NOTIFY_WEBHOOK, ADMIN_NOTIFY_*</li>
+        <li>Test volunteer signup → captain notify + calendar download</li>
+        <li>Test /events past-event hiding and community filters</li>
+        <li>Counsel review of /legal, /donate, paid-for-by if applicable</li>
+        <li>Weekly JSON backup of volunteer_signups and candidate_prefs</li>
+        <li>Search Console property verified</li>
+        <li>Social bio links point to /volunteer</li>
+      </ul>
+      <div class="cta-row">
+        <a class="btn btn-gold" href="/volunteer">Test volunteer form</a>
+        <a class="btn btn-navy" href="/events">Upcoming events</a>
+        <a class="btn" href="/legal">Legal</a>
+      </div>
+    </section>`;
+  sendPage(req, res, "Launch & Costs", body);
+});
+
 app.get("/legal", (req, res) => {
   const body = `
     <section class="hero prose">
