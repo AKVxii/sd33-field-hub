@@ -621,9 +621,9 @@ function sampleBallotTableHtml(ballot) {
     .join("");
   return `
     <div class="card sample-ballot-card" id="sample-ballot">
-      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:0.75rem;align-items:center">
-        <h2 class="section-title" style="margin:0">What's on My Ballot</h2>
-        <a class="btn btn-navy" href="#sample-ballot">View Sample Ballot</a>
+      <div class="sample-ballot-head">
+        <h2 class="section-title">What's on My Ballot</h2>
+        <a class="btn btn-navy btn-sm" href="#sample-ballot">View Sample Ballot</a>
       </div>
       <p class="muted">Matches your districts (SOS-style). <strong>Republican</strong> rows are checkable. DFL and nonpartisan names are shown for awareness only.</p>
       <div class="sample-ballot-wrap">
@@ -1133,20 +1133,21 @@ function layout(title, body, opts = {}) {
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/lit.css?v=ux2" />
+  <link rel="stylesheet" href="/css/lit.css?v=ux3" />
   ${extraHead}
 </head>
 <body class="${PRIVATE_DEVELOPMENT ? "private-dev" : ""}">
   <a class="skip-link" href="#main">Skip to main content</a>
   ${privateDevBannerHtml()}
-  <header class="top" role="banner">
+  <header class="top" id="site-header" role="banner">
     <div class="wrap top-inner">
       <div class="brand-row">
+        <a href="/" class="brand-mark" aria-label="St. Croix Valley Field Hub home">SD<br/>33</a>
         <div class="brand-text">
           <p class="brand-kicker">Minnesota · SD 33 · HD 33A · HD 33B</p>
           <h1>St. Croix Valley Field Hub</h1>
           <p class="site-tagline">${esc(siteTagline)}</p>
-          <p class="brand-meta">Washington County${
+          <p class="brand-meta">Washington County · St. Croix Valley${
             PRIVATE_DEVELOPMENT ? " · <span class=\"pill-dev\">Private development</span>" : ""
           }</p>
         </div>
@@ -1160,7 +1161,7 @@ function layout(title, body, opts = {}) {
         <a href="/candidates"${n("/candidates")}>Candidates</a>
         <details class="nav-more">
           <summary>More</summary>
-          <div class="nav-more-panel">
+          <div class="nav-more-panel" role="group" aria-label="More pages">
             <a href="/pulsar"${n("/pulsar")}>Pulsar (doors)</a>
             <a href="/schedule"${n("/schedule")}>Shift board</a>
             <a href="/roadmap"${n("/roadmap")}>Roadmap</a>
@@ -1236,6 +1237,7 @@ function layout(title, body, opts = {}) {
     </div>
   </footer>
   <script src="/js/nav-active.js?v=nav4"></script>
+  <script src="/js/site-ux.js?v=ux3"></script>
   ${extraFoot}
 </body>
 </html>`;
@@ -1405,20 +1407,52 @@ app.get("/", (req, res) => {
     <section class="photo-hero forest-lake" aria-label="Forest Lake, Minnesota welcome">
       <div class="photo-hero-content">
         <span class="badge pri">Washington County · Minnesota</span>
-        <h2>St. Croix Valley Field Hub</h2>
-        <p class="hero-tagline"><strong>A volunteer-built district organizing and voter-information hub supporting candidates and community engagement in Minnesota Senate District&nbsp;33.</strong></p>
-        <p>Serving <strong>Senate District&nbsp;33</strong> and <strong>House Districts&nbsp;33A and&nbsp;33B</strong>—every community along the lakes and the St.&nbsp;Croix River. Candidates are listed by <strong>district</strong>, with all cities and townships named equally.</p>
+        <h2>Know your ballot. Organize your district.</h2>
+        <p class="hero-tagline"><strong>A volunteer-built district organizing and voter-information hub</strong> supporting candidates and community engagement in Minnesota Senate District&nbsp;33.</p>
+        <p>Serving <strong>SD&nbsp;33</strong> and <strong>HD&nbsp;33A / 33B</strong>—every community along the lakes and the St.&nbsp;Croix River. Candidates listed by <strong>district</strong>, with every city and township named equally.</p>
         <div class="cta-row">
           <a class="btn btn-gold" href="#find-address">Enter Your Address</a>
-          <a class="btn" href="/events">Events Calendar</a>
-          <a class="btn btn-navy" href="/volunteer">Volunteer Signup</a>
+          <a class="btn btn-ghost" href="/events">Events</a>
+          <a class="btn btn-ghost" href="/volunteer">Volunteer</a>
         </div>
       </div>
     </section>
 
+    <nav class="quick-tools" aria-label="Quick tools">
+      <a class="quick-tool accent-gop" href="#find-address">
+        <span class="quick-tool-icon" aria-hidden="true">📍</span>
+        <span>
+          <h3>Find your ballot</h3>
+          <p>Address → districts → GOP sample ballot</p>
+        </span>
+      </a>
+      <a class="quick-tool accent-lake" href="/map">
+        <span class="quick-tool-icon" aria-hidden="true">🗺</span>
+        <span>
+          <h3>District map</h3>
+          <p>33A, 33B, CD4 / CD8 overlays</p>
+        </span>
+      </a>
+      <a class="quick-tool accent-gold" href="/events">
+        <span class="quick-tool-icon" aria-hidden="true">📅</span>
+        <span>
+          <h3>Events</h3>
+          <p>Calendar, shifts, and community dates</p>
+        </span>
+      </a>
+      <a class="quick-tool" href="/volunteer">
+        <span class="quick-tool-icon" aria-hidden="true">✋</span>
+        <span>
+          <h3>Volunteer</h3>
+          <p>Doors, lit drops, signs, and more</p>
+        </span>
+      </a>
+    </nav>
+
     <section id="find-address" class="card home-address-box home-section" aria-label="Find candidates by address">
-      <h2 class="section-title" style="margin-top:0">Find Your Candidates — Enter Address</h2>
-      <p class="muted" style="margin-top:0">Enter a street address to see districts and preferred GOP candidates for that door. Works for every community in SD&nbsp;33.</p>
+      <p class="home-address-kicker">Step 1 · Start here</p>
+      <h2 class="section-title" style="margin-top:0">Find Your Candidates by Address</h2>
+      <p class="muted" style="margin-top:0">Enter a street address to see precinct, districts, and a SOS-style sample ballot with <strong>Republican</strong> candidates highlighted. Works for every community in SD&nbsp;33.</p>
       <form class="stack home-address-form" method="get" action="/my-gop-ballot">
         <div class="home-address-grid">
           <div>
@@ -1426,7 +1460,7 @@ app.get("/", (req, res) => {
             <input id="home-street" type="text" name="street" required maxlength="120" placeholder="1731 Beach Drive" autocomplete="street-address" />
           </div>
           <div>
-            <label for="home-city">City or Township <span class="muted">(optional if street is known, e.g. Beach Drive)</span></label>
+            <label for="home-city">City or Township <span class="muted">(optional if street is known)</span></label>
             <select id="home-city" name="city">
               <option value="">Select…</option>
               ${[
@@ -1455,11 +1489,12 @@ app.get("/", (req, res) => {
         </div>
         <label for="home-q">Or paste full address in one line</label>
         <input id="home-q" type="text" name="q" maxlength="200" placeholder="123 Main St, Stillwater, MN 55082" />
-        <div class="cta-row" style="margin-top:0.75rem">
-          <button class="btn btn-gold" type="submit">Show My Candidates</button>
-          <a class="btn btn-navy" href="/map">Open District Map</a>
+        <div class="cta-row" style="margin-top:0.85rem">
+          <button class="btn btn-gold" type="submit">Show My Ballot &amp; Candidates</button>
+          <a class="btn btn-outline" href="/map">Open District Map</a>
         </div>
-        <p class="muted" style="margin:0.65rem 0 0;font-size:0.88rem">Always confirm your precinct at <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>.</p>
+        <p class="muted" style="margin:0.75rem 0 0;font-size:0.88rem">Always confirm your precinct at <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>
+        · Official ballot: <a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">myballotmn.sos.mn.gov</a></p>
       </form>
     </section>
 
@@ -1494,26 +1529,29 @@ app.get("/", (req, res) => {
     </section>
 
     <section class="card home-section" aria-label="All communities in Senate District 33">
-      <h2 class="section-title">Every Community in the District</h2>
-      <p class="muted">No city or township is left out. Local candidates run for the <strong>district as a whole</strong>—not as representatives of only one town.</p>
-      <div class="grid" style="margin-top:0.75rem">
-        <article>
-          <h3 style="margin-top:0">Senate District 33</h3>
+      <div class="section-head">
+        <h2 class="section-title">Every Community in the District</h2>
+        <a class="section-link" href="/candidates">Full candidate list →</a>
+      </div>
+      <p class="muted" style="margin-top:0">No city or township is left out. Local candidates run for the <strong>district as a whole</strong>—not as representatives of only one town.</p>
+      <div class="grid" style="margin-top:0.85rem">
+        <article class="community-tile">
+          <h3>Senate District 33</h3>
           ${areaListHtml("sd33")}
-          <p style="margin-top:0.5rem"><span class="tag-gop">GOP</span> <strong>Karin Housley</strong> — full SD&nbsp;33</p>
+          <p class="tile-cand"><span class="tag-gop">GOP</span> <strong>Karin Housley</strong> — full SD&nbsp;33</p>
         </article>
-        <article>
-          <h3 style="margin-top:0">House District 33A</h3>
+        <article class="community-tile">
+          <h3>House District 33A</h3>
           ${areaListHtml("hd33a")}
-          <p style="margin-top:0.5rem"><span class="tag-gop">GOP</span> <strong>Stacey Stout</strong> — full HD&nbsp;33A</p>
+          <p class="tile-cand"><span class="tag-gop">GOP</span> <strong>Stacey Stout</strong> — full HD&nbsp;33A</p>
         </article>
-        <article>
-          <h3 style="margin-top:0">House District 33B</h3>
+        <article class="community-tile">
+          <h3>House District 33B</h3>
           ${areaListHtml("hd33b")}
-          <p style="margin-top:0.5rem"><span class="tag-gop">GOP</span> <strong>Jessica L. Johnson</strong> — full HD&nbsp;33B</p>
+          <p class="tile-cand"><span class="tag-gop">GOP</span> <strong>Jessica L. Johnson</strong> — full HD&nbsp;33B</p>
         </article>
       </div>
-      <p class="muted" style="margin:0.85rem 0 0">U.S. House within SD&nbsp;33: <strong>MN-04</strong> — ${esc(formatAreaList("cd4_in_sd33", "; "))} · <strong>MN-08</strong> — ${esc(formatAreaList("cd8_in_sd33", "; "))}.</p>
+      <p class="muted" style="margin:0.95rem 0 0">U.S. House within SD&nbsp;33: <strong>MN-04</strong> — ${esc(formatAreaList("cd4_in_sd33", "; "))} · <strong>MN-08</strong> — ${esc(formatAreaList("cd8_in_sd33", "; "))}.</p>
     </section>
 
     <section class="heritage-band home-section" aria-label="Minnesota loon and historic state flag">
@@ -1546,27 +1584,42 @@ app.get("/", (req, res) => {
         : ""
     }
 
-    <h2 class="section-title">Start Here</h2>
+    <div class="section-head">
+      <h2 class="section-title">Start Here</h2>
+    </div>
     <div class="grid home-section">
-      <article class="card">
+      <article class="card feature-card">
         <div class="card-photo forest-lake" role="img" aria-label="Forest Lake scenic"></div>
-        <h3>Find Candidates by Address</h3>
-        <p>Enter a street address or open the map. View local, state, and federal races with district overlays. Compare candidates on merit, leadership, and public record—with transparency for every neighbor.</p>
-        <a class="btn" href="/map">Open District Map</a>
+        <div class="card-body">
+          <h3><span class="feature-step">1</span> Find Candidates by Address</h3>
+          <p>Enter a street address or open the map. View local, state, and federal races with district overlays. Compare candidates on merit, leadership, and public record.</p>
+        </div>
+        <div class="card-actions">
+          <a class="btn" href="#find-address">Enter Address</a>
+          <a class="btn btn-outline" href="/map">District Map</a>
+        </div>
       </article>
-      <article class="card">
+      <article class="card feature-card">
         <div class="card-photo parade" role="img" aria-label="Independence Day parade with American flags"></div>
-        <h3>For Volunteers</h3>
-        <p>Sign up for doors, parades, pancake breakfasts, happy hours, and festivals. Choose your candidates, request a bundle pack, and connect with neighbors in your district or nearby.</p>
-        <a class="btn btn-navy" href="/volunteer">Volunteer Signup</a>
-        <a class="btn" href="/events">Events List</a>
+        <div class="card-body">
+          <h3><span class="feature-step">2</span> For Volunteers</h3>
+          <p>Sign up for doors, parades, pancake breakfasts, happy hours, and festivals. Choose your candidates, request a bundle pack, and connect with neighbors.</p>
+        </div>
+        <div class="card-actions">
+          <a class="btn btn-navy" href="/volunteer">Volunteer Signup</a>
+          <a class="btn btn-outline" href="/events">Events List</a>
+        </div>
       </article>
-      <article class="card">
+      <article class="card feature-card">
         <div class="card-photo waterfront" role="img" aria-label="Lakeside waterfront"></div>
-        <h3>For Media &amp; Residents</h3>
-        <p>Candidate lists, events, and a transparent field roadmap. This is an independent organizing site—not a government page and not legal advice.</p>
-        <a class="btn btn-navy" href="/candidates">Candidate Directory</a>
-        <a class="btn btn-gold" href="/roadmap">Capacity Roadmap</a>
+        <div class="card-body">
+          <h3><span class="feature-step">3</span> For Media &amp; Residents</h3>
+          <p>Candidate lists, events, and a transparent field roadmap. Independent organizing site—not a government page and not legal advice.</p>
+        </div>
+        <div class="card-actions">
+          <a class="btn btn-navy" href="/candidates">Candidates</a>
+          <a class="btn btn-gold" href="/roadmap">Roadmap</a>
+        </div>
       </article>
     </div>
 
