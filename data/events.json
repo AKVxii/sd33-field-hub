@@ -415,13 +415,13 @@
       "districts": ["SD 33", "HD 33A", "HD 33B"],
       "districtScope": "in",
       "priority": "high",
-      "description": "Legal, respectful visibility and GOTV near polls. Know 100-foot / local sign rules. Coordinate with captains.",
+      "description": "Legal GOTV only. Minnesota: no campaigning inside a polling place or within 100 feet of the building (or on public property where a polling place is located). See /legal. Coordinate with captains.",
       "gear": {
-        "stickers": "Yes outside restricted zones",
-        "literature": "GOTV palm cards only",
-        "shirts": "Campaign shirts encouraged"
+        "stickers": "Only outside the 100-foot / public-property restricted zone",
+        "literature": "GOTV palm cards only outside restricted zone",
+        "shirts": "Campaign shirts only outside restricted zone"
       },
-      "volunteerRoles": ["Poll greeters", "Sign placement", "Chase lists"]
+      "volunteerRoles": ["Legal-distance greeters", "Private-property signs", "Chase lists"]
     }
   ]
 }

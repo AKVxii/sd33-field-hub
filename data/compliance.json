@@ -1,0 +1,14 @@
+{
+  "disclaimerPlaceholder": "Independent volunteer field resource for Minnesota SD 33 / HD 33A / HD 33B. Not an official government website. Candidate information from public sources including the Minnesota Secretary of State. Paid-for-by disclaimers apply to committee-funded materials once a legal committee is designated.",
+  "notLegalAdvice": "This site summarizes common state and federal rules for volunteer education. It is not legal advice. Campaigns and committees should consult counsel and the Minnesota Campaign Finance Board / FEC as applicable.",
+  "links": {
+    "sosPollingRules": "https://www.sos.mn.gov/elections-voting/election-day-voting/polling-place-rules/",
+    "mn211B": "https://www.revisor.mn.gov/statutes/cite/211B",
+    "mn204C06": "https://www.revisor.mn.gov/statutes/cite/204C.06",
+    "mn211B11": "https://www.revisor.mn.gov/statutes/cite/211B.11",
+    "cfb": "https://cfb.mn.gov/",
+    "fec": "https://www.fec.gov/",
+    "pollfinder": "https://pollfinder.sos.mn.gov/",
+    "uspsMailbox": "https://about.usps.com/postal-bulletin/2003/html/pb22105/a-3.html"
+  }
+}

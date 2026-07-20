@@ -683,7 +683,9 @@ function layout(title, body, opts = {}) {
         <a href="/win-playbook"${n("/win-playbook")}>Field guide</a>
         <a href="/donate"${n("/donate")}>Support</a>
         <a href="/es"${n("/es")}>Español</a>
+        <a href="/win-three"${n("/win-three")}>Win SD 33</a>
         <a href="/share"${n("/share")}>Share</a>
+        <a href="/legal"${n("/legal")}>Legal</a>
         <a href="/field"${n("/field")}>Field tools</a>
       </nav>
     </div>
@@ -696,14 +698,28 @@ function layout(title, body, opts = {}) {
         <img src="/images/mn-lake-shore.jpg" alt="Minnesota lake shoreline" />
         <img src="/images/st-croix-valley.jpg" alt="St. Croix River valley landscape" />
         <div>
-          <strong>St. Croix Valley Field Hub</strong><br/>
-          Independent volunteer organizing resource for Senate District 33 and House Districts 33A &amp; 33B.
-          Not an official government website. Candidate filings: Minnesota Secretary of State.
-          Official precinct lookup: <a href="https://pollfinder.sos.mn.gov/" rel="noopener">pollfinder.sos.mn.gov</a>.
+          <strong>St. Croix Valley Field Hub</strong> · SD 33 · HD 33A · HD 33B<br/>
+          Independent volunteer organizing resource for Washington County / St. Croix Valley.
+          <strong>Not</strong> an official government website and <strong>not</strong> legal advice.
+          Candidate data from public sources (Minnesota Secretary of State, public filings).
+          Official ballot/precinct: <a href="https://pollfinder.sos.mn.gov/" rel="noopener">pollfinder.sos.mn.gov</a>.
         </div>
       </div>
-      <p>Public site: <a href="https://sd33-field-hub.onrender.com">sd33-field-hub.onrender.com</a>
-      · <a href="/review">Feedback</a> · <a href="/accessibility">Accessibility</a></p>
+      <p class="legal-bar">
+        <strong>Compliance:</strong>
+        <a href="/legal">Legal &amp; election rules</a> ·
+        <a href="/privacy">Privacy</a> ·
+        <a href="/accessibility">Accessibility</a> ·
+        <a href="/win-three">Win the three seats</a> ·
+        <a href="/review">Feedback</a>
+      </p>
+      <p class="muted" style="font-size:0.82rem;max-width:70ch">
+        Campaign materials paid for by a committee must include required “Paid for by…” disclaimers under Minnesota and, where applicable, federal law.
+        Update committee language with counsel when a legal entity funds this site or printed materials.
+        No campaigning inside a polling place or within <strong>100 feet</strong> of the building (or anywhere on public property where a polling place is located) on primary/election day — Minn. Stat. §§ 204C.06, 211B.11.
+        Never place literature in U.S. mailboxes (federal law).
+      </p>
+      <p>Public site: <a href="https://sd33-field-hub.onrender.com">sd33-field-hub.onrender.com</a></p>
     </div>
   </footer>
   <script src="/js/nav-active.js?v=nav3"></script>
@@ -926,12 +942,18 @@ app.get("/", (req, res) => {
     </div>
 
     <section class="card prose" style="margin-bottom:1rem">
-      <h2>About this district</h2>
-      <p>Senate District 33 elects one state senator and two state representatives (House 33A and 33B). Communities include Stillwater, Oak Park Heights, Bayport, Marine on St. Croix, Scandia, May Township, Forest Lake, Hugo, Mahtomedi, and nearby Washington County neighborhoods.</p>
-      <p>Close legislative races are decided by organized local contact: doors, phones, signs, and early-vote turnout. This hub helps volunteers and the public see who is on the ballot and where to plug in.</p>
-      <p><a class="btn" href="/my-gop-ballot">Ballot lookup</a>
-      <a class="btn btn-navy" href="/win-playbook">Field guide</a>
-      <a class="btn btn-gold" href="/share">Share this site</a></p>
+      <h2>Win path: three seats</h2>
+      <p>Senate District 33 elects one senator and two representatives. Our recruitment and field plan prioritizes:</p>
+      <ul>
+        <li><strong>SD 33</strong> — Karin Housley (GOP)</li>
+        <li><strong>HD 33A</strong> — Stacey Stout (GOP)</li>
+        <li><strong>HD 33B</strong> — Jessica L. Johnson (GOP)</li>
+      </ul>
+      <p>Close races are decided by doors (Pulsar), events, signs on busy streets, and early vote. <a href="/win-three">Full three-seat win plan →</a></p>
+      <p><a class="btn btn-gold" href="/volunteer">Volunteer</a>
+      <a class="btn" href="/pulsar">Get on Pulsar</a>
+      <a class="btn btn-navy" href="/legal">Legal rules for field</a>
+      <a class="btn btn-navy" href="/share">Share this site</a></p>
     </section>
 
     <div class="grid">
@@ -3298,6 +3320,230 @@ app.get("/accessibility", (req, res) => {
       </ul>
     </section>`;
   sendPage(req, res, "Accessibility", body);
+});
+
+/* ---------- Legal / privacy / win three seats ---------- */
+app.get("/legal", (req, res) => {
+  const body = `
+    <section class="hero prose">
+      <span class="badge pri">Compliance</span>
+      <h2>Legal &amp; election rules (state &amp; federal)</h2>
+      <p><strong>This page is educational for volunteers and the public. It is not legal advice.</strong>
+      Campaigns and committees should confirm requirements with counsel, the
+      <a href="https://cfb.mn.gov/" target="_blank" rel="noopener">Minnesota Campaign Finance Board</a>, and (for federal races) the
+      <a href="https://www.fec.gov/" target="_blank" rel="noopener">Federal Election Commission</a>.</p>
+    </section>
+
+    <div class="legal-callout">
+      <strong>What this site is:</strong> An independent St. Croix Valley field / volunteer resource focused on
+      <strong>Senate District 33</strong>, <strong>House 33A</strong>, and <strong>House 33B</strong>.
+      It is <strong>not</strong> a government website and does not replace the Secretary of State or county election offices.
+    </div>
+
+    <div class="card prose" style="margin-bottom:1rem">
+      <h3>1. Minnesota — campaigning near polls (Election Day / primary)</h3>
+      <ul>
+        <li><strong>No campaigning</strong> inside a polling place or <strong>within 100 feet</strong> of the building where a polling place is located, or anywhere on the <strong>public property</strong> where a polling place sits (Minn. Stat. §§ <a href="https://www.revisor.mn.gov/statutes/cite/204C.06" target="_blank" rel="noopener">204C.06</a>, <a href="https://www.revisor.mn.gov/statutes/cite/211B.11" target="_blank" rel="noopener">211B.11</a>).</li>
+        <li>Similar rules can apply near <strong>ballot drop boxes</strong> (see statutes / SOS guidance).</li>
+        <li>Adjacent <strong>private property</strong> is treated differently from public polling property — still follow captain instructions and local counsel.</li>
+        <li>Official SOS summary: <a href="https://www.sos.mn.gov/elections-voting/election-day-voting/polling-place-rules/" target="_blank" rel="noopener">Polling place rules</a>.</li>
+      </ul>
+      <div class="legal-ok"><strong>Field practice:</strong> Use GOTV chase lists and legal distances only. Do not wear/campaign inside the restricted zone.</div>
+    </div>
+
+    <div class="card prose" style="margin-bottom:1rem">
+      <h3>2. Minnesota — campaign materials &amp; signs (Ch. 211B)</h3>
+      <ul>
+        <li>Fair Campaign Practices (Minn. Stat. Ch. <a href="https://www.revisor.mn.gov/statutes/cite/211B" target="_blank" rel="noopener">211B</a>) cover false statements, certain campaign conduct, and related rules.</li>
+        <li><strong>Yard signs:</strong> Prefer private property with owner permission. Avoid public rights-of-way / boulevards unless lawfully permitted. Local ordinances may also apply outside protected periods.</li>
+        <li>Printed / paid materials funded by a committee generally need correct <strong>“Paid for by…”</strong> disclaimer language. Have the treasurer/counsel set final wording before mass print or paid digital ads.</li>
+        <li>Register and report as required with the <a href="https://cfb.mn.gov/" target="_blank" rel="noopener">Campaign Finance Board</a> if you form or act as a committee.</li>
+      </ul>
+    </div>
+
+    <div class="card prose" style="margin-bottom:1rem">
+      <h3>3. Federal — mailboxes, FEC, federal candidates</h3>
+      <ul>
+        <li><strong>Never place literature in U.S. Postal Service mailboxes</strong> (federal mailbox protection rules). Use doors, hangers, or hand-to-hand only.</li>
+        <li>This site lists federal races (U.S. Senate, U.S. House MN-04 / MN-08) for volunteer awareness. Activity that is paid and expressly advocates federal candidates can trigger <a href="https://www.fec.gov/" target="_blank" rel="noopener">FEC</a> registration, reporting, and disclaimer rules for the paying committee.</li>
+        <li>Do not use government resources (public employee time, official emails, public funds) for campaigning.</li>
+      </ul>
+    </div>
+
+    <div class="card prose" style="margin-bottom:1rem">
+      <h3>4. Texting &amp; email (TCPA / CAN-SPAM principles)</h3>
+      <ul>
+        <li>This hub uses <strong>opt-in checkboxes</strong> before marketing/shift texts or emails.</li>
+        <li>Only message people who opted in or who provided a number for campaign follow-up consistent with applicable law and carrier rules.</li>
+        <li>Provide a way to stop messages; honor opt-outs promptly.</li>
+        <li>Campaigns using peer-to-peer platforms must follow that vendor’s compliance rules and federal/state telemarketing law.</li>
+      </ul>
+    </div>
+
+    <div class="card prose" style="margin-bottom:1rem">
+      <h3>5. Voter data, Pulsar &amp; privacy</h3>
+      <ul>
+        <li>Minnesota voter file / campaign CRM data (including <strong>Pulsar</strong> walk lists) is restricted. Use only for lawful political purposes authorized by the campaign.</li>
+        <li>Do not scrape, sell, or post personal voter data from this site.</li>
+        <li>Pulsar logins are issued by a campaign after a meet — not via public self-registration for full voter data.</li>
+        <li>See our <a href="/privacy">Privacy notice</a> for how volunteer form data is handled.</li>
+      </ul>
+    </div>
+
+    <div class="card prose" style="margin-bottom:1rem">
+      <h3>6. Accuracy of candidates &amp; maps</h3>
+      <ul>
+        <li>Map layers are built from <strong>SOS precinct GeoJSON (May 2026)</strong> for visualization; always confirm ballots at <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder</a>.</li>
+        <li>Candidate lists are from public filings/reporting and may change. Verify before printing lit.</li>
+      </ul>
+    </div>
+
+    <div class="card prose">
+      <h3>Checklist for captains before big actions</h3>
+      <ul class="checklist">
+        <li>Correct paid-for-by line on printed/paid pieces</li>
+        <li>Private property permission for signs</li>
+        <li>No mailbox stuffing</li>
+        <li>100-foot / public-property poll rules on Election Day</li>
+        <li>Opt-in only for texts/emails</li>
+        <li>Pulsar users trained; no sharing logins</li>
+        <li>Questions → campaign counsel / CFB / FEC as appropriate</li>
+      </ul>
+      <p><a class="btn" href="/win-three">Maximize the three-seat win</a>
+      <a class="btn btn-navy" href="/privacy">Privacy</a></p>
+    </div>`;
+  sendPage(req, res, "Legal", body);
+});
+
+app.get("/privacy", (req, res) => {
+  const body = `
+    <section class="hero prose">
+      <h2>Privacy notice</h2>
+      <p>How this Field Hub handles information you submit. <strong>Not legal advice.</strong></p>
+    </section>
+    <div class="card prose">
+      <h3>What we collect</h3>
+      <ul>
+        <li>Volunteer signups (name, contact, town, interests, availability)</li>
+        <li>Pulsar access requests (including preferred campaign and meet times)</li>
+        <li>Event ideas and feedback comments</li>
+        <li>Shift board signups</li>
+        <li>Optional literature / preference responses</li>
+      </ul>
+      <h3>How we use it</h3>
+      <ul>
+        <li>To schedule volunteers and issue Pulsar / walk assignments via candidate campaigns</li>
+        <li>To improve the site and field plan</li>
+        <li>Only for political / organizing purposes related to SD 33, HD 33A, HD 33B and related tickets</li>
+      </ul>
+      <h3>What we do not do</h3>
+      <ul>
+        <li>Sell your contact list</li>
+        <li>Publish your phone number on public pages without need</li>
+        <li>Provide public access to the full voter file</li>
+      </ul>
+      <h3>Retention &amp; security</h3>
+      <p>Data is stored on the hosting server (and local campaign copies if captains export it). Access should be limited to trusted organizers. You may request correction or removal of your volunteer signup by contacting the field team email used by captains.</p>
+      <h3>Cookies</h3>
+      <p>A session cookie supports login for any admin tools and flash messages. It is not used for third-party ad tracking on this hub.</p>
+      <p><a class="btn btn-navy" href="/legal">Legal &amp; election rules</a></p>
+    </div>`;
+  sendPage(req, res, "Privacy", body);
+});
+
+app.get("/win-three", (req, res) => {
+  const body = `
+    <section class="photo-hero valley">
+      <div class="photo-hero-content">
+        <span class="badge pri">Recruit · Organize · Win</span>
+        <h2>Three seats. One district. Full slate.</h2>
+        <p>Everything on this hub points to winning <strong>Senate District 33</strong>, <strong>House 33A</strong>, and <strong>House 33B</strong> — then stacking turnout for the ticket.</p>
+        <div class="cta-row">
+          <a class="btn btn-gold" href="/volunteer">Volunteer now</a>
+          <a class="btn" href="/pulsar">Get on Pulsar</a>
+          <a class="btn btn-navy" href="/events">Events &amp; parades</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid" style="margin-bottom:1.25rem">
+      <article class="card win-seat-card">
+        <span class="tag-gop">GOP</span> <span class="badge pri">SD 33</span>
+        <h3>State Senate 33</h3>
+        <p style="font-size:1.2rem;font-weight:800;margin:0.35rem 0">Karin Housley</p>
+        <p class="muted">Every turf · every door piece · every event welcome table</p>
+        <ul class="checklist">
+          <li>Always on the lit bundle</li>
+          <li>Name ID in Pulsar conversations</li>
+          <li>Yard signs with house piece where possible</li>
+        </ul>
+      </article>
+      <article class="card win-seat-card">
+        <span class="tag-gop">GOP</span> <span class="badge pri">HD 33A</span>
+        <h3>State House 33A</h3>
+        <p style="font-size:1.2rem;font-weight:800;margin:0.35rem 0">Stacey Stout</p>
+        <p class="muted">Hugo · Mahtomedi · Dellwood · Forest Lake P-2/4/5 · Willernie</p>
+        <ul class="checklist">
+          <li>Open seat — visibility wins</li>
+          <li>Pulsar turf in 33A only</li>
+          <li>Priority: Hugo + FL 33A precincts</li>
+        </ul>
+        <a class="btn" href="/map">Map 33A</a>
+      </article>
+      <article class="card win-seat-card">
+        <span class="tag-gop">GOP</span> <span class="badge pri">HD 33B</span>
+        <h3>State House 33B</h3>
+        <p style="font-size:1.2rem;font-weight:800;margin:0.35rem 0">Jessica L. Johnson</p>
+        <p class="muted">Stillwater · Bayport · OPH · Scandia · Marine · May Twp · FL P-1/3</p>
+        <ul class="checklist">
+          <li>Challenge race — multi-touch doors</li>
+          <li>Lumberjack Days + Main Street presence</li>
+          <li>Pulsar + busy-street signs</li>
+        </ul>
+        <a class="btn" href="/map">Map 33B</a>
+      </article>
+    </div>
+
+    <div class="card prose" style="margin-bottom:1rem">
+      <h3>Recruitment engine (use this sequence)</h3>
+      <ol>
+        <li><strong>Sign up</strong> — <a href="/volunteer">/volunteer</a> (doors, events, breakfasts, parades)</li>
+        <li><strong>Get on Pulsar</strong> — <a href="/pulsar">/pulsar</a> then meet Housley / Stout / Johnson campaign</li>
+        <li><strong>Claim a shift</strong> — <a href="/schedule">/schedule</a></li>
+        <li><strong>Staff events</strong> — <a href="/events">/events</a> with correct stickers, lit, shirts</li>
+        <li><strong>Bring a friend</strong> — every volunteer lists 5 neighbors to invite</li>
+      </ol>
+    </div>
+
+    <div class="card prose" style="margin-bottom:1rem">
+      <h3>Field math for a true win</h3>
+      <ul>
+        <li>33B has been decided by roughly hundreds of votes — every shift matters</li>
+        <li>33A is open — first name ID + yard signs in Hugo/Mahtomedi/FL 33A</li>
+        <li>SD 33 unifies the slate — never drop Housley from the door kit</li>
+        <li>Forest Lake is split — always check precinct (map / Pulsar / pollfinder)</li>
+      </ul>
+      <div class="legal-ok"><strong>Legal while winning:</strong> private-property signs, no mailboxes, 100-foot poll rules, opt-in texts, accurate lit. Details on <a href="/legal">/legal</a>.</div>
+    </div>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Start this week</h3>
+        <a class="btn btn-gold" href="/volunteer">Volunteer signup</a><br/>
+        <a class="btn" href="/pulsar">Pulsar request</a><br/>
+        <a class="btn btn-navy" href="/events">Pick an event</a>
+      </article>
+      <article class="card">
+        <h3>Share recruitment link</h3>
+        <p>Send neighbors: <code>https://sd33-field-hub.onrender.com/win-three</code></p>
+        <a class="btn" href="/share">Copy share tools</a>
+      </article>
+      <article class="card">
+        <h3>Captains</h3>
+        <p><a href="/team/volunteers">Volunteer list</a> · <a href="/team/pulsar">Pulsar queue</a> · <a href="/team/sign-asks">Sign asks</a></p>
+      </article>
+    </div>`;
+  sendPage(req, res, "Win the three seats", body);
 });
 
 app.listen(PORT, "0.0.0.0", () => {

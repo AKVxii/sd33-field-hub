@@ -433,3 +433,24 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus {
 .prose p { max-width: 65ch; }
 .status-done { color: var(--green); font-weight: 700; }
 .status-open { color: #9a6700; font-weight: 700; }
+.legal-bar { font-size: 0.9rem; margin: 0.75rem 0; }
+.legal-bar a { margin-right: 0.15rem; }
+.win-seat-card {
+  border-top: 4px solid var(--gop);
+  min-height: 200px;
+}
+.win-seat-card h3 { color: var(--navy); }
+.legal-callout {
+  border-left: 4px solid #b45309;
+  background: #fffbeb;
+  padding: 0.85rem 1rem;
+  margin: 0.75rem 0;
+  border-radius: 0 8px 8px 0;
+}
+.legal-ok {
+  border-left: 4px solid var(--green);
+  background: #ecfdf5;
+  padding: 0.85rem 1rem;
+  margin: 0.75rem 0;
+  border-radius: 0 8px 8px 0;
+}
