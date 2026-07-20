@@ -1001,7 +1001,7 @@ app.get("/candidates", (req, res) => {
     "governor",
     "usSenate",
     "usHouse4",
-    "usHouse6",
+    "usHouse8",
   ];
   const sections = order
     .map((key) => {
