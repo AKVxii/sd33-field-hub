@@ -2480,27 +2480,32 @@ app.get("/team/preferences", (req, res) => {
     )
     .join("");
 
+  const teamPush = prefs.filter((p) => p.teamPushOk).length;
+  const phaseInfo = loadElectionPhase();
   const body = `
     <section class="hero">
-      <h2>Preferred candidate totals</h2>
-      <p><strong>${prefs.length}</strong> submissions · Pre-primary: <strong>${pre}</strong> · Post-package: <strong>${post}</strong> · Want full package lit: <strong>${fullPkg}</strong></p>
-      <p><a class="btn" href="/share">Share site</a> <a class="btn btn-navy" href="/team/feedback">Feedback list</a></p>
+      <h2>Preferred Candidate Totals</h2>
+      <p><strong>${prefs.length}</strong> submissions · Pre-primary: <strong>${pre}</strong> · Post-package: <strong>${post}</strong> · Full package: <strong>${fullPkg}</strong> · Team push: <strong>${teamPush}</strong></p>
+      <p class="muted">Election mode: <strong>${esc(phaseInfo.mode || "pre_primary")}</strong>${
+        phaseInfo.winnersUploaded ? " · winners published" : " · winners not yet uploaded"
+      }. Edit <code>data/election_phase.json</code> after the primary: set <code>mode</code> to <code>post_primary</code>, fill <code>winners</code>, set <code>winnersUploaded</code> to true.</p>
+      <p><a class="btn" href="/share">Share Site</a> <a class="btn btn-navy" href="/team/feedback">Feedback List</a></p>
     </section>
     <div class="card">
-      <h3>Most-checked GOP candidates</h3>
+      <h3>Most Selected GOP Candidates</h3>
       <table>
-        <thead><tr><th>Candidate</th><th>Race key</th><th>Picks</th></tr></thead>
-        <tbody>${rows || "<tr><td colspan=3>No picks yet — share /my-gop-ballot</td></tr>"}</tbody>
+        <thead><tr><th>Candidate</th><th>Race</th><th>Selections</th></tr></thead>
+        <tbody>${rows || "<tr><td colspan=3>No selections yet — share Find Your Ballot</td></tr>"}</tbody>
       </table>
     </div>
     <div class="card" style="margin-top:1rem">
-      <h3>Recent submissions</h3>
+      <h3>Recent Submissions</h3>
       <table>
-        <thead><tr><th>When</th><th>Name</th><th>Area</th><th>Phase</th><th>Picks</th></tr></thead>
+        <thead><tr><th>When</th><th>Name</th><th>Area</th><th>Phase</th><th>Selections</th></tr></thead>
         <tbody>${recent || "<tr><td colspan=5>None yet</td></tr>"}</tbody>
       </table>
     </div>`;
-  sendPage(req, res, "Pick totals", body);
+  sendPage(req, res, "Preference Totals", body);
 });
 
 app.get("/team/feedback", (req, res) => {
