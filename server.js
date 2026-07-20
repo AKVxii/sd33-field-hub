@@ -84,6 +84,7 @@ const EVENTS_FILE = path.join(DATA, "events.json");
 const SCHEDULE_FILE = path.join(DATA, "schedule.json");
 const ROADMAP_FILE = path.join(DATA, "roadmap.json");
 const DISTRICTS_GEO_FILE = path.join(DATA, "districts_geo.json");
+const PRECINCTS_FILE = path.join(DATA, "sd33_precincts.json");
 if (!fs.existsSync(SCHEDULE_FILE)) {
   fs.writeFileSync(
     SCHEDULE_FILE,
@@ -358,11 +359,9 @@ function gopBallotForDistricts(districts) {
   add("usSenate", "U.S. Senate — Minnesota (statewide)");
 
   const uh = districts.usHouse || [];
-  if (uh.includes("4") || uh.length === 0) add("usHouse4", "U.S. House — MN District 4");
-  if (uh.includes("6")) add("usHouse6", "U.S. House — MN District 6");
-  if (uh.includes("4") && uh.includes("6")) {
-    // both already added
-  }
+  if (uh.includes("4") || uh.length === 0) add("usHouse4", "U.S. House · MN-04");
+  if (uh.includes("8")) add("usHouse8", "U.S. House · MN-08");
+  if (uh.includes("6")) add("usHouse6", "U.S. House · MN-06");
 
   add("stateSenate33", "State Senate District 33");
 
@@ -2341,11 +2340,32 @@ function pointInRing(lng, lat, ring) {
   }
   return inside;
 }
+function pointInGeometry(lng, lat, geometry) {
+  if (!geometry) return false;
+  if (geometry.type === "Polygon") {
+    return pointInRing(lng, lat, geometry.coordinates[0]);
+  }
+  if (geometry.type === "MultiPolygon") {
+    for (const poly of geometry.coordinates) {
+      if (pointInRing(lng, lat, poly[0])) return true;
+    }
+  }
+  return false;
+}
+/** Official SOS precinct match inside SD 33 */
+function lookupPrecinct(lat, lng) {
+  if (!fs.existsSync(PRECINCTS_FILE)) return null;
+  const idx = loadJson(PRECINCTS_FILE);
+  for (const f of idx.features || []) {
+    if (pointInGeometry(lng, lat, f.geometry)) return f.properties;
+  }
+  return null;
+}
 function layersContaining(lat, lng, geo) {
   const hit = [];
   for (const layer of geo.layers || []) {
-    const coords = layer.geojson?.geometry?.coordinates?.[0];
-    if (coords && pointInRing(lng, lat, coords)) hit.push(layer);
+    const g = layer.geojson?.geometry;
+    if (g && pointInGeometry(lng, lat, g)) hit.push(layer);
   }
   return hit;
 }
@@ -2387,71 +2407,75 @@ app.get("/api/map-lookup", (req, res) => {
     return res.json({ ok: false, error: "Invalid coordinates" });
   }
   const geo = loadJson(DISTRICTS_GEO_FILE);
-  const hits = layersContaining(lat, lng, geo);
   const candData = loadCandidates();
-
-  // Nearest known community pin (most reliable house label for this map)
-  let nearest = null;
-  let bestD = Infinity;
-  for (const t of geo.townPins || []) {
-    const d = (t.lat - lat) ** 2 + (t.lng - lng) ** 2;
-    if (d < bestD) {
-      bestD = d;
-      nearest = t;
-    }
-  }
-  // ~0.04 deg² ≈ within a few miles; prefer pin when close
-  const pinClose = nearest && bestD < 0.004;
+  const prec = lookupPrecinct(lat, lng);
 
   let house = null;
-  let usHouse = [];
+  let senate = null;
+  let cong = null;
+  let precinctName = null;
   const matchedLayers = [];
 
-  for (const h of hits) {
-    matchedLayers.push(h.label);
-    if (h.id === "hd_33a") house = house || "33A";
-    if (h.id === "hd_33b") house = "33B"; // 33B wins if both (edge overlap)
-    if (h.id === "us_house_4") usHouse.push("4");
-    if (h.id === "us_house_6") usHouse.push("6");
+  if (prec) {
+    // Official SOS precinct attributes (May 2026 file)
+    house = prec.MNLegDist || null;
+    senate = prec.MNSenDist || null;
+    cong = String(prec.CongDist || "");
+    precinctName = (prec.Precinct || "") + (prec.County ? " (" + prec.County + ")" : "");
+    if (house === "33A") matchedLayers.push("State House · HD 33A");
+    if (house === "33B") matchedLayers.push("State House · HD 33B");
+    if (senate === "33") matchedLayers.push("State Senate · SD 33");
+    if (cong === "4") matchedLayers.push("U.S. House · MN-04");
+    if (cong === "8") matchedLayers.push("U.S. House · MN-08");
+  } else {
+    // Fallback: layer hit + nearest town pin
+    const hits = layersContaining(lat, lng, geo);
+    for (const h of hits) {
+      matchedLayers.push(h.label);
+      if (h.id === "hd_33a") house = "33A";
+      if (h.id === "hd_33b") house = "33B";
+      if (h.id === "us_house_4") cong = cong || "4";
+      if (h.id === "us_house_8") cong = "8";
+      if (h.id === "sd_33") senate = "33";
+    }
+    let nearest = null;
+    let bestD = Infinity;
+    for (const t of geo.townPins || []) {
+      const d = (t.lat - lat) ** 2 + (t.lng - lng) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        nearest = t;
+      }
+    }
+    if (nearest && bestD < 0.004) {
+      house = nearest.house || house;
+      cong = nearest.usHouse ? String(nearest.usHouse) : cong;
+      senate = nearest.senate || senate;
+    }
   }
 
-  // Town pin overrides ambiguous polygon edges (especially Forest Lake / Scandia)
-  if (pinClose && nearest.house) {
-    house = nearest.house;
-    if (nearest.usHouse) usHouse = [String(nearest.usHouse)];
-  }
-  if (!house && nearest) house = nearest.house;
-  if (!usHouse.length) {
-    usHouse = nearest?.usHouse ? [String(nearest.usHouse)] : house === "33A" ? ["6"] : ["4"];
-  }
-
-  // Only one house district per address for candidate list (avoid dual-house confusion)
   if (house !== "33A" && house !== "33B") house = "BOTH";
+  const usHouse = cong ? [cong] : house === "33A" ? ["8"] : ["4"];
 
   const districts = {
-    house: house === "BOTH" ? "BOTH" : house,
-    senate: "33",
-    usHouse: [...new Set(usHouse)],
+    house,
+    senate: senate || "33",
+    usHouse,
   };
   const ballot = gopBallotForDistricts(districts);
-
-  function raceByKey(key) {
-    return (ballot.races || []).find((r) => r.key === key);
-  }
   function gopList(key) {
-    const r = raceByKey(key);
+    const r = (ballot.races || []).find((x) => x.key === key);
     return r?.candidates || candData.races[key]?.gop || [];
   }
 
   const levels = [];
-
-  // LOCAL — one house seat only when known
   if (house === "33A") {
     levels.push({
       level: "Local · State House",
       office: "State House · HD 33A",
       districtNote:
-        "GOP: Stacey Stout · Communities (guide): Forest Lake (parts), Hugo, Mahtomedi, Dellwood",
+        "GOP: Stacey Stout · SOS precincts include Dellwood; Forest Lake P-2/P-4/P-5; Grant P-2; Hugo; Mahtomedi; Willernie" +
+        (precinctName ? " · Matched precinct: " + precinctName : ""),
       candidates: gopList("house33A"),
     });
   } else if (house === "33B") {
@@ -2459,60 +2483,62 @@ app.get("/api/map-lookup", (req, res) => {
       level: "Local · State House",
       office: "State House · HD 33B",
       districtNote:
-        "GOP: Jessica L. Johnson · Communities (guide): Stillwater, Oak Park Heights, Bayport, Marine, Scandia, May Twp, parts of Forest Lake",
+        "GOP: Jessica L. Johnson · SOS precincts include Bayport; Forest Lake P-1/P-3; Marine; May Twp; Oak Park Heights; Scandia; Stillwater; Stillwater Twp" +
+        (precinctName ? " · Matched precinct: " + precinctName : ""),
       candidates: gopList("house33B"),
     });
   } else {
     levels.push({
       level: "Local · State House",
       office: "State House · HD 33A or 33B",
-      districtNote: "Could not determine house district — confirm at pollfinder.sos.mn.gov",
+      districtNote: "Outside mapped SD 33 precincts or on a boundary — confirm at pollfinder.sos.mn.gov",
       candidates: [...gopList("house33A"), ...gopList("house33B")],
     });
   }
 
-  // STATE
   levels.push({
     level: "State · Senate",
     office: "State Senate · SD 33",
-    districtNote: "GOP: Karin Housley · Full Senate District 33",
+    districtNote: "GOP: Karin Housley" + (precinctName ? " · Precinct: " + precinctName : ""),
     candidates: gopList("stateSenate33"),
   });
   levels.push({
     level: "State · Statewide",
     office: "Governor of Minnesota",
-    districtNote: "Statewide · LEADING label = currently leading when marked",
+    districtNote: "Statewide",
     candidates: gopList("governor"),
   });
-
-  // FEDERAL
   levels.push({
     level: "Federal · U.S. Senate",
     office: "U.S. Senate · Minnesota",
     districtNote: "Statewide",
     candidates: gopList("usSenate"),
   });
-  for (const n of districts.usHouse) {
-    const key = n === "6" ? "usHouse6" : "usHouse4";
+  for (const n of usHouse) {
+    const key = n === "8" ? "usHouse8" : n === "6" ? "usHouse6" : "usHouse4";
+    const office =
+      n === "8" ? "U.S. House · MN-08" : n === "6" ? "U.S. House · MN-06" : "U.S. House · MN-04";
     levels.push({
       level: "Federal · U.S. House",
-      office: n === "6" ? "U.S. House · MN-06" : "U.S. House · MN-04",
-      districtNote: `Congressional District ${n} (approximate — confirm by address)`,
+      office,
+      districtNote:
+        (n === "8"
+          ? "Within SD 33: Forest Lake, Hugo, Scandia, Marine, May Twp (SOS)"
+          : "Within SD 33: Stillwater, Bayport, Oak Park Heights, Mahtomedi, Dellwood (SOS)") +
+        (precinctName ? " · Precinct: " + precinctName : ""),
       candidates: gopList(key),
     });
   }
 
   res.json({
     ok: true,
-    addressLabel: req.query.label || (nearest && pinClose ? nearest.name : ""),
-    matchedLayers: matchedLayers.length
-      ? matchedLayers
-      : [
-          house === "33A" ? "State House · HD 33A" : house === "33B" ? "State House · HD 33B" : "House TBD",
-          "State Senate · SD 33",
-        ],
+    addressLabel: req.query.label || precinctName || "",
+    matchedLayers,
     house: districts.house,
-    nearestTown: nearest?.name || null,
+    senate: districts.senate,
+    cong: cong || null,
+    precinct: precinctName,
+    source: prec ? "Minnesota SOS precinct GeoJSON (May 2026)" : "fallback map layers",
     levels,
   });
 });
@@ -2531,13 +2557,15 @@ app.get("/map", (req, res) => {
     <section class="hero prose">
       <span class="badge pri">Interactive map</span>
       <h2>Find your races — local, state &amp; federal</h2>
-      <p>Enter an address or click the map. <strong>Highlighter colors</strong> show approximate district layers. Town markers are color-coded: <span style="background:#fde047;padding:0 0.35rem;border-radius:3px">yellow = HD 33A</span> (Stacey Stout) · <span style="background:#f9a8d4;padding:0 0.35rem;border-radius:3px">pink = HD 33B</span> (Jessica L. Johnson). The side panel lists <span class="tag-gop">GOP</span> candidates by office level.</p>
+      <p>Enter an address or click the map. Layers use <strong>Minnesota Secretary of State precinct boundaries (May 2026)</strong> — not freehand shapes. Town markers: <span style="background:#fde047;padding:0 0.35rem;border-radius:3px">yellow = HD 33A</span> · <span style="background:#f9a8d4;padding:0 0.35rem;border-radius:3px">pink = HD 33B</span>.</p>
       <p class="muted">${esc(geo.note || "")}</p>
-      <ul class="muted" style="font-size:0.9rem">
-        <li><strong>HD 33A</strong> — Stacey Stout (GOP) · Forest Lake (parts), Hugo, Mahtomedi, Dellwood</li>
-        <li><strong>HD 33B</strong> — Jessica L. Johnson (GOP) · Stillwater, Oak Park Heights, Bayport, Marine, Scandia, May Twp, parts of Forest Lake</li>
-        <li><strong>SD 33</strong> — Karin Housley (GOP) · entire Senate district</li>
+      <ul style="font-size:0.9rem">
+        <li><strong>HD 33A</strong> — <span class="tag-gop">GOP</span> Stacey Stout · Dellwood; Forest Lake P-2/P-4/P-5; Grant P-2; Hugo; Mahtomedi; Willernie</li>
+        <li><strong>HD 33B</strong> — <span class="tag-gop">GOP</span> Jessica L. Johnson · Bayport; Forest Lake P-1/P-3; Marine; May Twp; Oak Park Heights; Scandia; Stillwater; Stillwater Twp</li>
+        <li><strong>SD 33</strong> — <span class="tag-gop">GOP</span> Karin Housley · full Senate district (union of 33A + 33B)</li>
+        <li><strong>U.S. House</strong> — within SD 33: <strong>MN-04</strong> (Stillwater / Mahtomedi area) or <strong>MN-08</strong> (Forest Lake / Hugo / Scandia area) per SOS — not MN-06</li>
       </ul>
+      <p class="muted">Cross-checked with SOS legislative maps &amp; Ballotpedia 2026 candidate lists. Official ballot: <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a></p>
     </section>
     <div class="map-legend" aria-label="District color legend">${legend}</div>
     <div class="map-layout">

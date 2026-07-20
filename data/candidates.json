@@ -53,7 +53,7 @@
     },
     "usHouse4": {
       "office": "U.S. House — Minnesota District 4",
-      "scope": "Covers St. Paul + parts of Washington County (Stillwater area of SD 33)",
+      "scope": "Within SD 33: Stillwater, Oak Park Heights, Bayport, Mahtomedi, Dellwood, Willernie, parts of Stillwater Twp (SOS May 2026)",
       "gop": [
         { "name": "Paul Wikstrom", "party": "GOP", "note": "MNGOP endorsed" },
         { "name": "Paul Xiong", "party": "GOP", "note": "" },
@@ -64,22 +64,22 @@
         { "name": "Aswar Rahman", "party": "DFL", "note": "" }
       ]
     },
-    "usHouse6": {
-      "office": "U.S. House — Minnesota District 6",
-      "scope": "Northern/exurban edges that may touch parts of SD 33 — confirm by address",
+    "usHouse8": {
+      "office": "U.S. House — Minnesota District 8",
+      "scope": "Within SD 33: Forest Lake, Hugo, Scandia, Marine on St. Croix, May Twp, Stillwater Twp P-1 (SOS May 2026)",
       "gop": [
-        { "name": "Tom Emmer", "party": "GOP", "note": "Incumbent · House GOP leadership" }
+        { "name": "Pete Stauber", "party": "GOP", "note": "Incumbent" }
       ],
       "other": [
-        { "name": "TBD after primary filings", "party": "DFL", "note": "Check SOS candidate finder for full DFL field" }
+        { "name": "See SOS candidate finder for DFL field", "party": "DFL", "note": "Confirm filings for 2026" }
       ]
     },
     "stateSenate33": {
       "office": "Minnesota State Senate — District 33",
-      "scope": "Full SD 33 (Stillwater, Forest Lake & surrounding)",
+      "scope": "SOS: Bayport, Dellwood, Forest Lake, Grant P-2, Hugo, Mahtomedi, Marine on St. Croix, May Twp, Scandia, Oak Park Heights, Stillwater, Stillwater Twp, Willernie",
       "winSeat": true,
       "gop": [
-        { "name": "Karin Housley", "party": "GOP", "note": "Incumbent · PRIORITY SEAT" }
+        { "name": "Karin Housley", "party": "GOP", "note": "Incumbent" }
       ],
       "other": [
         { "name": "Nat Smith", "party": "DFL", "note": "Challenger" }
@@ -87,10 +87,10 @@
     },
     "house33A": {
       "office": "Minnesota House — District 33A",
-      "scope": "Forest Lake, Hugo, Mahtomedi area (north half of SD 33)",
+      "scope": "SOS precincts: Dellwood; Forest Lake P-2, P-4, P-5; Grant P-2; Hugo (all); Mahtomedi P-1, P-2; Willernie",
       "winSeat": true,
       "gop": [
-        { "name": "Stacey Stout", "party": "GOP", "note": "Republican nominee · open seat (Patti Anderson retiring) · primary canceled; advanced unopposed · staceystout.com" }
+        { "name": "Stacey Stout", "party": "GOP", "note": "Republican nominee · open seat · staceystout.com" }
       ],
       "other": [
         { "name": "Angela Thompson", "party": "DFL", "note": "DFL nominee · general election Nov. 3, 2026" }
@@ -98,10 +98,10 @@
     },
     "house33B": {
       "office": "Minnesota House — District 33B",
-      "scope": "Stillwater, Oak Park Heights, Bayport, Marine, Scandia, May Twp, parts of Forest Lake",
+      "scope": "SOS precincts: Bayport; Forest Lake P-1, P-3; Marine on St. Croix; May Twp; Oak Park Heights; Scandia; Stillwater (all wards); Stillwater Twp P-1, P-2",
       "winSeat": true,
       "gop": [
-        { "name": "Jessica L. Johnson", "party": "GOP", "note": "Republican nominee · challenging incumbent Josiah Hill · primary canceled; advanced unopposed" }
+        { "name": "Jessica L. Johnson", "party": "GOP", "note": "Republican nominee · challenging incumbent Josiah Hill" }
       ],
       "other": [
         { "name": "Josiah Hill", "party": "DFL", "note": "Incumbent" }
@@ -166,11 +166,11 @@
       "bundle": "federal"
     },
     {
-      "id": "lit_cd6_gop",
-      "label": "U.S. House MN-06 — Tom Emmer (GOP) (if address is CD-6)",
+      "id": "lit_cd8_gop",
+      "label": "U.S. House MN-08 — Pete Stauber (GOP) (Forest Lake / Hugo / Scandia area)",
       "party": "GOP",
-      "seat": "US House 6",
-      "priority": 3,
+      "seat": "US House 8",
+      "priority": 2,
       "bundle": "federal"
     },
     {
