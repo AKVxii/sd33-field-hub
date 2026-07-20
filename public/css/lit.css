@@ -205,6 +205,42 @@ th, td { text-align: left; padding: 0.55rem 0.65rem; border-bottom: 1px solid va
 th { background: var(--sky); color: var(--navy); }
 
 form.stack label { display: block; font-weight: 700; margin: 0.65rem 0 0.25rem; }
+/* Checkboxes must not inherit block label + full-width input styles */
+form.stack label.check-row {
+  display: grid;
+  grid-template-columns: 1.35rem 1fr;
+  gap: 0.65rem;
+  align-items: start;
+  margin: 0 !important;
+  font-weight: 500 !important;
+  max-width: 520px;
+  width: 100%;
+  cursor: pointer;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  line-height: 1.35;
+}
+form.stack label.check-row:hover {
+  background: #f0f6ff;
+  border-color: var(--line);
+}
+form.stack label.check-row input[type="checkbox"] {
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  max-width: none !important;
+  margin: 0.15rem 0 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 3px;
+  accent-color: var(--gop);
+  flex-shrink: 0;
+  align-self: start;
+}
+form.stack label.check-row span {
+  display: block;
+  font-weight: 500;
+}
 form.stack input, form.stack select, form.stack textarea {
   width: 100%;
   max-width: 520px;
@@ -213,6 +249,10 @@ form.stack input, form.stack select, form.stack textarea {
   border-radius: 8px;
   font: inherit;
   background: #fff;
+}
+form.stack input[type="checkbox"] {
+  width: auto;
+  max-width: none;
 }
 form.stack .row-actions { margin-top: 0.85rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
 form.card select, form.card input[type=text] {
@@ -455,14 +495,16 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus {
   border-radius: 0 8px 8px 0;
 }
 
-/* Volunteer activity checkboxes — aligned rows */
+/* Volunteer activity checkboxes — aligned column */
 .check-list {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.4rem;
   margin: 0.35rem 0 0.85rem;
   max-width: 520px;
+  width: 100%;
 }
+/* Fallback when not inside form.stack */
 .check-row {
   display: grid;
   grid-template-columns: 1.35rem 1fr;
@@ -498,3 +540,4 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus {
 .shirt-size-box.is-open, .contrib-box.is-open, .campaign-kit.is-open { display: block; }
 .contrib-box { background: #fffbeb; border-color: #e0b84a; }
 .campaign-kit { background: #eef7fb; border-color: #b9d0ea; }
+.shirt-size-box select { max-width: 12rem; }
