@@ -1097,26 +1097,115 @@ form.stack textarea:focus {
 /* Legacy top header hide when using new shell */
 .site-header ~ .top { display: none; }
 
-/* Sticky mobile CTA */
+/* Sticky mobile CTA — public pages only (hidden on portal via layout) */
 .mobile-sticky-cta {
   display: none;
 }
+.nav-portal-link {
+  display: block;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--muted) !important;
+  text-decoration: none !important;
+  font-weight: 600;
+  font-size: 0.92rem;
+  border: 1px dashed var(--line);
+  margin-top: 0.25rem;
+}
+.nav-portal-link:hover,
+.nav-portal-link:focus-visible {
+  background: var(--stone-soft);
+  color: var(--navy) !important;
+}
+.footer-portal-link {
+  color: #94a3b8 !important;
+  font-weight: 500;
+}
+.district-summary-label {
+  display: block;
+  font-family: var(--font-display);
+  color: var(--navy);
+  font-size: 1.05rem;
+}
+.district-communities summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--river);
+}
+.facts-grid--three {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+.data-label {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  margin-right: 0.35rem;
+  margin-bottom: 0.35rem;
+  vertical-align: middle;
+}
+.data-label--official { background: var(--ok-soft); color: var(--ok); }
+.data-label--calc { background: var(--river-soft); color: var(--river); }
+.data-label--comment { background: var(--stone-soft); color: var(--muted); }
+.data-label--provisional { background: var(--warn-soft); color: var(--warn); }
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.data-table th { color: var(--navy); font-weight: 700; }
+.consent-fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0 0;
+}
+.consent-fieldset legend {
+  font-weight: 700;
+  padding: 0 0.35rem;
+}
+.vol-step { min-width: 0; }
 @media (max-width: 640px) {
   .mobile-sticky-cta {
     display: flex;
     position: fixed;
     left: 0; right: 0; bottom: 0;
     z-index: 90;
-    gap: 0.5rem;
-    padding: 0.65rem 0.85rem calc(0.65rem + env(safe-area-inset-bottom));
-    background: rgba(255,255,255,0.97);
+    gap: 0.45rem;
+    padding: 0.55rem 0.75rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
+    background: rgba(255,255,255,0.98);
     backdrop-filter: blur(10px);
     border-top: 1px solid var(--line);
-    box-shadow: 0 -8px 24px rgba(6, 24, 43, 0.1);
+    box-shadow: 0 -6px 20px rgba(6, 24, 43, 0.08);
   }
-  .mobile-sticky-cta .btn { flex: 1; margin: 0; }
-  body.has-mobile-cta .main { padding-bottom: 5.5rem; }
+  .mobile-sticky-cta .btn {
+    flex: 1;
+    margin: 0;
+    min-height: 2.75rem;
+    font-size: 0.92rem;
+  }
+  body.has-mobile-cta .main {
+    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  body.has-mobile-cta .site-footer {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  /* Keep sticky bar from covering focused form fields */
+  body.has-mobile-cta input:focus,
+  body.has-mobile-cta select:focus,
+  body.has-mobile-cta textarea:focus {
+    scroll-margin-bottom: 6rem;
+  }
 }
+body.page-portal .mobile-sticky-cta { display: none !important; }
 
 /* Two-col legacy */
 .two {

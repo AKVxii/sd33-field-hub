@@ -197,12 +197,27 @@ function formatAreaList(key, sep = "; ") {
   const d = districtAreas(key);
   return (d.areas || []).join(sep);
 }
-function areaListHtml(key) {
+function areaListHtml(key, opts = {}) {
   const d = districtAreas(key);
   const items = (d.areas || []).map((a) => `<li>${esc(a)}</li>`).join("");
+  const compact = !!opts.compact;
+  if (compact) {
+    return `<div class="district-summary">
+      <strong class="district-summary-label">${esc(d.label || key)}</strong>
+      <p class="muted" style="margin:0.35rem 0 0.5rem;font-size:0.92rem">Full district — candidates serve every community listed, not a single town.</p>
+      <details class="district-communities">
+        <summary>View communities</summary>
+        <ul class="area-grid" style="margin-top:0.5rem">${items}</ul>
+        ${d.note ? `<p class="muted" style="margin:0.4rem 0 0;font-size:0.88rem">${esc(d.note)}</p>` : ""}
+      </details>
+    </div>`;
+  }
   return `<div class="district-areas">
-    <p class="muted" style="margin:0 0 0.4rem"><strong>${esc(d.label || "")}</strong> — all communities and precincts (equal listing; candidates serve the full district):</p>
-    <ul class="area-grid">${items}</ul>
+    <p class="muted" style="margin:0 0 0.4rem"><strong>${esc(d.label || "")}</strong> — communities and precincts (equal listing; candidates serve the full district):</p>
+    <details class="district-communities" open>
+      <summary>View communities</summary>
+      <ul class="area-grid" style="margin-top:0.5rem">${items}</ul>
+    </details>
     ${d.note ? `<p class="muted" style="margin:0.4rem 0 0;font-size:0.88rem">${esc(d.note)}</p>` : ""}
   </div>`;
 }
@@ -697,8 +712,12 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
         .map((c, idx) => {
           const val = `${r.key}||${c.name}`;
           const id = `c_${r.key}_${idx}`.replace(/[^a-zA-Z0-9_]/g, "_");
-          const lead = c.nominee ? ' <span class="badge published">NOMINEE</span>' : "";
-          const boxCls = c.nominee ? "lit-box cand-pick priority" : "lit-box cand-pick";
+          // Nominee badge only after verified post-primary winners upload
+          const lead =
+            isPost && c.nominee
+              ? ' <span class="badge published">Primary winner (verified in project file)</span>'
+              : "";
+          const boxCls = isPost && c.nominee ? "lit-box cand-pick priority" : "lit-box cand-pick";
           return `<div class="${boxCls}" style="cursor:default">
             <span>
               <span class="lbl">${partyBadgeHtml("GOP")} <strong>${esc(c.name)}</strong>${lead}</span>
@@ -1116,12 +1135,37 @@ function navLink(href, label, currentPath) {
   return `<a href="${esc(href)}"${active ? ' class="nav-active" aria-current="page"' : ""}>${label}</a>`;
 }
 
+/** Operational / captain tools — not part of public journeys */
+function isOpsPath(path) {
+  const p = (path || "/").split("?")[0];
+  return (
+    p === "/portal" ||
+    p.startsWith("/portal/") ||
+    p.startsWith("/field") ||
+    p.startsWith("/team") ||
+    p.startsWith("/pulsar") ||
+    p.startsWith("/schedule") ||
+    p === "/carry" ||
+    p.startsWith("/roadmap") ||
+    p.startsWith("/win-") ||
+    p.startsWith("/how-to") ||
+    p.startsWith("/turf") ||
+    p.startsWith("/leaderboard") ||
+    p.startsWith("/log-drop")
+  );
+}
+
+const SITE_DESCRIPTION =
+  "Volunteer-built district voter-information and organizing project. This is not an official website of any candidate or campaign committee. No candidate has paid for this website.";
+
 function layout(title, body, opts = {}) {
   const extraHead = opts.extraHead || "";
   const extraFoot = opts.extraFoot || "";
   const path = opts.path || "/";
+  const showMobileBar = opts.mobileBar !== false && !isOpsPath(path);
   const bodyClass = [
     PRIVATE_DEVELOPMENT ? "private-dev" : "",
+    showMobileBar ? "has-mobile-cta" : "",
     opts.bodyClass || "",
   ]
     .filter(Boolean)
@@ -1130,11 +1174,18 @@ function layout(title, body, opts = {}) {
     ? `<meta name="robots" content="noindex, nofollow" />`
     : "";
   const siteTagline =
-    "A volunteer-built district organizing and voter-information hub for Minnesota Senate District 33 and House Districts 33A and 33B.";
+    "Volunteer-built district voter-information and organizing project for Minnesota Senate District 33 and House Districts 33A and 33B.";
   const metaDesc = PRIVATE_DEVELOPMENT
-    ? `${siteTagline} Private development environment — not currently a public campaign, committee, or fundraising site. Official election info: Minnesota Secretary of State.`
-    : `${siteTagline} Maps, candidates, events, and field tools for every community in the district.`;
+    ? `${siteTagline} Private development environment — not a public campaign or fundraising site. Official election info: Minnesota Secretary of State.`
+    : `${siteTagline} Maps, candidates, events, and volunteer tools. ${SITE_DESCRIPTION}`;
   const nl = (href, label) => navLink(href, label, path);
+  const mobileBarHtml = showMobileBar
+    ? `<nav class="mobile-sticky-cta" aria-label="Quick actions">
+      <a class="btn btn-primary" href="/my-gop-ballot">Ballot</a>
+      <a class="btn btn-secondary" href="/events">Events</a>
+      <a class="btn btn-secondary" href="/volunteer">Volunteer</a>
+    </nav>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1220,8 +1271,8 @@ function layout(title, body, opts = {}) {
       ${nl("/legal", "Legal")}
       ${nl("/review", "Feedback")}
       <a class="btn btn-primary" href="/volunteer">Volunteer</a>
-      <p class="mobile-nav-section">Operations</p>
-      ${nl("/portal", "Field / Captain Portal")}
+      <p class="mobile-nav-section muted" style="font-size:0.75rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;margin-top:1rem">Authorized tools</p>
+      <a class="nav-portal-link" href="/portal">Volunteer Portal</a>
     </div>
   </div>
   <main id="main" class="wrap main" role="main">${body}</main>
@@ -1229,7 +1280,7 @@ function layout(title, body, opts = {}) {
     <div class="wrap footer-grid">
       <div>
         <span class="footer-brand-name">St. Croix Valley Field Hub</span>
-        <p style="margin:0 0 0.5rem;max-width:28rem;color:#94a3b8">Volunteer-built district information and organizing tools for SD&nbsp;33, HD&nbsp;33A, and HD&nbsp;33B in Washington County and the St.&nbsp;Croix Valley.</p>
+        <p style="margin:0 0 0.5rem;max-width:28rem;color:#94a3b8">${SITE_DESCRIPTION}</p>
         <p style="margin:0;font-size:0.85rem;color:#94a3b8">${
           PRIVATE_DEVELOPMENT
             ? "Development status: private preview — not accepting submissions."
@@ -1245,6 +1296,7 @@ function layout(title, body, opts = {}) {
           <li><a href="/volunteer">Volunteer</a></li>
           <li><a href="/district-facts">District Facts</a></li>
           <li><a href="/map">District Map</a></li>
+          <li><a href="/portal" class="footer-portal-link">Volunteer Portal</a></li>
         </ul>
       </div>
       <div>
@@ -1270,10 +1322,11 @@ function layout(title, body, opts = {}) {
       </div>
     </div>
     <div class="wrap footer-bottom">
-      <p>Candidate and district data are assembled from public sources and are provisional in development. Always confirm with the Minnesota Secretary of State.</p>
+      <p>${SITE_DESCRIPTION} Candidate and district data are provisional in development—always confirm with the Minnesota Secretary of State.</p>
       <p>Poll rules: no campaigning inside a polling place or within <strong>100 feet</strong> of the building — Minn. Stat. §§ 204C.06, 211B.11. Never place literature in U.S. mailboxes. See <a href="/legal">Legal</a>.</p>
     </div>
   </footer>
+  ${mobileBarHtml}
   <script src="/js/nav-active.js?v=nav5"></script>
   <script src="/js/site-shell.js?v=v1"></script>
   <script src="/js/analytics.js?v=v1"></script>
@@ -1437,19 +1490,11 @@ app.get("/", (req, res) => {
   const flash = req.session.flash;
   delete req.session.flash;
   const todayHome = todayYmd();
-  const allEvents = loadJson(EVENTS_FILE).events || [];
+  const allEvents = dedupeEvents(loadJson(EVENTS_FILE).events || []);
   const homeEvents = allEvents
-    .filter((e) => eventIsConfirmedPublic(e, todayHome))
+    .filter((e) => eventIsConfirmedPublic(e, todayHome) && e.districtScope !== "nearby")
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))
     .slice(0, 3);
-  const candData = loadCandidates();
-  const areas = candData.districtAreas || {};
-  function areaDetails(key) {
-    const d = areas[key];
-    if (!d) return "";
-    const items = (d.areas || []).map((a) => "<li>" + esc(a) + "</li>").join("");
-    return `<details><summary>View district communities</summary><ul class="area-grid" style="margin-top:0.5rem">${items}</ul></details>`;
-  }
   const cityOptions = [
     "Bayport",
     "Dellwood",
@@ -1471,6 +1516,7 @@ app.get("/", (req, res) => {
   const eventCards = homeEvents.length
     ? homeEvents
         .map((e) => {
+          const canCal = eventCanAddToCalendar(e, todayHome);
           return `
       <article class="event-card-sm">
         <span class="badge confirmed">Confirmed</span>
@@ -1478,41 +1524,33 @@ app.get("/", (req, res) => {
         <p class="event-meta"><strong>${esc(e.dayLabel || e.date || "")}</strong> · ${esc(e.time || "")} · ${esc(e.locationName || "")}</p>
         <p class="muted" style="margin:0 0 0.5rem;font-size:0.9rem">${esc((e.districts || []).join(" · "))}</p>
         <div class="cta-row">
-          <a class="btn btn-primary btn-sm" href="/events?view=confirmed">View event details</a>
-          <a class="btn btn-secondary btn-sm" href="/events/${esc(e.id)}.ics">Add to calendar</a>
+          <a class="btn btn-primary btn-sm" href="/events?view=confirmed&scope=in">View details</a>
+          ${canCal ? `<a class="btn btn-secondary btn-sm" href="/events/${esc(e.id)}.ics">Add to calendar</a>` : ""}
         </div>
       </article>`;
         })
         .join("")
-    : `<div class="empty-state" style="grid-column:1/-1"><strong>No confirmed public events listed yet</strong><p class="muted">Proposed or venue-TBA items stay under <a href="/events?view=proposed">proposed events</a> until confirmed.</p></div>`;
+    : `<div class="empty-state" style="grid-column:1/-1"><strong>No confirmed in-district events yet</strong><p class="muted">See <a href="/events?view=proposed">proposed activities</a> or <a href="/volunteer">volunteer</a>.</p></div>`;
 
   const body = `
     ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
 
     <section class="home-hero" aria-label="Welcome">
-      <span class="home-hero-kicker">Washington County · St. Croix Valley</span>
+      <span class="home-hero-kicker">Washington County · St. Croix Valley · SD&nbsp;33</span>
       <h1>Know Your District. Meet the Candidates. Help Shape Minnesota’s Future.</h1>
-      <p>Volunteer-built voter information and community organizing for Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B—every city and township named equally.</p>
+      <p>${SITE_DESCRIPTION}</p>
       <div class="cta-row">
         <a class="btn btn-primary" href="#find-address">Find My Ballot</a>
         <a class="btn btn-secondary" href="/volunteer">Volunteer</a>
-        <a class="btn btn-text" href="/candidates">View Candidates</a>
+        <a class="btn btn-text" href="/candidates">Meet the Candidates</a>
       </div>
     </section>
 
-    <div class="trust-strip" role="region" aria-label="Scope and trust">
-      <span class="trust-pill">Senate District 33</span>
-      <span class="trust-pill">House Districts 33A &amp; 33B</span>
-      <span class="trust-pill">Washington County · St. Croix Valley</span>
-      <span class="trust-pill">Volunteer-built</span>
-      <span class="trust-pill"><a href="https://www.sos.mn.gov/" target="_blank" rel="noopener">Official SOS sources ↗</a></span>
-    </div>
-
     <section id="find-address" class="lookup-panel section" aria-label="Find your district by address">
       <h2>Find your district and ballot</h2>
-      <p class="muted" style="margin-top:0">Enter a street address so we can match precinct and legislative districts for SD&nbsp;33. Results are provisional tools for this project—the Minnesota Secretary of State is the official source.</p>
+      <p class="muted" style="margin-top:0">Enter an address to estimate precinct and legislative districts. The Minnesota Secretary of State is the official source.</p>
       <form class="lookup-form stack" method="get" action="/my-gop-ballot">
-        <label for="home-q">Full address <span class="muted">(preferred)</span></label>
+        <label for="home-q">Full address</label>
         <input id="home-q" type="text" name="q" maxlength="200" placeholder="1731 Beach Drive, Forest Lake, MN 55025" autocomplete="street-address" />
         <div class="lookup-grid">
           <div>
@@ -1527,30 +1565,28 @@ app.get("/", (req, res) => {
             </select>
           </div>
         </div>
-        <label for="home-zip">ZIP <span class="muted">(optional)</span></label>
-        <input id="home-zip" type="text" name="zip" maxlength="10" placeholder="55082" autocomplete="postal-code" style="max-width:10rem" />
-        <p class="lookup-privacy">We use your address only to estimate districts for this lookup. In development mode, form submissions that store personal data are blocked. Always confirm at <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>.</p>
+        <p class="lookup-privacy">Address is used only for this lookup. Confirm at <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>.</p>
         <div class="cta-row">
           <button class="btn btn-primary" type="submit">Show my districts &amp; ballot</button>
-          <a class="btn btn-secondary" href="/map">Open district map</a>
+          <a class="btn btn-secondary" href="/map">District map</a>
         </div>
       </form>
     </section>
 
-    <section class="section" aria-label="Local priority seats">
+    <section class="section" aria-label="Supported local candidates">
       <div class="section-head">
-        <h2 class="section-title">Local team highlighted by this project</h2>
-        <a class="section-link" href="/candidates">View all filed candidates →</a>
+        <h2 class="section-title">Supported local candidates</h2>
+        <a class="section-link" href="/candidates">All filed candidates →</a>
       </div>
-      <p class="muted" style="margin-top:0">These three local races are this volunteer project’s organizing focus. Other parties and offices remain fully listed on the candidates page. Labels are project recommendations—not official endorsements by a political committee.</p>
+      <p class="muted" style="margin-top:0">Project organizing focus for three local seats. Not a formal committee endorsement. All parties remain on the directory.</p>
       <div class="grid">
         <article class="cand-card">
           <span class="badge supported">Supported by this volunteer project</span>
           <p class="cand-office">Minnesota State Senate · District 33</p>
           <h3>Karin Housley</h3>
           <span class="tag-gop">Republican</span>
-          <p class="cand-desc">Listed for the full Senate District&nbsp;33—every community equally. Verify filing at the Secretary of State.</p>
-          ${areaDetails("sd33")}
+          <p class="cand-desc">Filed for the full Senate District&nbsp;33. Verify at the Secretary of State.</p>
+          ${areaListHtml("sd33", { compact: true })}
           <div class="cand-actions">
             <a class="btn btn-primary btn-sm" href="/candidates#race-stateSenate33">Race details</a>
             <a class="btn btn-secondary btn-sm" href="/volunteer?focus=housley">Volunteer</a>
@@ -1561,8 +1597,8 @@ app.get("/", (req, res) => {
           <p class="cand-office">Minnesota House · District 33A</p>
           <h3>Stacey Stout</h3>
           <span class="tag-gop">Republican</span>
-          <p class="cand-desc">Listed for the full House District&nbsp;33A. Verify filing at the Secretary of State.</p>
-          ${areaDetails("hd33a")}
+          <p class="cand-desc">Filed for the full House District&nbsp;33A. Verify at the Secretary of State.</p>
+          ${areaListHtml("hd33a", { compact: true })}
           <div class="cand-actions">
             <a class="btn btn-primary btn-sm" href="/candidates#race-house33A">Race details</a>
             <a class="btn btn-secondary btn-sm" href="/volunteer?focus=stout">Volunteer</a>
@@ -1573,8 +1609,8 @@ app.get("/", (req, res) => {
           <p class="cand-office">Minnesota House · District 33B</p>
           <h3>Jessica L. Johnson</h3>
           <span class="tag-gop">Republican</span>
-          <p class="cand-desc">Listed for the full House District&nbsp;33B. Verify filing at the Secretary of State.</p>
-          ${areaDetails("hd33b")}
+          <p class="cand-desc">Filed for the full House District&nbsp;33B. Verify at the Secretary of State.</p>
+          ${areaListHtml("hd33b", { compact: true })}
           <div class="cand-actions">
             <a class="btn btn-primary btn-sm" href="/candidates#race-house33B">Race details</a>
             <a class="btn btn-secondary btn-sm" href="/volunteer?focus=johnson">Volunteer</a>
@@ -1583,10 +1619,10 @@ app.get("/", (req, res) => {
       </div>
     </section>
 
-    <section class="section" aria-label="Upcoming events">
+    <section class="section" aria-label="Confirmed upcoming events">
       <div class="section-head">
-        <h2 class="section-title">Next events</h2>
-        <a class="section-link" href="/events">Full calendar →</a>
+        <h2 class="section-title">Confirmed upcoming events</h2>
+        <a class="section-link" href="/events?view=confirmed&scope=in">Full calendar →</a>
       </div>
       <div class="grid">${eventCards}</div>
     </section>
@@ -1595,58 +1631,42 @@ app.get("/", (req, res) => {
       <div class="section-head">
         <h2 class="section-title">Choose how to help</h2>
       </div>
-      <p class="muted" style="margin-top:0">Pick one activity. You’ll land on a short volunteer path—submissions stay closed while this site is in development preview.</p>
+      <p class="muted" style="margin-top:0">Pick one activity for a short signup. Submissions are not stored in development preview.</p>
       <div class="help-grid">
-        <a class="help-tile" href="/volunteer?activity=doors"><strong>Knock doors</strong><span>Walk lists &amp; neighborhood routes</span></a>
+        <a class="help-tile" href="/volunteer?activity=doors"><strong>Knock doors</strong><span>Neighborhood routes</span></a>
         <a class="help-tile" href="/volunteer?activity=events"><strong>Community events</strong><span>Parades, festivals, greeters</span></a>
-        <a class="help-tile" href="/volunteer?activity=phones"><strong>Make calls</strong><span>Phone banks when lists are ready</span></a>
+        <a class="help-tile" href="/volunteer?activity=phones"><strong>Make calls</strong><span>Phone banks when ready</span></a>
         <a class="help-tile" href="/volunteer?activity=lit"><strong>Literature</strong><span>Lit drops &amp; pack prep</span></a>
         <a class="help-tile" href="/volunteer?activity=team_lead"><strong>Lead a small team</strong><span>Host or captain nearby</span></a>
-        <a class="help-tile" href="/volunteer?activity=signs"><strong>Yard signs</strong><span>Busy streets with permission</span></a>
+        <a class="help-tile" href="/volunteer?activity=signs"><strong>Yard signs</strong><span>With owner permission</span></a>
       </div>
     </section>
 
-    <section class="section" aria-label="District facts snapshot">
+    <section class="section" aria-label="District facts preview">
       <div class="section-head">
-        <h2 class="section-title">District facts snapshot</h2>
+        <h2 class="section-title">District facts preview</h2>
         <a class="section-link" href="/district-facts">Full District Facts →</a>
       </div>
-      <div class="facts-grid">
-        <div class="fact-tile"><strong>One Senate, two House seats</strong><p>SD&nbsp;33 includes HD&nbsp;33A and HD&nbsp;33B. Local candidates serve whole districts, not a single town.</p></div>
-        <div class="fact-tile"><strong>Communities served</strong><p>Bayport, Dellwood, Forest Lake, Grant, Hugo, Mahtomedi, Marine on St.&nbsp;Croix, May Township, Oak Park Heights, Scandia, Stillwater, Stillwater Township, Willernie.</p></div>
-        <div class="fact-tile"><strong>Primary &amp; general</strong><p>State primary Aug&nbsp;11, 2026 · General election Nov&nbsp;3, 2026 (verify on SOS calendars).</p></div>
-        <div class="fact-tile"><strong>Official ballot tools</strong><p><a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">What's on My Ballot</a> and <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">poll finder</a> control.</p></div>
-        <div class="fact-tile"><strong>Competitive local turf</strong><p>Recent cycles have been close in parts of this district. See methodology on District Facts—no invented vote totals on this page.</p></div>
+      <div class="facts-grid facts-grid--three">
+        <div class="fact-tile">${areaListHtml("sd33", { compact: true })}</div>
+        <div class="fact-tile">${areaListHtml("hd33a", { compact: true })}</div>
+        <div class="fact-tile">${areaListHtml("hd33b", { compact: true })}</div>
       </div>
+      <p class="muted" style="margin-top:0.75rem">Map: <a href="/map">District Map</a> · Official tools: <a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">What's on My Ballot</a></p>
     </section>
 
     <section class="section transparency-panel" aria-label="Transparency">
       <h2>Transparency</h2>
+      <p>${SITE_DESCRIPTION}</p>
       <ul>
-        <li>This Field Hub is <strong>volunteer-built</strong> and currently in private development.</li>
-        <li><strong>Official facts</strong> (filings, precincts, ballots) should be confirmed with the Minnesota Secretary of State.</li>
-        <li><strong>Project recommendations</strong> (which local races we organize around) are labeled separately from neutral directories.</li>
-        <li><strong>All filed parties</strong> we have on file are viewable on the candidates page—not only Republicans.</li>
-        <li>Corrections are welcome via <a href="/corrections">Corrections</a> and <a href="/review">Feedback</a>.</li>
+        <li><strong>Official facts</strong> (filings, precincts, ballots) must be confirmed with the Minnesota Secretary of State.</li>
+        <li><strong>Project recommendations</strong> are labeled “Supported by this volunteer project” and are not committee endorsements.</li>
+        <li><strong>All parties on file</strong> appear in the candidate directory.</li>
+        <li>Corrections: <a href="/corrections">Corrections</a> · <a href="/review">Feedback</a>.</li>
       </ul>
     </section>
-
-    <section class="section final-cta" aria-label="Final call to action">
-      <h2>Choose one way to help your community</h2>
-      <p class="muted">Start with your ballot, then pick a volunteer activity or an event when you’re ready.</p>
-      <div class="cta-row">
-        <a class="btn btn-primary" href="/volunteer">Volunteer</a>
-        <a class="btn btn-secondary" href="/events">Find an event</a>
-      </div>
-    </section>
-
-    <div class="mobile-sticky-cta" role="navigation" aria-label="Quick actions">
-      <a class="btn btn-primary" href="#find-address">Find Ballot</a>
-      <a class="btn btn-secondary" href="/volunteer">Volunteer</a>
-      <a class="btn btn-secondary" href="/events">Events</a>
-    </div>
   `;
-  sendPage(req, res, "Home", body, { bodyClass: "page-home has-mobile-cta" });
+  sendPage(req, res, "Home", body, { bodyClass: "page-home" });
 });
 
 /* ---------- Candidates ---------- */
@@ -1685,6 +1705,14 @@ app.get("/candidates", (req, res) => {
   }
 
   let totalCards = 0;
+  const districtLabel = (key, r) => {
+    if (key === "stateSenate33") return "SD 33";
+    if (key === "house33A") return "HD 33A";
+    if (key === "house33B") return "HD 33B";
+    if (key === "usHouse4") return "MN-04";
+    if (key === "usHouse8") return "MN-08";
+    return r.scope || "—";
+  };
   const sections = order
     .map(({ key, group, level }) => {
       const r = races[key];
@@ -1695,7 +1723,17 @@ app.get("/candidates", (req, res) => {
           totalCards += 1;
           const isSup = supported.has(c.name);
           const party = c.party || (side === "gop" ? "GOP" : "");
-          const search = [c.name, r.office, partyLabel(party), r.scope, c.note || ""].join(" ").toLowerCase();
+          // Never surface "LEADING" or pre-primary "nominee" labels without official verification
+          let note = String(c.note || "")
+            .replace(/\bLEADING\b/gi, "")
+            .replace(/\bnominee\b/gi, "candidate")
+            .replace(/\s{2,}/g, " ")
+            .trim();
+          const dist = districtLabel(key, r);
+          const website = c.website || c.url || c.campaignUrl || "";
+          const litUrl = c.literatureUrl || c.litUrl || c.publicLiterature || "";
+          const filing = c.filingStatus || "On file in project data — verify with SOS";
+          const search = [c.name, r.office, partyLabel(party), dist, note].join(" ").toLowerCase();
           rows.push(`
             <article class="cand-directory-card"
               data-name="${esc(c.name).toLowerCase()}"
@@ -1703,16 +1741,25 @@ app.get("/candidates", (req, res) => {
               data-office="${esc(r.office).toLowerCase()}"
               data-level="${esc(level)}"
               data-district="${esc(key)}"
+              data-district-label="${esc(dist).toLowerCase()}"
               data-search="${esc(search)}"
-              data-supported="${isSup ? "1" : "0"}">
+              data-supported="${isSup ? "1" : "0"}"
+              data-local="${level === "local" ? "1" : "0"}">
               <div class="cand-directory-meta">
                 ${partyBadgeHtml(party)}
                 ${isSup ? '<span class="badge supported">Supported by this volunteer project</span>' : ""}
               </div>
               <div class="name">${esc(c.name)}</div>
-              <div class="muted" style="font-size:0.9rem">${esc(r.office)}</div>
-              ${c.note ? `<div class="muted" style="font-size:0.88rem">${esc(c.note)}</div>` : ""}
-              <div class="muted" style="font-size:0.82rem;margin-top:0.35rem">Last verified in file: ${esc(data.asOf || "—")} · <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">Official SOS source</a></div>
+              <div class="muted" style="font-size:0.9rem"><strong>Office:</strong> ${esc(r.office)}</div>
+              <div class="muted" style="font-size:0.9rem"><strong>District:</strong> ${esc(dist)}</div>
+              <div class="muted" style="font-size:0.88rem"><strong>Filing:</strong> ${esc(filing)}</div>
+              ${note ? `<div class="muted" style="font-size:0.88rem">${esc(note)}</div>` : ""}
+              <div class="muted" style="font-size:0.82rem;margin-top:0.35rem">
+                <strong>Last verified:</strong> ${esc(data.asOf || "—")} ·
+                <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">Official SOS source</a>
+                ${website ? ` · <a href="${esc(website)}" target="_blank" rel="noopener">Campaign website</a>` : " · <span>Campaign website: not listed</span>"}
+                ${litUrl ? ` · <a href="${esc(litUrl)}" target="_blank" rel="noopener">Public literature</a>` : ""}
+              </div>
             </article>`);
         });
       };
@@ -1720,10 +1767,14 @@ app.get("/candidates", (req, res) => {
       pushSide(r.other, "other");
       if (!rows.length) return "";
       return `
-      <section class="race-group" id="race-${esc(key)}" data-group="${esc(group)}">
-        <h2>${esc(r.office)}${r.winSeat ? ' <span class="badge pri">Local priority</span>' : ""}</h2>
+      <section class="race-group" id="race-${esc(key)}" data-group="${esc(group)}" data-level="${esc(level)}">
+        <h2>${esc(r.office)}${level === "local" ? ' <span class="badge pri">Local race</span>' : ""}</h2>
         <p class="muted" style="margin-top:0">${esc(r.scope || "")}</p>
-        ${r.districtKey ? areaListHtml(r.districtKey) : ""}
+        ${
+          r.districtKey
+            ? `<details class="district-communities" style="margin-bottom:0.75rem"><summary>View communities</summary>${areaListHtml(r.districtKey)}</details>`
+            : ""
+        }
         <div class="cand-dir-grid">${rows.join("")}</div>
       </section>`;
     })
@@ -1736,25 +1787,27 @@ app.get("/candidates", (req, res) => {
   const body = `
     <header class="page-intro">
       <h1>Candidate directory</h1>
-      <p>Search and filter candidates from our public file (as of <strong>${esc(data.asOf)}</strong>). All parties on file are listed. Always verify at <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">candidates.sos.mn.gov</a>.</p>
+      <p>Search and filter candidates from our public file (as of <strong>${esc(data.asOf)}</strong>). Local SD&nbsp;33 / HD&nbsp;33A / HD&nbsp;33B races appear first. All parties on file are listed. Always verify at <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">candidates.sos.mn.gov</a>.</p>
     </header>
 
     <div class="filter-bar" role="search" aria-label="Filter candidates">
-      <label>Search<input type="search" id="cand-q" placeholder="Name or office" autocomplete="off" /></label>
+      <label>Search name<input type="search" id="cand-q" placeholder="Candidate name" autocomplete="off" /></label>
       <label>Office
         <select id="cand-office">
           <option value="">All offices</option>
           ${officeOptions}
         </select>
       </label>
-      <label>Level
-        <select id="cand-level">
-          <option value="">All levels</option>
-          <option value="local">Local (SD/HD)</option>
-          <option value="state">Statewide</option>
-          <option value="federal">Federal</option>
-          <option value="county">County</option>
-          <option value="judicial">Judicial</option>
+      <label>District
+        <select id="cand-district">
+          <option value="">All districts</option>
+          <option value="stateSenate33">SD 33</option>
+          <option value="house33A">HD 33A</option>
+          <option value="house33B">HD 33B</option>
+          <option value="usHouse4">MN-04</option>
+          <option value="usHouse8">MN-08</option>
+          <option value="governor">Statewide (Governor)</option>
+          <option value="usSenate">U.S. Senate</option>
         </select>
       </label>
       <label>Party
@@ -1765,13 +1818,16 @@ app.get("/candidates", (req, res) => {
           <option value="nonpartisan">Nonpartisan</option>
         </select>
       </label>
+      <label class="filter-toggle" style="flex-direction:row;align-items:center;gap:0.4rem;text-transform:none;letter-spacing:0;font-size:0.9rem">
+        <input type="checkbox" id="cand-local" /> Local races only
+      </label>
       <button type="button" class="btn btn-secondary btn-sm" id="cand-clear">Clear filters</button>
       <span class="filter-result-count" id="cand-count" aria-live="polite">${totalCards} candidates</span>
     </div>
 
-    <p class="muted">${esc(data.note || "")}</p>
+    <p class="muted">${esc(String(data.note || "").replace(/\bLEADING\b/gi, "").trim())}</p>
     ${sections}
-    <p class="muted" style="margin-top:1.5rem">Primary Aug&nbsp;11, 2026 · General Nov&nbsp;3, 2026 (confirm on SOS calendars). This directory does not mark primary “leaders” without a cited official result.</p>
+    <p class="muted" style="margin-top:1.5rem">Primary Aug&nbsp;11, 2026 · General Nov&nbsp;3, 2026 (confirm on SOS calendars). This directory does not display “LEADING” or “nominee” labels without a cited official result or verified nomination.</p>
   `;
 
   const filterJs = `
@@ -1779,23 +1835,26 @@ app.get("/candidates", (req, res) => {
   (function(){
     var q = document.getElementById('cand-q');
     var office = document.getElementById('cand-office');
-    var level = document.getElementById('cand-level');
+    var district = document.getElementById('cand-district');
     var party = document.getElementById('cand-party');
+    var localOnly = document.getElementById('cand-local');
     var clear = document.getElementById('cand-clear');
     var count = document.getElementById('cand-count');
     var cards = Array.prototype.slice.call(document.querySelectorAll('.cand-directory-card'));
     function apply(){
       var qs = (q && q.value || '').trim().toLowerCase();
       var of = office && office.value || '';
-      var lv = level && level.value || '';
+      var di = district && district.value || '';
       var py = party && party.value || '';
+      var loc = localOnly && localOnly.checked;
       var n = 0;
       cards.forEach(function(card){
         var ok = true;
-        if (qs && (card.getAttribute('data-search')||'').indexOf(qs) === -1) ok = false;
+        if (qs && (card.getAttribute('data-search')||'').indexOf(qs) === -1 && (card.getAttribute('data-name')||'').indexOf(qs) === -1) ok = false;
         if (of && card.getAttribute('data-district') !== of) ok = false;
-        if (lv && card.getAttribute('data-level') !== lv) ok = false;
+        if (di && card.getAttribute('data-district') !== di) ok = false;
         if (py && (card.getAttribute('data-party')||'').indexOf(py) === -1) ok = false;
+        if (loc && card.getAttribute('data-local') !== '1') ok = false;
         card.hidden = !ok;
         if (ok) n++;
       });
@@ -1805,8 +1864,8 @@ app.get("/candidates", (req, res) => {
       });
       if (count) count.textContent = n + ' candidate' + (n===1?'':'s');
     }
-    [q, office, level, party].forEach(function(el){ if (el) { el.addEventListener('input', apply); el.addEventListener('change', apply); } });
-    if (clear) clear.addEventListener('click', function(){ if(q)q.value=''; if(office)office.value=''; if(level)level.value=''; if(party)party.value=''; apply(); });
+    [q, office, district, party, localOnly].forEach(function(el){ if (el) { el.addEventListener('input', apply); el.addEventListener('change', apply); } });
+    if (clear) clear.addEventListener('click', function(){ if(q)q.value=''; if(office)office.value=''; if(district)district.value=''; if(party)party.value=''; if(localOnly)localOnly.checked=false; apply(); });
   })();
   </script>`;
 
@@ -2744,7 +2803,7 @@ app.get("/review", (req, res) => {
         <div class="card-photo loon"></div>
         <h3>1. Try the tools (5 min)</h3>
         <ul class="checklist">
-          <li><a href="/my-gop-ballot">GOP ballot by address</a> — check preferred candidates; <span class="badge pri">LEADING</span> where applicable</li>
+          <li><a href="/my-gop-ballot">Ballot by address</a> — check preferred candidates (no “LEADING” labels without a cited result)</li>
           <li>Check preferred candidates (pre-primary + post package)</li>
           <li><a href="/field/doors">Doors</a> + busy-street <strong>sign ask</strong></li>
           <li><a href="/carry">Lit to carry</a> checkboxes</li>
@@ -2773,7 +2832,7 @@ app.get("/review", (req, res) => {
       <table>
         <tr><th>Focus</th><th>Detail</th></tr>
         <tr><td>Seats to win</td><td>SD 33 (Housley GOP) · HD 33A open · HD 33B challenge</td></tr>
-        <tr><td>Candidate lists</td><td><span class="tag-gop">GOP</span> candidates by race; <span class="badge pri">LEADING</span> label when a candidate is leading</td></tr>
+        <tr><td>Candidate lists</td><td>All parties on file by race; supported local seats labeled on public pages</td></tr>
         <tr><td>Field emphasis</td><td>Doors &gt; signs on busy streets &gt; phones &gt; lit</td></tr>
         <tr><td>Busy street rule</td><td>Interested in candidate → ask for sign location + log person &amp; contact</td></tr>
         <tr><td>Visual presentation</td><td>St. Croix Valley, lakes, and community imagery</td></tr>
@@ -2825,7 +2884,7 @@ app.get("/win-playbook", (req, res) => {
 
     <div class="card" style="margin-bottom:1rem">
       <h3>North star</h3>
-      <p>Win <strong>three local seats</strong> (Senate 33 + both house halves). Use top-of-ticket energy (<span class="tag-gop">GOP</span> Governor, U.S. Senate, U.S. House) to lift turnout — but never skip the local name on the door piece. On candidate lists, <span class="badge pri">LEADING</span> marks who is currently leading in that race.</p>
+      <p>Win <strong>three local seats</strong> (Senate 33 + both house halves). Use top-of-ticket energy (<span class="tag-gop">GOP</span> Governor, U.S. Senate, U.S. House) to lift turnout — but never skip the local name on the door piece. Public candidate pages do not show “LEADING” without a cited poll or official result.</p>
     </div>
 
     <div class="card" style="margin-bottom:1rem">
@@ -2833,7 +2892,7 @@ app.get("/win-playbook", (req, res) => {
       <ul class="checklist">
         <li>Address → GOP ballot + checkboxes</li>
         <li>Pre-primary vs post-primary package</li>
-        <li><span class="badge pri">LEADING</span> labels when a candidate is leading</li>
+        <li>Supported local seats labeled only for this volunteer project’s focus</li>
         <li>Lit carry checklist</li>
         <li>Doors / phones / signs / poll rings</li>
         <li>Busy-street sign ask + person + contact log</li>
@@ -3425,6 +3484,29 @@ function eventIsConfirmedPublic(e, todayStr) {
   return eventPublicStatus(e, todayStr) === "confirmed";
 }
 
+/** Calendar only when date, time, and location are all confirmed (no TBA). */
+function eventCanAddToCalendar(e, todayStr) {
+  if (!eventIsConfirmedPublic(e, todayStr || todayYmd())) return false;
+  if (!e || !e.date) return false;
+  const hasTime = !!(e.time || e.timeStart);
+  if (!hasTime) return false;
+  const loc = String(e.locationName || "").trim();
+  if (!loc || /tba|to be announced|venue pending|location tba/i.test(loc)) return false;
+  return true;
+}
+
+function dedupeEvents(list) {
+  const seen = new Map();
+  const out = [];
+  for (const e of list || []) {
+    const key = String(e.id || "") || `${String(e.title || "").toLowerCase()}|${e.date || ""}`;
+    if (seen.has(key)) continue;
+    seen.set(key, true);
+    out.push(e);
+  }
+  return out;
+}
+
 function eventStatusBadgeHtml(publicStatus) {
   const map = {
     confirmed: '<span class="badge confirmed">Confirmed</span>',
@@ -3439,7 +3521,7 @@ function eventStatusBadgeHtml(publicStatus) {
 function eventCardHtml(e, opts = {}) {
   const today = opts.today || todayYmd();
   const publicStatus = opts.publicStatus || eventPublicStatus(e, today);
-  const isConfirmed = publicStatus === "confirmed";
+  const canCal = eventCanAddToCalendar(e, today);
   const scope = e.districtScope === "nearby" ? "nearby" : "in";
   const scopeBadge =
     scope === "nearby"
@@ -3447,7 +3529,7 @@ function eventCardHtml(e, opts = {}) {
       : '<span class="badge published">In district</span>';
   const gear = e.gear || {};
   const roles = (e.volunteerRoles || []).map((r) => `<li>${esc(r)}</li>`).join("");
-  const gCal = isConfirmed ? googleCalendarUrl(e) : "";
+  const gCal = canCal ? googleCalendarUrl(e) : "";
   const share = e.socialShare || `${e.title} — ${e.dayLabel || e.date || ""}.`;
   const desc = String(e.description || "").trim();
   const shortDesc = desc.length > 160 ? desc.slice(0, 157) + "…" : desc;
@@ -3486,10 +3568,10 @@ function eventCardHtml(e, opts = {}) {
     <p class="cta-row">
       <a class="btn btn-primary" href="/volunteer?event=${encodeURIComponent(e.id || "")}">Sign up for this event</a>
       ${
-        isConfirmed
+        canCal
           ? `${gCal ? `<a class="btn btn-secondary" href="${esc(gCal)}" target="_blank" rel="noopener">Add to Google Calendar</a>` : ""}
       <a class="btn btn-secondary" href="/events/${encodeURIComponent(e.id || "")}.ics">Add to calendar (.ics)</a>`
-          : `<span class="muted" style="align-self:center">Calendar file available after venue is confirmed.</span>`
+          : `<span class="muted" style="align-self:center">Add to Calendar when date, time, and location are confirmed.</span>`
       }
       <button type="button" class="btn btn-ghost" onclick="navigator.clipboard.writeText(${JSON.stringify(share)});this.textContent='Copied!'">Copy share text</button>
     </p>
@@ -3526,12 +3608,18 @@ function googleCalendarUrl(event) {
 app.get("/events", (req, res) => {
   const data = loadJson(EVENTS_FILE);
   const today = todayYmd();
-  const allEvents = data.events || [];
-  const filter = req.query.scope || "all"; // all | in | nearby
-  const district = req.query.district || ""; // 33A | 33B | SD33
+  const allEvents = dedupeEvents(data.events || []);
+  const statusView = String(req.query.view || "confirmed"); // confirmed | proposed | venue_pending | past | cancelled | all
+  // Default public view: confirmed + upcoming + in-district
+  const filter =
+    req.query.scope != null && req.query.scope !== ""
+      ? String(req.query.scope)
+      : statusView === "confirmed"
+        ? "in"
+        : "all";
+  const district = req.query.district || "";
   const typeFilter = String(req.query.type || "");
   const community = String(req.query.community || "");
-  const statusView = String(req.query.view || "confirmed"); // confirmed | proposed | past | all
   const q = String(req.query.q || "").trim().toLowerCase();
 
   function applyFilters(list) {
@@ -3570,17 +3658,16 @@ app.get("/events", (req, res) => {
     publicStatus: eventPublicStatus(e, today),
   }));
   const confirmedPool = annotated.filter((x) => x.publicStatus === "confirmed").map((x) => x.e);
-  const proposedPool = annotated
-    .filter((x) => x.publicStatus === "proposed" || x.publicStatus === "venue_pending")
-    .map((x) => x.e);
-  const pastPool = annotated
-    .filter((x) => x.publicStatus === "past" || x.publicStatus === "cancelled")
-    .map((x) => x.e)
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const proposedPool = annotated.filter((x) => x.publicStatus === "proposed").map((x) => x.e);
+  const venuePendingPool = annotated.filter((x) => x.publicStatus === "venue_pending").map((x) => x.e);
+  const pastPool = annotated.filter((x) => x.publicStatus === "past").map((x) => x.e);
+  const cancelledPool = annotated.filter((x) => x.publicStatus === "cancelled").map((x) => x.e);
 
   let sourcePool = confirmedPool;
   if (statusView === "proposed") sourcePool = proposedPool;
-  else if (statusView === "past") sourcePool = pastPool;
+  else if (statusView === "venue_pending") sourcePool = venuePendingPool;
+  else if (statusView === "past") sourcePool = pastPool.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  else if (statusView === "cancelled") sourcePool = cancelledPool;
   else if (statusView === "all") sourcePool = allEvents.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
   else sourcePool = confirmedPool;
 
@@ -3593,13 +3680,14 @@ app.get("/events", (req, res) => {
     .join("");
   const emptyMsg =
     statusView === "confirmed"
-      ? `<div class="empty-state"><strong>No confirmed events match these filters.</strong><p class="muted">View <a href="/events?view=proposed">proposed activities</a> or <a href="/volunteer">volunteer for future opportunities</a>.</p></div>`
+      ? `<div class="empty-state"><strong>No confirmed in-district events match these filters.</strong><p class="muted">View <a href="/events?view=proposed">proposed</a>, <a href="/events?view=venue_pending">venue pending</a>, or <a href="/volunteer">volunteer</a>.</p></div>`
       : `<div class="empty-state"><strong>No events match these filters.</strong><p class="muted"><a href="/events">Clear filters</a> or <a href="/volunteer">volunteer</a>.</p></div>`;
 
-  function viewHref(view) {
+  function viewHref(view, scopeOverride) {
     const p = new URLSearchParams();
     p.set("view", view);
-    if (filter && filter !== "all") p.set("scope", filter);
+    const sc = scopeOverride != null ? scopeOverride : filter;
+    if (sc && sc !== "all") p.set("scope", sc);
     if (district) p.set("district", district);
     if (typeFilter) p.set("type", typeFilter);
     if (community) p.set("community", community);
@@ -3613,7 +3701,7 @@ app.get("/events", (req, res) => {
   const body = `
     <header class="page-intro">
       <h1>Events</h1>
-      <p>Confirmed public events first. Proposed or venue-pending activities are separated so neighbors are not misled. As of <strong>${esc(today)}</strong>.</p>
+      <p>Default view: <strong>confirmed</strong>, <strong>upcoming</strong>, <strong>in-district</strong>. Proposed and venue-pending items stay separate. As of <strong>${esc(today)}</strong>.</p>
       <p class="muted">${esc(data.note || "")}</p>
       <div class="cta-row">
         <a class="btn btn-primary" href="/volunteer">Volunteer for events</a>
@@ -3625,26 +3713,29 @@ app.get("/events", (req, res) => {
       <label>Search<input type="search" name="q" form="events-filter" id="ev-q" value="${esc(req.query.q || "")}" placeholder="Name, city, or activity" /></label>
       <label>Status
         <select id="ev-view" form="events-filter" onchange="location.href=this.value">
-          <option value="${esc(viewHref("confirmed"))}" ${statusView === "confirmed" ? "selected" : ""}>Confirmed only</option>
-          <option value="${esc(viewHref("proposed"))}" ${statusView === "proposed" ? "selected" : ""}>Proposed / venue pending</option>
-          <option value="${esc(viewHref("past"))}" ${statusView === "past" ? "selected" : ""}>Past or cancelled</option>
-          <option value="${esc(viewHref("all"))}" ${statusView === "all" ? "selected" : ""}>All listed</option>
+          <option value="${esc(viewHref("confirmed", "in"))}" ${statusView === "confirmed" ? "selected" : ""}>Confirmed</option>
+          <option value="${esc(viewHref("proposed", "all"))}" ${statusView === "proposed" ? "selected" : ""}>Proposed</option>
+          <option value="${esc(viewHref("venue_pending", "all"))}" ${statusView === "venue_pending" ? "selected" : ""}>Venue pending</option>
+          <option value="${esc(viewHref("past", "all"))}" ${statusView === "past" ? "selected" : ""}>Past</option>
+          <option value="${esc(viewHref("cancelled", "all"))}" ${statusView === "cancelled" ? "selected" : ""}>Cancelled</option>
+          <option value="${esc(viewHref("all", "all"))}" ${statusView === "all" ? "selected" : ""}>All listed</option>
         </select>
       </label>
-      <span class="filter-result-count" aria-live="polite">${list.length} event${list.length === 1 ? "" : "s"} · ${confirmedPool.length} confirmed · ${proposedPool.length} proposed</span>
+      <span class="filter-result-count" aria-live="polite">${list.length} showing · ${confirmedPool.length} confirmed · ${proposedPool.length} proposed · ${venuePendingPool.length} venue pending</span>
     </div>
 
     <p class="cta-row" style="flex-wrap:wrap;margin:0.75rem 0 1rem">
-      ${chip(statusView === "confirmed", viewHref("confirmed"), "Confirmed")}
-      ${chip(statusView === "proposed", viewHref("proposed"), "Proposed")}
-      ${chip(statusView === "past", viewHref("past"), "Past")}
+      ${chip(statusView === "confirmed", viewHref("confirmed", "in"), "Confirmed")}
+      ${chip(statusView === "proposed", viewHref("proposed", "all"), "Proposed")}
+      ${chip(statusView === "venue_pending", viewHref("venue_pending", "all"), "Venue pending")}
+      ${chip(statusView === "past", viewHref("past", "all"), "Past")}
+      ${chip(statusView === "cancelled", viewHref("cancelled", "all"), "Cancelled")}
       ${chip(filter === "in", "/events?view=" + encodeURIComponent(statusView) + "&scope=in", "In district")}
       ${chip(filter === "nearby", "/events?view=" + encodeURIComponent(statusView) + "&scope=nearby", "Nearby")}
-      ${chip(district === "33A", "/events?view=" + encodeURIComponent(statusView) + "&district=33A", "HD 33A")}
-      ${chip(district === "33B", "/events?view=" + encodeURIComponent(statusView) + "&district=33B", "HD 33B")}
-      ${chip(district === "SD33", "/events?view=" + encodeURIComponent(statusView) + "&district=SD33", "SD 33")}
-      ${chip(typeFilter === "social", "/events?view=" + encodeURIComponent(statusView) + "&type=social", "Social / meals")}
-      <a class="btn btn-ghost btn-sm" href="/events">Clear filters</a>
+      ${chip(filter === "all" && statusView !== "confirmed", "/events?view=" + encodeURIComponent(statusView) + "&scope=all", "All areas")}
+      ${chip(district === "33A", "/events?view=" + encodeURIComponent(statusView) + "&scope=" + encodeURIComponent(filter) + "&district=33A", "HD 33A")}
+      ${chip(district === "33B", "/events?view=" + encodeURIComponent(statusView) + "&scope=" + encodeURIComponent(filter) + "&district=33B", "HD 33B")}
+      <a class="btn btn-ghost btn-sm" href="/events">Reset defaults</a>
     </p>
     <p class="muted" style="margin:0 0 0.75rem"><strong>Community:</strong>
       ${communities
@@ -3872,7 +3963,7 @@ app.get("/volunteer", (req, res) => {
   delete req.session.flash;
   const eventId = req.query.event || "";
   const today = todayYmd();
-  const events = (loadJson(EVENTS_FILE).events || [])
+  const events = dedupeEvents(loadJson(EVENTS_FILE).events || [])
     .filter((e) => isEventUpcoming(e, today))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))
     .map(
@@ -3883,35 +3974,37 @@ app.get("/volunteer", (req, res) => {
 
   const preActivity = String(req.query.activity || "").trim();
   const preFocus = String(req.query.focus || "").trim();
+  const devNote = PRIVATE_DEVELOPMENT
+    ? `<div class="flash" role="status"><strong>Development preview:</strong> You can test this interface. No personal information is stored or transmitted while private development is active.</div>`
+    : "";
+
   const body = `
     ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    ${devNote}
     <header class="page-intro">
-      <span class="badge pri">About 2 minutes</span>
-      <h1>Volunteer with neighbors in SD&nbsp;33</h1>
-      <p>Help doors, events, literature, phones, or signs across Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B. Start with a short interest form—optional details come after.</p>
-      <p class="muted"><strong>Development preview:</strong> this form is for layout testing only. Submissions are not stored or transmitted while private development is active.</p>
+      <span class="badge pri">Two short steps</span>
+      <h1>Volunteer</h1>
+      <p>Help doors, events, literature, phones, or signs in Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B. Step&nbsp;1 is required. Step&nbsp;2 is optional.</p>
     </header>
 
-    <section class="card section" aria-label="Short volunteer path">
-      <h2 class="section-title" style="margin-top:0">Step 1 — Basic interest</h2>
-      <p class="muted" style="margin-top:0">Required fields only. Estimated time: under two minutes.</p>
-      <form class="stack" method="post" action="/volunteer" id="vol-form-short">
-        <label for="vol-name-s">First and last name *</label>
-        <input id="vol-name-s" name="name" required maxlength="100" autocomplete="name" />
-        <label for="vol-email-s">Email *</label>
-        <input id="vol-email-s" name="email" type="email" required maxlength="160" autocomplete="email" />
-        <label for="vol-phone-s">Mobile phone <span class="muted">(optional for now)</span></label>
-        <input id="vol-phone-s" name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="651-555-0100" inputmode="tel" />
-        <label for="vol-town-s">City or township <span class="muted">(optional)</span></label>
-        <input id="vol-town-s" name="town" maxlength="80" list="vol-towns-s" autocomplete="address-level2" />
-        <datalist id="vol-towns-s">
+    <form class="stack card section" method="post" action="/volunteer" id="vol-two-step">
+      <div id="vol-step-1" class="vol-step">
+        <h2 class="section-title" style="margin-top:0">Step 1 — Basic interest</h2>
+        <p class="muted" style="margin-top:0">About one minute. Only the fields below.</p>
+        <label for="vol-name">Name *</label>
+        <input id="vol-name" name="name" required maxlength="100" autocomplete="name" />
+        <label for="vol-email">Email *</label>
+        <input id="vol-email" name="email" type="email" required maxlength="160" autocomplete="email" />
+        <label for="vol-town">City or township *</label>
+        <input id="vol-town" name="town" required maxlength="80" list="vol-towns" autocomplete="address-level2" />
+        <datalist id="vol-towns">
           <option>Bayport</option><option>Dellwood</option><option>Forest Lake</option><option>Grant</option>
           <option>Hugo</option><option>Mahtomedi</option><option>Marine on St. Croix</option><option>May Township</option>
           <option>Oak Park Heights</option><option>Scandia</option><option>Stillwater</option>
           <option>Stillwater Township</option><option>Willernie</option>
         </datalist>
-        <label for="vol-act-s">Preferred activity *</label>
-        <select id="vol-act-s" name="activities" required>
+        <label for="vol-act">Preferred activity *</label>
+        <select id="vol-act" name="activities" required>
           <option value="doors" ${preActivity === "doors" ? "selected" : ""}>Knock doors</option>
           <option value="events" ${preActivity === "events" ? "selected" : ""}>Community events</option>
           <option value="phones" ${preActivity === "phones" ? "selected" : ""}>Make calls</option>
@@ -3919,299 +4012,103 @@ app.get("/volunteer", (req, res) => {
           <option value="team_lead" ${preActivity === "team_lead" ? "selected" : ""}>Host or lead a small team</option>
           <option value="signs" ${preActivity === "signs" ? "selected" : ""}>Help with signs</option>
         </select>
-        <label for="vol-focus-s">Candidate or district preference <span class="muted">(optional)</span></label>
-        <select id="vol-focus-s" name="campaigns">
+        <label for="vol-focus">Candidate or district preference</label>
+        <select id="vol-focus" name="campaigns">
           <option value="">No preference yet</option>
           <option value="local_three" ${preFocus === "local" ? "selected" : ""}>All three local seats</option>
           <option value="housley" ${preFocus === "housley" ? "selected" : ""}>Karin Housley — SD 33</option>
           <option value="stout" ${preFocus === "stout" ? "selected" : ""}>Stacey Stout — HD 33A</option>
           <option value="johnson" ${preFocus === "johnson" ? "selected" : ""}>Jessica L. Johnson — HD 33B</option>
         </select>
-        <fieldset class="consent-fieldset" style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin:0">
-          <legend style="font-weight:700;padding:0 0.35rem">Consent *</legend>
-          <label class="check-row"><input type="checkbox" name="consentContact" value="yes" required /><span>I understand this is a development preview and that real volunteer intake is not active until the owner enables public mode.</span></label>
-          <label class="check-row"><input type="checkbox" name="consentPrivacy" value="yes" required /><span>I have read the <a href="/privacy">privacy notice</a> and understand how contact info would be used when public mode is enabled.</span></label>
+        <fieldset class="consent-fieldset">
+          <legend>Consent *</legend>
+          <label class="check-row"><input type="checkbox" name="consentContact" value="yes" required /><span>I understand this development site does not accept live volunteer registrations until public mode is enabled.</span></label>
+          <label class="check-row"><input type="checkbox" name="consentPrivacy" value="yes" required /><span>I have read the <a href="/privacy">privacy notice</a>.</span></label>
         </fieldset>
-        <input type="hidden" name="whyVolunteer" value="Quick start interest (full form optional)" />
+        <input type="hidden" name="whyVolunteer" value="Volunteer interest via two-step form" />
         <div class="cta-row">
-          <button class="btn btn-primary" type="submit">Choose My Volunteer Role</button>
-          <a class="btn btn-secondary" href="#vol-full">Add optional preferences</a>
+          <button type="button" class="btn btn-secondary" id="vol-to-step-2">Continue to optional details</button>
+          <button type="submit" class="btn btn-primary">Choose My Volunteer Role</button>
         </div>
-        <p class="muted">No marketing, SMS, or data-sharing boxes are pre-checked. Optional contact preferences appear only when public mode is enabled.</p>
+      </div>
+
+      <div id="vol-step-2" class="vol-step" hidden>
+        <h2 class="section-title" style="margin-top:0" tabindex="-1">Step 2 — Optional preferences</h2>
+        <p class="muted" style="margin-top:0">Skip any field. You can submit from step&nbsp;1 without this section.</p>
+        <label for="vol-avail">Availability</label>
+        <textarea id="vol-avail" name="availability" rows="2" maxlength="400" placeholder="e.g. Saturday mornings, Tuesday evenings"></textarea>
+        <label for="vol-event">Specific event</label>
+        <select id="vol-event" name="eventId">
+          <option value="">No specific event yet</option>
+          ${events}
+        </select>
+        <label class="check-row" style="margin-top:0.75rem"><input type="checkbox" name="teamLead" value="yes" /><span>I am interested in leadership / leading a small team</span></label>
+        <label for="vol-shirt">Shirt size <span class="muted">(optional)</span></label>
+        <select id="vol-shirt" name="shirtSize">
+          <option value="">Prefer not to say</option>
+          <option value="XS">XS</option>
+          <option value="S">S</option>
+          <option value="M">M</option>
+          <option value="L">L</option>
+          <option value="XL">XL</option>
+          <option value="2XL">2XL</option>
+          <option value="3XL">3XL</option>
+        </select>
+        <label for="vol-notes">Additional notes</label>
+        <textarea id="vol-notes" name="notes" rows="3" maxlength="800" placeholder="Anything else we should know"></textarea>
+        <div class="cta-row">
+          <button type="button" class="btn btn-secondary" id="vol-back-1">Back to step 1</button>
+          <button type="submit" class="btn btn-primary">Choose My Volunteer Role</button>
+        </div>
+      </div>
+    </form>
+
+    <section class="card section" id="ideas" style="margin-top:1.25rem">
+      <h2 class="section-title" style="margin-top:0">Suggest an event idea</h2>
+      <p class="muted">Optional. Also not stored while development mode is active.</p>
+      <form class="stack" method="post" action="/volunteer/idea">
+        <label>Your name</label>
+        <input name="name" maxlength="100" />
+        <label>Contact (email or phone)</label>
+        <input name="contact" maxlength="160" />
+        <label>Event name *</label>
+        <input name="eventName" required maxlength="160" />
+        <label>Location / city *</label>
+        <input name="location" required maxlength="120" />
+        <label>Why it matters</label>
+        <textarea name="why" rows="2" maxlength="1000" required></textarea>
+        <button class="btn btn-secondary" type="submit">Submit idea</button>
       </form>
     </section>
+  `;
 
-    <div class="two" id="vol-full">
-      <section class="card">
-        <h3>Full volunteer form</h3>
-        <p class="muted">Optional: issues, multiple activities, candidate preferences, and pack notes.</p>
-        <form class="stack" method="post" action="/volunteer" id="vol-form">
-          <label for="vol-name">Full name *</label>
-          <input id="vol-name" name="name" required maxlength="100" autocomplete="name" />
+  const volJs = `
+  <script>
+  (function(){
+    var step1 = document.getElementById('vol-step-1');
+    var step2 = document.getElementById('vol-step-2');
+    var to2 = document.getElementById('vol-to-step-2');
+    var back = document.getElementById('vol-back-1');
+    var form = document.getElementById('vol-two-step');
+    function show2(){
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+      step1.hidden = true;
+      step2.hidden = false;
+      var h = step2.querySelector('h2');
+      if (h && h.focus) h.focus();
+      window.scrollTo({ top: Math.max(0, form.offsetTop - 80), behavior: 'smooth' });
+    }
+    function show1(){
+      step2.hidden = true;
+      step1.hidden = false;
+      window.scrollTo({ top: Math.max(0, form.offsetTop - 80), behavior: 'smooth' });
+    }
+    if (to2) to2.addEventListener('click', show2);
+    if (back) back.addEventListener('click', show1);
+  })();
+  </script>`;
 
-          <label for="vol-email">Email *</label>
-          <input id="vol-email" name="email" type="email" required maxlength="160" autocomplete="email" />
-
-          <label for="vol-phone">Mobile phone * <span class="muted">(confirmation text when enabled)</span></label>
-          <input id="vol-phone" name="phone" type="tel" required maxlength="40" autocomplete="tel" placeholder="651-555-0100" inputmode="tel" />
-
-          <label for="vol-town">City or township (any in SD 33)</label>
-          <input id="vol-town" name="town" maxlength="80" placeholder="Any district community…" list="vol-towns" />
-          <datalist id="vol-towns">
-            <option>Bayport</option><option>Dellwood</option><option>Forest Lake</option><option>Grant</option>
-            <option>Hugo</option><option>Mahtomedi</option><option>Marine on St. Croix</option><option>May Township</option>
-            <option>Oak Park Heights</option><option>Scandia</option><option>Stillwater</option>
-            <option>Stillwater Township</option><option>Willernie</option>
-          </datalist>
-
-          <label for="vol-hd">House District (if known)</label>
-          <select id="vol-hd" name="houseDistrict">
-            <option value="">Not sure</option>
-            <option value="33A">33A — Stacey Stout (Dellwood, FL P-2/4/5, Grant P-2, Hugo, Mahtomedi, Willernie)</option>
-            <option value="33B">33B — Jessica L. Johnson (Bayport, FL P-1/3, Marine, May Twp, OPH, Scandia, Stillwater, Stillwater Twp)</option>
-            <option value="BOTH">Either / both (full SD 33)</option>
-          </select>
-
-          <label for="why-volunteer">Why Are You Volunteering This Election Cycle?</label>
-          <textarea id="why-volunteer" name="whyVolunteer" rows="3" maxlength="1200" required placeholder="Examples: candidate merit and leadership for our community, transparency, taxes, schools, public safety, Minnesota’s future…"></textarea>
-          <p class="muted" style="margin:0.25rem 0 0.75rem;max-width:520px">We value true merit, leadership for the community, and transparency—along with the issues that matter most to you.</p>
-
-          <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Major Issue(s) of Concern <span class="muted">(check all that apply)</span></p>
-          <div class="check-list" role="group" aria-label="Major issues of concern">
-            ${issueCheck("taxes", "Taxes")}
-            ${issueCheck("education", "Education")}
-            ${issueCheck("roads", "Roads")}
-            ${issueCheck("public_safety", "Public safety")}
-            ${issueCheck("wellbeing", "General well-being of Minnesota and its future")}
-            ${issueCheck("all_above", "All of the above and more")}
-            <label class="check-row"><input type="checkbox" name="issues" value="other" id="issue-other" /><span>Other</span></label>
-          </div>
-          <div id="issue-other-box" class="shirt-size-box" aria-live="polite">
-            <label for="issue-other-text">Please describe other issue(s)</label>
-            <input id="issue-other-text" name="issuesOther" maxlength="400" placeholder="Optional detail if you selected Other" />
-          </div>
-
-          <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Preferred Volunteer Activities <span class="muted">(check all that apply)</span></p>
-          <div class="check-list" role="group" aria-label="Volunteer activities">
-            ${activityCheck("doors", "Door knocking")}
-            ${activityCheck("pulsar", "Get on <strong>Pulsar</strong> / field walk lists — meet campaign for access")}
-            ${activityCheck("phones", "Phone banking")}
-            ${activityCheck("lit", "Literature drops")}
-            ${activityCheck("parades", "Parades &amp; festivals")}
-            ${activityCheck("breakfasts", "Pancake breakfasts / community meals")}
-            ${activityCheck("events", "Event setup / greeters")}
-            ${activityCheck("signs", "Yard signs")}
-            ${activityCheck("captain", "Town captain / leadership")}
-            ${activityCheck("team_lead", "Lead a <strong>small team</strong> through the general election")}
-          </div>
-
-          <p class="form-label-strong camp-section-title">Who I want to campaign for <span class="muted">(check all that apply — builds your bundle pack)</span></p>
-          <p class="muted camp-hint">Local candidates running in your district first; then U.S. Senate, statewide (Gov, SOS, AG, Auditor), and federal house. Verify names at <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">candidates.sos.mn.gov</a>.</p>
-
-          <p class="camp-group-label">Local priority — full districts (all communities listed on home and /turf)</p>
-          <div class="check-list" role="group" aria-label="Local candidates">
-            ${campaignCheck("local_three", "<strong>Win all three local</strong> — Housley + Stout + Johnson (full SD 33 / 33A / 33B)")}
-            ${campaignCheck("housley", "<strong>Karin Housley</strong> — Senate District 33 (entire district)")}
-            ${campaignCheck("stout", "<strong>Stacey Stout</strong> — House District 33A (entire district)")}
-            ${campaignCheck("johnson", "<strong>Jessica L. Johnson</strong> — House District 33B (entire district)")}
-          </div>
-
-          <p class="camp-group-label">Statewide — Governor, U.S. Senate, SOS, AG, Auditor</p>
-          <div class="check-list" role="group" aria-label="Statewide candidates">
-            ${campaignCheck("lindell", "<strong>Mike Lindell &amp; Phillip C. Parrish</strong> — Governor / Lt. Governor")}
-            ${campaignCheck("gov_gop", "Governor — other <strong>GOP tickets</strong> (Qualls, Demuth, etc. / post-primary nominee pack)")}
-            ${campaignCheck("us_senate", "<strong>U.S. Senate</strong> — GOP (Schwarze, Tafoya, White, Weiler, Carney, Gail, Hassan, Lacey, Munro)")}
-            ${campaignCheck("ag", "<strong>Attorney General</strong> — Ronald J. Schutz (GOP)")}
-            ${campaignCheck("sos", "<strong>Secretary of State</strong> — Wendy Phillips / Tad Jude (GOP)")}
-            ${campaignCheck("auditor", "<strong>State Auditor</strong> — Nate George / Scott Jensen / Will Finn (GOP)")}
-          </div>
-
-          <p class="camp-group-label">U.S. House (by district portion within SD 33)</p>
-          <div class="check-list" role="group" aria-label="Federal house candidates">
-            ${campaignCheck("stauber", "<strong>Pete Stauber / Anthony Hamilton</strong> — U.S. House MN-08 GOP (Forest Lake; Hugo; Marine; May Twp; Scandia; Stillwater Twp P-1)")}
-            ${campaignCheck("cd4", "<strong>U.S. House MN-04 GOP</strong> — Wikstrom / field (Bayport; Dellwood; Mahtomedi; Oak Park Heights; Stillwater; Willernie; parts of Stillwater Twp)")}
-            ${campaignCheck("emmer", "<strong>Tom Emmer</strong> — U.S. House MN-06 (optional connect; most of SD 33 is MN-04 or MN-08)")}
-          </div>
-          <div id="campaign-kit" class="campaign-kit" aria-live="polite"></div>
-
-          <div class="check-list" style="margin-top:0.75rem">
-            <label class="check-row"><input type="checkbox" name="wantBundlePack" value="yes" id="want-pack" />
-              <span><strong>Send me a bundle pack</strong> for the candidates I checked (lit, stickers, shirt if sized, early-vote cards when available) — optional, not pre-checked</span></label>
-            <label class="check-row"><input type="checkbox" name="requestDbAccess" value="yes" id="req-db" />
-              <span><strong>Request field database access</strong> (Pulsar / campaign walk lists) after I meet a captain or candidate campaign. <span class="muted">Not a public voter-file dump — campaign-controlled access only.</span></span></label>
-            <label class="check-row"><input type="checkbox" name="connectVolunteers" value="yes" id="connect-vols" />
-              <span><strong>Connect me with other volunteers</strong> who share my candidates nearby — optional, not pre-checked</span></label>
-          </div>
-
-          <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Events I want to do with like-minded neighbors</p>
-          <div class="check-list" role="group" aria-label="Social events">
-            ${socialCheck("happy_hour", "Happy hours")}
-            ${socialCheck("breakfast", "Breakfasts / pancake mornings")}
-            ${socialCheck("lunch", "Working lunches")}
-            ${socialCheck("community_events", "Parades, festivals, karaoke &amp; community events")}
-            ${socialCheck("doors_together", "Door shifts with a buddy / small team")}
-          </div>
-
-          <label for="event-scope">Where should we invite me? <span class="muted">(district geography)</span></label>
-          <select id="event-scope" name="eventScope">
-            <option value="in">In-district only (SD 33 / 33A / 33B)</option>
-            <option value="nearby">Nearby only (just outside district lines)</option>
-            <option value="either" selected>Either in-district <strong>or</strong> nearby</option>
-            <option value="all">All events — near <strong>and</strong> within district</option>
-          </select>
-          <p class="muted" style="margin:0.25rem 0 0.75rem">Browse the matching list anytime: <a href="/events?scope=in">in-district</a> · <a href="/events?scope=nearby">nearby</a> · <a href="/events">all</a> · <a href="/events?type=social">social / happy hour / breakfast / lunch</a></p>
-
-          <label for="vol-event">First preferred event <span class="muted">(adds to your calendar after signup)</span></label>
-          <select id="vol-event" name="eventId">
-            <option value="">No specific event yet — captains will suggest</option>
-            ${events}
-          </select>
-
-          <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Team lead through general election</p>
-          <div class="check-list">
-            <label class="check-row"><input type="checkbox" name="teamLead" value="yes" id="team-lead" />
-              <span>I want to be a <strong>team lead volunteer</strong> — lead a small team of neighbors through the general election (doors, events, pack handouts)</span></label>
-          </div>
-          <div id="team-lead-box" class="shirt-size-box" aria-live="polite">
-            <label for="team-size">Ideal small-team size</label>
-            <select id="team-size" name="teamSize">
-              <option value="">Not sure yet</option>
-              <option value="2-3">2–3 people</option>
-              <option value="4-6">4–6 people</option>
-              <option value="7-10">7–10 people</option>
-            </select>
-            <label for="team-note">Towns / turf I know best (optional)</label>
-            <textarea id="team-note" name="teamLeadNote" rows="2" maxlength="400" placeholder="e.g. Stillwater south of Hwy 36, Forest Lake, Hugo…"></textarea>
-          </div>
-
-          <label for="vol-avail">Days / times that work</label>
-          <textarea id="vol-avail" name="availability" rows="2" maxlength="400" placeholder="e.g. Saturday mornings, Tuesday evenings, lunch hours"></textarea>
-
-          <label for="vol-notes">Notes</label>
-          <textarea id="vol-notes" name="notes" rows="2" maxlength="800"></textarea>
-
-          <div class="check-list">
-            <label class="check-row"><input type="checkbox" name="optIn" value="yes" id="opt-in" checked />
-              <span>Yes — <strong>email and text me</strong> a confirmation, shifts, pack pickup, team connects, and events. I can opt out anytime. <span class="muted">(Msg &amp; data rates may apply.)</span></span></label>
-            <label class="check-row"><input type="checkbox" name="wearShirt" value="yes" id="wear-shirt" />
-              <span>I can wear a campaign shirt or sticker at public events</span></label>
-          </div>
-          <div id="shirt-size-box" class="shirt-size-box" aria-live="polite">
-            <label for="shirt-size"><strong>Shirt size *</strong> <span class="muted">(required if you checked the shirt box)</span></label>
-            <select id="shirt-size" name="shirtSize">
-              <option value="">Select size…</option>
-              <option value="XS">XS</option>
-              <option value="S">S</option>
-              <option value="M">M</option>
-              <option value="L">L</option>
-              <option value="XL">XL</option>
-              <option value="2XL">2XL</option>
-              <option value="3XL">3XL</option>
-              <option value="4XL">4XL</option>
-            </select>
-            <p class="muted" style="margin:0.4rem 0 0">Included in your bundle pack when shirts are in stock.</p>
-          </div>
-
-          <div class="check-list" style="margin-top:1rem">
-            <label class="check-row"><input type="checkbox" name="wantContribute" value="yes" id="want-contrib" />
-              <span><strong>I would like to make a monetary contribution</strong> to a campaign because I don’t have time to volunteer this election cycle; however, I care about our future here in the great state of Minnesota.</span></label>
-          </div>
-          <div id="contrib-box" class="contrib-box" aria-live="polite">
-            <p><strong>Important legal notice (not legal advice — please read):</strong></p>
-            <ul style="margin:0.35rem 0;padding-left:1.2rem;font-size:0.92rem">
-              <li>This form <strong>does not accept or process payments</strong> and does <strong>not</strong> create a campaign contribution.</li>
-              <li>Checking this box only records your <strong>interest</strong>. A captain will follow up with the <strong>official campaign committee</strong> giving page.</li>
-              <li>Contributions are subject to federal and/or Minnesota campaign finance rules and are generally <strong>not tax-deductible</strong>.</li>
-              <li><strong>Do not</strong> send cash, checks, card numbers, or amounts through this form.</li>
-              <li>See <a href="/legal">Legal</a> and <a href="/donate">Donate</a>. Confirm with counsel / CFB / FEC as applicable.</li>
-            </ul>
-            <label for="contrib-for">I am most interested in supporting (optional)</label>
-            <select id="contrib-for" name="contributeFor">
-              <option value="">Any / not sure — captain will help</option>
-              <option value="local_three">Local three (Housley / Stout / Johnson)</option>
-              <option value="housley">Karin Housley — SD 33</option>
-              <option value="stout">Stacey Stout — HD 33A</option>
-              <option value="johnson">Jessica L. Johnson — HD 33B</option>
-              <option value="lindell">Mike Lindell — Governor</option>
-              <option value="us_senate">U.S. Senate GOP</option>
-              <option value="ag">Attorney General GOP</option>
-              <option value="sos">Secretary of State GOP</option>
-              <option value="auditor">State Auditor GOP</option>
-              <option value="emmer">Tom Emmer — MN-06</option>
-              <option value="stauber">Pete Stauber — MN-08</option>
-              <option value="cd4">U.S. House MN-04 GOP</option>
-            </select>
-          </div>
-
-          <button class="btn btn-gold" type="submit">Submit signup · request pack</button>
-          <p class="muted" style="max-width:520px">By submitting with contact opt-in, you request confirmation and agree captains may connect you with preferred campaigns, issue a pack, schedule database access after a meet, and introduce you to peer volunteers. <a href="/privacy">Privacy</a> · <a href="/legal">Legal</a></p>
-        </form>
-      </section>
-
-      <section class="card" id="ideas">
-        <h3>What your bundle pack includes</h3>
-        <ul>
-          <li><strong>Literature</strong> for every candidate you check (local three, U.S. Senate, Gov, SOS, AG, Auditor, federal house) when inventory is available</li>
-          <li><strong>Sample ballot / early-vote cards</strong> and stickers</li>
-          <li><strong>Shirt</strong> if you checked size (parades &amp; festivals)</li>
-          <li><strong>Field access path</strong> — Pulsar / walk lists after captain meet (campaign-controlled)</li>
-          <li><strong>Peer team</strong> — happy hours, breakfasts, lunches, events with neighbors who chose the same races</li>
-        </ul>
-        <p class="muted">Packs are assembled by captains; statewide / federal pieces ship only when those campaigns provide inventory.</p>
-
-        <h3 style="margin-top:1.5rem">Suggest an event idea</h3>
-        <p class="muted">Parade, fair, pancake breakfast, happy hour, lunch, or church meal — in district or nearby.</p>
-        <form class="stack" method="post" action="/volunteer/idea">
-          <label>Your name</label>
-          <input name="name" maxlength="100" />
-          <label>Contact (email or phone)</label>
-          <input name="contact" maxlength="160" />
-          <label>Event name *</label>
-          <input name="eventName" required maxlength="160" />
-          <label>Date (if known)</label>
-          <input name="eventDate" maxlength="80" placeholder="e.g. first Saturday in September" />
-          <label>Location / city *</label>
-          <input name="location" required maxlength="120" />
-          <label>In district or nearby?</label>
-          <select name="scope">
-            <option value="in">Inside SD 33 / 33A / 33B</option>
-            <option value="nearby">Just outside — voters will be there</option>
-            <option value="unsure">Not sure</option>
-          </select>
-          <label>Event type</label>
-          <select name="eventType">
-            <option>Parade</option>
-            <option>Pancake breakfast</option>
-            <option>Happy hour</option>
-            <option>Working lunch</option>
-            <option>Festival / fair</option>
-            <option>Farmers market</option>
-            <option>School / sports</option>
-            <option>Church / community meal</option>
-            <option>Other</option>
-          </select>
-          <label>Why it matters / who attends</label>
-          <textarea name="why" rows="3" maxlength="1000" required placeholder="e.g. Draws Forest Lake and Hugo families…"></textarea>
-          <label>Suggested gear (stickers / lit / shirts)</label>
-          <textarea name="gearIdea" rows="2" maxlength="400" placeholder="Optional"></textarea>
-          <button class="btn" type="submit">Submit idea</button>
-        </form>
-        <p style="margin-top:1.25rem"><a href="/events">← Full events list</a> · <a href="/events?type=social">Social calendar</a></p>
-      </section>
-    </div>
-
-    <section class="card" style="margin-top:1rem">
-      <h3>Team lead · general election path</h3>
-      <ol>
-        <li>Sign up and check candidates → pack is queued.</li>
-        <li>Captain connects you to peers and (if requested) database / Pulsar after a short meet.</li>
-        <li>Team leads get a small team (2–10), a turf slice, and the events calendar through Nov. 3, 2026.</li>
-        <li>Do happy hours, breakfasts, lunches, and doors together — either in-district, nearby, or both.</li>
-      </ol>
-      <p class="muted">See <a href="/events">event cards</a> for stickers / lit / shirts by setting.</p>
-    </section>
-    <script src="/js/volunteer-form.js?v=5"></script>`;
-  sendPage(req, res, "Volunteer Signup", body);
+  sendPage(req, res, "Volunteer", body, { extraFoot: volJs });
 });
 
 function asArray(val) {
@@ -4687,7 +4584,7 @@ app.get("/volunteer/calendar/:id.ics", (req, res) => {
   res.send(entry.ics);
 });
 
-/** Public .ics only for confirmed upcoming events (no signup required) */
+/** Public .ics only when date, time, and location are confirmed */
 app.get("/events/:id.ics", (req, res) => {
   const id = String(req.params.id || "").replace(/\.ics$/i, "");
   const today = todayYmd();
@@ -4695,11 +4592,11 @@ app.get("/events/:id.ics", (req, res) => {
   if (!event || !isEventUpcoming(event, today)) {
     return res.status(404).type("text").send("Event not found or already past.");
   }
-  if (!eventIsConfirmedPublic(event, today)) {
+  if (!eventCanAddToCalendar(event, today)) {
     return res
       .status(404)
       .type("text")
-      .send("Calendar file is available only for confirmed events with a known venue. Check the events page for status.");
+      .send("Add to Calendar is available only when date, time, and location are confirmed.");
   }
   const ics = buildIcs(event, "");
   res.setHeader("Content-Type", "text/calendar; charset=utf-8");
@@ -5200,8 +5097,8 @@ app.get("/legal", (req, res) => {
     </section>
 
     <div class="legal-callout">
-      <strong>What this site is:</strong> An independent St. Croix Valley field / volunteer resource focused on
-      <strong>Senate District 33</strong>, <strong>House 33A</strong>, and <strong>House 33B</strong>.
+      <strong>What this site is:</strong> ${SITE_DESCRIPTION}
+      It focuses on <strong>Senate District 33</strong>, <strong>House 33A</strong>, and <strong>House 33B</strong>.
       It is <strong>not</strong> a government website and does not replace the Secretary of State or county election offices.
     </div>
 
@@ -5414,54 +5311,132 @@ app.get("/win-three", (req, res) => {
 /* ---------- District Facts, About, Sources, Corrections, Portal ---------- */
 app.get("/district-facts", (req, res) => {
   const data = loadCandidates();
+  const label = (kind, text) =>
+    `<span class="data-label data-label--${esc(kind)}">${esc(text)}</span>`;
   const body = `
     <header class="page-intro">
       <h1>District Facts</h1>
-      <p>Geography and structure for Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B. Election results and vote totals are only stated when cited from official sources—verify before publishing.</p>
+      <p>Geography, elections context, and sources for Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B. Every figure is labeled by type. Vote totals appear only when cited—this page does not invent results.</p>
+      <p class="muted">Legend: ${label("official", "Official result")} ${label("calc", "Site calculation")} ${label("comment", "Commentary")} ${label("provisional", "Provisional research")}</p>
     </header>
-    <section class="card section">
-      <h2 class="section-title">How the district is structured</h2>
+
+    <section class="card section" id="overview">
+      <h2 class="section-title">District overview</h2>
+      ${label("provisional", "Provisional research")}
       <p>Minnesota Senate District&nbsp;33 elects one state senator and is paired with two House districts: <strong>33A</strong> and <strong>33B</strong>. Local candidates serve the <strong>full district</strong> for which they file—not a single hometown.</p>
+      <div class="table-scroll" style="overflow-x:auto;margin-top:1rem">
+        <table class="data-table">
+          <thead><tr><th>Seat</th><th>Scope</th><th>Label type</th></tr></thead>
+          <tbody>
+            <tr><td>Senate District 33</td><td>One state senator</td><td>${label("provisional", "Provisional research")}</td></tr>
+            <tr><td>House District 33A</td><td>One state representative</td><td>${label("provisional", "Provisional research")}</td></tr>
+            <tr><td>House District 33B</td><td>One state representative</td><td>${label("provisional", "Provisional research")}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card section" id="communities">
+      <h2 class="section-title">Communities</h2>
+      ${label("provisional", "Provisional research")}
+      <p class="muted">Community lists are maintained from public SOS precinct geography notes in this project’s data files. Confirm boundaries on official maps.</p>
+      <div class="facts-grid facts-grid--three" style="margin-top:1rem">
+        <article class="fact-tile">${areaListHtml("sd33", { compact: true })}</article>
+        <article class="fact-tile">${areaListHtml("hd33a", { compact: true })}</article>
+        <article class="fact-tile">${areaListHtml("hd33b", { compact: true })}</article>
+      </div>
       <div class="grid" style="margin-top:1rem">
-        <article class="community-tile">${areaListHtml("sd33")}</article>
-        <article class="community-tile">${areaListHtml("hd33a")}</article>
-        <article class="community-tile">${areaListHtml("hd33b")}</article>
+        <article class="fact-tile">${areaListHtml("cd4_in_sd33", { compact: true })}</article>
+        <article class="fact-tile">${areaListHtml("cd8_in_sd33", { compact: true })}</article>
       </div>
     </section>
-    <section class="card section">
-      <h2 class="section-title">U.S. House within SD&nbsp;33</h2>
-      <p class="muted">Parts of SD&nbsp;33 fall in MN-04 and MN-08. Lists below are geography, not candidate residence.</p>
-      <div class="grid" style="margin-top:0.75rem">
-        <article class="community-tile">${areaListHtml("cd4_in_sd33")}</article>
-        <article class="community-tile">${areaListHtml("cd8_in_sd33")}</article>
+
+    <section class="card section" id="map">
+      <h2 class="section-title">Map</h2>
+      ${label("provisional", "Provisional research")}
+      <p>Interactive district overlays are on the District Map page (Leaflet + project geo files).</p>
+      <p><a class="btn btn-primary" href="/map">Open district map</a></p>
+    </section>
+
+    <section class="card section" id="presidential-2024">
+      <h2 class="section-title">2024 presidential results</h2>
+      ${label("provisional", "Provisional research")}
+      <p><strong>Not published on this page yet.</strong> When the owner attaches figures from the official Minnesota SOS canvass or county abstract, they will appear in an accessible table with source links and an “Official result” label.</p>
+      <div class="empty-state" style="margin-top:0.75rem">
+        <strong>No presidential totals loaded</strong>
+        <p class="muted">Placeholder only—no invented percentages. Use <a href="https://www.sos.mn.gov/" target="_blank" rel="noopener">sos.mn.gov</a> for official results.</p>
       </div>
     </section>
-    <section class="card section">
-      <h2 class="section-title">Key election dates (verify with SOS)</h2>
-      <ul>
-        <li>State primary: <strong>August 11, 2026</strong> (confirm on SOS calendar)</li>
-        <li>General election: <strong>November 3, 2026</strong> (confirm on SOS calendar)</li>
-      </ul>
-      <p class="muted">Candidate file as of ${esc(data.asOf || "—")}. <a href="https://www.sos.mn.gov/" target="_blank" rel="noopener">sos.mn.gov</a></p>
+
+    <section class="card section" id="district-totals">
+      <h2 class="section-title">SD&nbsp;33, 33A, and 33B totals</h2>
+      ${label("provisional", "Provisional research")}
+      <p>Legislative and district-level election totals for SD&nbsp;33 / HD&nbsp;33A / HD&nbsp;33B will be listed here only with citations (SOS canvass, county abstract, or legislative archive).</p>
+      <div class="table-scroll" style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>District</th><th>Metric</th><th>Value</th><th>Type</th></tr></thead>
+          <tbody>
+            <tr><td>SD 33</td><td>Most recent general</td><td>Pending cited source</td><td>${label("provisional", "Provisional research")}</td></tr>
+            <tr><td>HD 33A</td><td>Most recent general</td><td>Pending cited source</td><td>${label("provisional", "Provisional research")}</td></tr>
+            <tr><td>HD 33B</td><td>Most recent general</td><td>Pending cited source</td><td>${label("provisional", "Provisional research")}</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
+
+    <section class="card section" id="city-results">
+      <h2 class="section-title">City-level election results</h2>
+      ${label("provisional", "Provisional research")}
+      <p>City and township breakouts require official canvass extracts. No city-level vote tables are fabricated here.</p>
+    </section>
+
+    <section class="card section" id="legislative-results">
+      <h2 class="section-title">Recent legislative results</h2>
+      ${label("provisional", "Provisional research")}
+      <p>Recent House and Senate results for these districts will be shown with election date, candidates, and source URL when cited data is attached. Commentary about competitiveness appears only with a cited margin.</p>
+    </section>
+
+    <section class="card section" id="turnout">
+      <h2 class="section-title">Turnout</h2>
+      ${label("provisional", "Provisional research")}
+      <p>Turnout rates (ballots cast ÷ eligible or registered, as defined by the source) will be labeled “Official result” or “Site calculation” when both numerator and denominator are documented.</p>
+    </section>
+
     <section class="card section" id="voting-records">
-      <h2 class="section-title">Voting records &amp; results</h2>
-      <p>This page intentionally does <strong>not</strong> invent 2024 presidential city-level totals, legislative margins, or turnout figures. When the owner attaches cited official results (SOS canvass, county abstract, or legislative journals), they will appear here with clear “official result” versus “site calculation” labels.</p>
+      <h2 class="section-title">Voting records</h2>
+      ${label("comment", "Commentary")}
+      <p>Legislative roll-call voting records are maintained by the Minnesota Legislature’s official systems—not this Field Hub. Link residents to official journals rather than restating votes without citation.</p>
       <ul>
-        <li>Use the Minnesota Secretary of State for official election results and filings.</li>
-        <li>Legislative roll-call voting records belong to the Minnesota Legislature’s official systems—not this Field Hub.</li>
-        <li>Competitive history for organizing context is discussed only when cited; see Corrections if a figure looks wrong.</li>
+        <li><a href="https://www.leg.mn.gov/" target="_blank" rel="noopener">Minnesota Legislature</a></li>
+        <li><a href="https://www.sos.mn.gov/" target="_blank" rel="noopener">Minnesota Secretary of State</a></li>
       </ul>
-      <p class="muted">Map: <a href="/map">District Map</a> · Candidate directory: <a href="/candidates">Candidates</a></p>
     </section>
-    <section class="card section">
-      <h2 class="section-title">Methodology &amp; sources</h2>
+
+    <section class="card section" id="methodology">
+      <h2 class="section-title">Methodology</h2>
       <ul>
-        <li>Community lists: assembled from public SOS precinct geography notes maintained in this project’s data files.</li>
-        <li>Candidate names: public filings / SOS-style lists as recorded in <code>candidates.json</code>.</li>
-        <li>Official ballot and precinct: always use <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a> and <a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">myballotmn.sos.mn.gov</a>.</li>
+        <li><strong>Official result:</strong> taken from SOS, county canvass, or other primary official publication with a link.</li>
+        <li><strong>Site calculation:</strong> arithmetic on official inputs (e.g., share of two-party vote) with formula stated.</li>
+        <li><strong>Commentary:</strong> interpretation that is not a numeric official fact.</li>
+        <li><strong>Provisional research:</strong> project data under review; may lag or contain errors.</li>
       </ul>
-      <p>See also <a href="/sources">Sources</a> and <a href="/corrections">Corrections</a>. Map: <a href="/map">District Map</a>.</p>
+      <p class="muted">Candidate file as of ${esc(data.asOf || "—")}. Dates: primary Aug&nbsp;11, 2026 · general Nov&nbsp;3, 2026 (verify on SOS calendars) ${label("official", "Official result")} when confirmed on SOS calendar pages.</p>
+    </section>
+
+    <section class="card section" id="sources">
+      <h2 class="section-title">Sources</h2>
+      <ul>
+        <li><a href="https://www.sos.mn.gov/" target="_blank" rel="noopener">Minnesota Secretary of State</a></li>
+        <li><a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">Poll finder / precinct</a></li>
+        <li><a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">What's on My Ballot</a></li>
+        <li><a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">Candidate filings</a></li>
+        <li><a href="/sources">Field Hub sources page</a></li>
+      </ul>
+    </section>
+
+    <section class="card section" id="corrections">
+      <h2 class="section-title">Corrections</h2>
+      <p>If a geography label, candidate name, or future result table looks wrong, use <a href="/corrections">Corrections</a> or <a href="/review">Feedback</a> with the page URL and an official source link.</p>
     </section>`;
   sendPage(req, res, "District Facts", body);
 });
@@ -5470,17 +5445,18 @@ app.get("/about", (req, res) => {
   const body = `
     <header class="page-intro">
       <h1>About this Field Hub</h1>
-      <p>A volunteer-built district organizing and voter-information project for Minnesota Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B.</p>
+      <p>${SITE_DESCRIPTION}</p>
     </header>
     <section class="card prose section">
       <h2>What this is</h2>
-      <p>Neighbors in the St.&nbsp;Croix Valley use this site to look up districts, review candidates on file, find events, and—when public mode is activated—volunteer for field work.</p>
+      <p>Neighbors in the St.&nbsp;Croix Valley use this site to look up districts, review candidates on file, find events, and—when public mode is activated—volunteer for field work in Minnesota Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B.</p>
       <h2>What this is not</h2>
       <ul>
         <li>Not an official government website</li>
+        <li>Not an official website of any candidate or campaign committee</li>
         <li>Not legal advice</li>
         <li>Not currently a public campaign, political committee, or fundraising platform (development preview)</li>
-        <li>Not paid for by a candidate committee unless and until the owner documents otherwise</li>
+        <li>No candidate has paid for this website</li>
       </ul>
       <h2>Development status</h2>
       <p>Built with uncompensated volunteer time on free hosting. Forms that would collect volunteer or contribution data are blocked while <code>PRIVATE_DEVELOPMENT</code> is active.</p>
@@ -5532,8 +5508,8 @@ app.get("/corrections", (req, res) => {
 app.get("/portal", (req, res) => {
   const body = `
     <div class="portal-notice">
-      <h1>Field &amp; Captain Portal</h1>
-      <p style="margin:0;max-width:40rem">Operational tools for authorized field work. These pages are not part of the main public journey. They remain available for development and captains; they are not a password-secured campaign system unless separately configured.</p>
+      <h1>Volunteer Portal</h1>
+      <p style="margin:0;max-width:40rem">Authorized operational tools for captains and field volunteers. These pages are not part of the main public journey. Tools may remain available for development; they are not a password-secured campaign system unless separately configured. Write actions stay blocked while private development is active.</p>
     </div>
     <p class="muted">Public visitors: start with <a href="/my-gop-ballot">Find My Ballot</a>, <a href="/volunteer">Volunteer</a>, or <a href="/events">Events</a>.</p>
     <div class="portal-grid section">
@@ -5550,7 +5526,7 @@ app.get("/portal", (req, res) => {
       <a class="portal-link" href="/win-three"><strong>Win path</strong><span>Three-seat plan</span></a>
       <a class="portal-link" href="/carry"><strong>Carry literature</strong><span>Pack selection form</span></a>
     </div>`;
-  sendPage(req, res, "Field Portal", body, { bodyClass: "page-portal" });
+  sendPage(req, res, "Volunteer Portal", body, { bodyClass: "page-portal", mobileBar: false });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
