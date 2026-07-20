@@ -1,28 +1,38 @@
 # Performance Review
 
-## Stack constraints
+## Goals
 
-- Server-rendered HTML strings (no SPA bundle)  
-- Static CSS/JS from Express with short cache in production (5m)  
-- Leaflet/map assets only on map route  
+- Fast first paint on public marketing pages  
+- Minimal layout shift in header/hero  
+- Responsive interaction on forms and filters  
+- Avoid loading full ops datasets on the homepage  
 
-## Improvements in redesign
+## Changes in redesign
 
-- Homepage no longer loads multi-image gallery above the fold  
-- Progressive disclosure for organizer content (off home)  
-- Lazy-loading pattern retained on remaining images  
-- Single design-system CSS + legacy lit.css (tradeoff: two stylesheets for compatibility)  
+- Homepage no longer carries full phase plan / weekly targets tables  
+- Events gear tables and month calendar collapsed behind details by default  
+- Client filters for candidates (no extra network)  
+- Design tokens + shell CSS separated (`design-system.css`)  
+- Images: prefer lazy loading on non-critical assets (legacy gallery reduced from home hero path)  
+- Analytics stub ships disabled (no third-party network)  
+- `noindex` retained in development mode  
 
-## Follow-ups
+## Residual risks
 
-- Merge/minify CSS when leaving development  
-- Subset Google Fonts or self-host  
-- Preconnect already present for fonts  
-- Avoid loading calendar JS on non-event pages (already route-scoped where implemented)  
-- Image compression pass on `public/images/*`  
+- Monolithic `server.js` HTML string generation is fine for free tier but large responses on heavy pages (candidates, events all-view)  
+- Google Fonts still network-loaded (preconnect present)  
+- Leaflet map page payload depends on geo JSON size  
+- `lit.css` still loaded for legacy portal compatibility — future split would help  
 
-## Metrics to capture later
+## Build / runtime
 
-- LCP on home hero background image  
-- TTFB on Render free tier  
-- CLS from sticky header / filter bar  
+- No bundler; static assets served by Express  
+- Production: `npm start` on Render free plan  
+- Cache: short maxAge in production for static assets  
+
+## Recommended next optimizations (owner)
+
+1. Subset or self-host fonts  
+2. Split portal-only CSS from public design system  
+3. Compress geo JSON or lazy-load layers  
+4. Add response compression middleware if not provided by host  

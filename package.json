@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "seed": "node scripts/seed.js",
+    "test": "node scripts/smoke-test.js",
+    "smoke": "node scripts/smoke-test.js",
     "postinstall": "node -e \"const fs=require('fs');if(!fs.existsSync('data'))fs.mkdirSync('data');\""
   },
   "engines": {

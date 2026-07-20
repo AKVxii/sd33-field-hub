@@ -1,36 +1,40 @@
-# Pre-Launch Design Checklist
+# Prelaunch Design Checklist
 
-## Legal / mode
+Owner gates before public mode (`PRIVATE_DEVELOPMENT=false`).
 
-- [ ] Counsel review of disclaimers  
-- [ ] Set `PRIVATE_DEVELOPMENT=false` only when ready  
-- [ ] Confirm contribution / committee status (do not invent)  
-- [ ] Paid-for-by language if paid communications begin  
+## Legal & status
+
+- [ ] Confirm committee / non-committee status with counsel  
+- [ ] Confirm contribution language and whether `/donate` is appropriate  
+- [ ] Confirm paid-for-by or volunteer-only statements  
+- [ ] Keep or revise development banner copy with counsel  
 
 ## Content
 
-- [ ] Confirm candidate websites and photos with proper rights  
-- [ ] Confirm which events are truly confirmed  
-- [ ] Re-verify candidate JSON against SOS  
-- [ ] Spanish page currency  
+- [ ] Verify every candidate name/party against SOS filings  
+- [ ] Attach official campaign URLs and licensed photos only when rights clear  
+- [ ] Confirm each public event status (confirmed vs proposed)  
+- [ ] Add cited election results to District Facts if desired  
+- [ ] Spanish page completeness review  
 
 ## Product
 
-- [ ] Analytics decision  
-- [ ] Portal authentication if needed  
-- [ ] Email/SMS notify webhooks  
-- [ ] Custom domain + HTTPS  
+- [ ] Password or auth for `/portal` and `/team/*` if required  
+- [ ] Enable analytics only with privacy policy update  
+- [ ] Wire real volunteer storage + notification path  
+- [ ] SMS/email consent language when channels activate  
+- [ ] Production SEO: remove noindex, add sitemap only when public  
 
-## Quality
+## QA
 
-- [ ] Full mobile QA checklist  
-- [ ] Accessibility manual pass  
-- [ ] Broken-link crawl  
-- [ ] Load test free-tier cold starts  
+- [ ] `npm test` smoke pass  
+- [ ] Manual a11y pass (see ACCESSIBILITY_REVIEW.md)  
+- [ ] Mobile QA matrix (see MOBILE_QA.md)  
+- [ ] Keyboard path for lookup, filters, volunteer, events  
+- [ ] Broken-link pass on footer + SOS links  
 
-## SEO (only after public mode)
+## Deploy (owner only — do not auto-deploy)
 
-- [ ] Remove noindex  
-- [ ] Unique titles/descriptions  
-- [ ] OG image  
-- [ ] Sitemap  
+- [ ] Review Render env: `SESSION_SECRET`, `PRIVATE_DEVELOPMENT`, `PUBLIC_URL`  
+- [ ] Deploy from approved branch  
+- [ ] Post-deploy health check `/api/health`  

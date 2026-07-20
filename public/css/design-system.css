@@ -880,6 +880,23 @@ form.stack textarea:focus {
 }
 .event-card-sm .cta-row { margin-top: auto; }
 
+/* Full event cards — status differentiation */
+.event-card { border-left: 4px solid var(--line); }
+.event-card--confirmed { border-left-color: var(--ok); }
+.event-card--proposed,
+.event-card--venue_pending { border-left-color: var(--warn); opacity: 0.98; }
+.event-card--past,
+.event-card--cancelled { border-left-color: var(--stone); opacity: 0.92; }
+.event-details-accordion summary { list-style: none; }
+.event-details-accordion summary::-webkit-details-marker { display: none; }
+.event-details-accordion summary::before {
+  content: "▸ ";
+  color: var(--river);
+}
+.event-details-accordion[open] summary::before { content: "▾ "; }
+.consent-fieldset .check-row { display: flex; gap: 0.5rem; align-items: flex-start; margin: 0.4rem 0; }
+.consent-fieldset .check-row input { margin-top: 0.3rem; flex-shrink: 0; }
+
 /* Filter bar (candidates) */
 .filter-bar {
   display: flex;

@@ -1,39 +1,96 @@
 # CRO Measurement Plan
 
-## Primary conversions (rank order)
+## Status
 
-1. **Find My Ballot** — address form submit → `/my-gop-ballot` results  
-2. **Volunteer** — short or full form POST (blocked in dev)  
-3. **Event engagement** — calendar ICS / events page views  
-4. **Local candidate detail** — deep links to `#race-*`  
-5. **Full directory filters** — search/filter usage  
-6. **Official SOS outbound** — pollfinder / myballot / candidates  
-7. **Share** — `/share` visits  
+Analytics are **disabled by default**. The abstraction lives in `public/js/analytics.js` and only fires when the owner sets:
 
-## Suggested events (when analytics allowed)
+```html
+<script>
+  window.__FIELD_HUB_ANALYTICS__ = { enabled: true, endpoint: "/api/analytics", debug: false };
+</script>
+```
 
-| Event name | Trigger |
-|------------|---------|
-| `ballot_lookup_submit` | Home or ballot form GET with address |
-| `volunteer_short_submit` | Short form POST |
-| `volunteer_full_submit` | Full form POST |
-| `event_ics_download` | `*.ics` hits |
-| `candidate_filter` | Filter change (client) |
-| `sos_outbound_click` | Clicks to sos.mn.gov domains |
-| `portal_entry` | `/portal` view |
+Do not enable third-party trackers without explicit configuration and privacy review.
 
-## Guardrails
+## Primary conversion
 
-- No analytics that defeat privacy notices  
-- In `PRIVATE_DEVELOPMENT`, do not claim live conversion totals  
-- Prefer first-party, privacy-respecting tools when activated  
+**Find My Ballot** — address lookup started and completed (districts shown).
 
-## Funnel (public)
+## Secondary conversions (ranked)
 
-Landing → understand in 5s → ballot lookup **or** volunteer tile → SOS confirm → return for events  
+1. Volunteer interest (quick-start complete)  
+2. Confirmed event detail / signup click  
+3. Supported local candidate engagement  
+4. Full directory filter use  
+5. Official SOS or campaign link click  
+6. Share  
+7. Update subscribe (future — not active)  
 
-## A/B ideas (future)
+## Recommended event names
 
-- Hero primary button label: “Find My Ballot” vs “What’s on My Ballot”  
-- Address: single field only vs street + city  
-- Volunteer: short-only vs short + full  
+| Event | When |
+|-------|------|
+| `homepage_primary_cta_click` | Hero / sticky CTA |
+| `ballot_lookup_started` | Address form focus/submit start |
+| `ballot_lookup_completed` | Results rendered |
+| `candidate_filter_used` | Directory filters change |
+| `candidate_profile_opened` | Race/card deep link |
+| `official_campaign_link_clicked` | External campaign / SOS |
+| `volunteer_form_started` | First field focus |
+| `volunteer_step_completed` | Quick-start submit attempt |
+| `volunteer_form_completed` | Server accepts (public mode only) |
+| `event_filter_used` | Events view/filter change |
+| `event_details_opened` | Event accordion / detail |
+| `event_signup_clicked` | Volunteer deep-link from event |
+| `calendar_add_clicked` | .ics / Google calendar |
+| `share_clicked` | Share page / copy |
+| `correction_submitted` | Feedback/corrections |
+| `private_portal_login_started` | Future auth |
+
+Markup support: `data-track="event_name"` on elements; click handler is already wired.
+
+## Funnel stages
+
+### Journey A — Ballot
+
+Land → hero/lookup → submit address → districts shown → candidate race → optional volunteer  
+
+Drop-offs: form confusion, geocode miss, dense results.
+
+### Journey B — Volunteer
+
+Land → help tile or Volunteer → quick-start → (blocked in dev) confirmation  
+
+Drop-offs: long form fear (mitigated by quick-start), consent friction, development block message.
+
+### Journey C — Event
+
+Land → confirmed events → detail → signup/calendar  
+
+Drop-offs: TBA treated as real (mitigated by status views).
+
+## Metrics to review by device
+
+- Mobile vs desktop completion of lookup and volunteer  
+- Sticky CTA click-through vs hero  
+- Filter usage on candidates/events  
+
+## Never capture
+
+- Full street addresses  
+- Phone numbers or emails in analytics payloads  
+- Political preferences / checked candidate lists  
+- Precise geolocation beyond coarse district labels  
+- Voter-file or walk-list identifiers  
+
+The analytics helper strips `street`, `address`, `phone`, `email`, and `partyPreference` if mistakenly passed.
+
+## Page-level success signals
+
+| Page | Success |
+|------|---------|
+| Home | Ballot CTA or lookup submit |
+| Ballot | Districts returned |
+| Candidates | Filter + external source click |
+| Events | Confirmed view engagement |
+| Volunteer | Quick-start submit (or blocked message understood) |

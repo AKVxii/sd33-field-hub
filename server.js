@@ -1174,6 +1174,7 @@ function layout(title, body, opts = {}) {
           <summary>More</summary>
           <div class="nav-more-panel" role="group" aria-label="More pages">
             ${nl("/map", "District Map")}
+            ${nl("/district-facts#voting-records", "Voting Records")}
             ${nl("/sources", "Sources")}
             ${nl("/corrections", "Corrections")}
             ${nl("/about", "About")}
@@ -1209,6 +1210,7 @@ function layout(title, body, opts = {}) {
       ${nl("/district-facts", "District Facts")}
       <p class="mobile-nav-section">More</p>
       ${nl("/map", "District Map")}
+      ${nl("/district-facts#voting-records", "Voting Records")}
       ${nl("/sources", "Sources")}
       ${nl("/corrections", "Corrections")}
       ${nl("/about", "About")}
@@ -1274,6 +1276,7 @@ function layout(title, body, opts = {}) {
   </footer>
   <script src="/js/nav-active.js?v=nav5"></script>
   <script src="/js/site-shell.js?v=v1"></script>
+  <script src="/js/analytics.js?v=v1"></script>
   ${extraFoot}
 </body>
 </html>`;
@@ -1434,15 +1437,11 @@ app.get("/", (req, res) => {
   const flash = req.session.flash;
   delete req.session.flash;
   const todayHome = todayYmd();
-  const allEvents = (loadJson(EVENTS_FILE).events || []).filter((e) => isEventUpcoming(e, todayHome));
-  const confirmedish = allEvents.filter((e) => {
-    const st = String(e.status || "").toLowerCase();
-    const loc = String(e.locationName || "");
-    if (st === "cancelled") return false;
-    if (/tba|to be announced/i.test(loc) && st !== "confirmed") return false;
-    return st === "confirmed" || st === "scheduled" || (st && st !== "planned" && st !== "idea");
-  });
-  const homeEvents = confirmedish.slice(0, 3);
+  const allEvents = loadJson(EVENTS_FILE).events || [];
+  const homeEvents = allEvents
+    .filter((e) => eventIsConfirmedPublic(e, todayHome))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .slice(0, 3);
   const candData = loadCandidates();
   const areas = candData.districtAreas || {};
   function areaDetails(key) {
@@ -1472,25 +1471,20 @@ app.get("/", (req, res) => {
   const eventCards = homeEvents.length
     ? homeEvents
         .map((e) => {
-          const st = String(e.status || "planned");
-          const badge =
-            st === "confirmed"
-              ? '<span class="badge confirmed">Confirmed</span>'
-              : `<span class="badge planned">${esc(st || "Listed")}</span>`;
           return `
       <article class="event-card-sm">
-        ${badge}
+        <span class="badge confirmed">Confirmed</span>
         <h3>${esc(e.title)}</h3>
         <p class="event-meta"><strong>${esc(e.dayLabel || e.date || "")}</strong> · ${esc(e.time || "")} · ${esc(e.locationName || "")}</p>
         <p class="muted" style="margin:0 0 0.5rem;font-size:0.9rem">${esc((e.districts || []).join(" · "))}</p>
         <div class="cta-row">
-          <a class="btn btn-primary btn-sm" href="/events">Details</a>
+          <a class="btn btn-primary btn-sm" href="/events?view=confirmed">View event details</a>
           <a class="btn btn-secondary btn-sm" href="/events/${esc(e.id)}.ics">Add to calendar</a>
         </div>
       </article>`;
         })
         .join("")
-    : `<div class="empty-state" style="grid-column:1/-1"><strong>No confirmed public events listed yet</strong><p class="muted">Planned or venue-TBA items stay on the full calendar until confirmed. <a href="/events">View events calendar</a></p></div>`;
+    : `<div class="empty-state" style="grid-column:1/-1"><strong>No confirmed public events listed yet</strong><p class="muted">Proposed or venue-TBA items stay under <a href="/events?view=proposed">proposed events</a> until confirmed.</p></div>`;
 
   const body = `
     ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
@@ -1646,8 +1640,10 @@ app.get("/", (req, res) => {
       </div>
     </section>
 
-    <div class="mobile-sticky-cta">
-      <a class="btn btn-primary" href="#find-address">Find My Ballot</a>
+    <div class="mobile-sticky-cta" role="navigation" aria-label="Quick actions">
+      <a class="btn btn-primary" href="#find-address">Find Ballot</a>
+      <a class="btn btn-secondary" href="/volunteer">Volunteer</a>
+      <a class="btn btn-secondary" href="/events">Events</a>
     </div>
   `;
   sendPage(req, res, "Home", body, { bodyClass: "page-home has-mobile-cta" });
@@ -1711,12 +1707,12 @@ app.get("/candidates", (req, res) => {
               data-supported="${isSup ? "1" : "0"}">
               <div class="cand-directory-meta">
                 ${partyBadgeHtml(party)}
-                ${isSup ? '<span class="badge supported">Project focus</span>' : ""}
+                ${isSup ? '<span class="badge supported">Supported by this volunteer project</span>' : ""}
               </div>
               <div class="name">${esc(c.name)}</div>
               <div class="muted" style="font-size:0.9rem">${esc(r.office)}</div>
               ${c.note ? `<div class="muted" style="font-size:0.88rem">${esc(c.note)}</div>` : ""}
-              <div class="muted" style="font-size:0.82rem;margin-top:0.35rem">Verified in file as of ${esc(data.asOf || "—")} · <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">SOS filings</a></div>
+              <div class="muted" style="font-size:0.82rem;margin-top:0.35rem">Last verified in file: ${esc(data.asOf || "—")} · <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">Official SOS source</a></div>
             </article>`);
         });
       };
@@ -3407,64 +3403,95 @@ app.get("/map", (req, res) => {
 });
 
 /* ---------- Events + gear + filters ---------- */
-function eventCardHtml(e) {
+/** Public event status for CRO: confirmed | proposed | cancelled | past */
+function eventPublicStatus(e, todayStr) {
+  const st = String(e.status || "").toLowerCase();
+  const loc = String(e.locationName || "") + " " + String(e.address || "");
+  const end = String(e.dateEnd || e.date || "");
+  if (st === "cancelled") return "cancelled";
+  if (end && todayStr && end < todayStr) return "past";
+  if (st === "confirmed") {
+    if (/tba|to be announced|venue pending/i.test(loc)) return "venue_pending";
+    return "confirmed";
+  }
+  if (st === "planned" || st === "idea" || st === "proposed") return "proposed";
+  if (/tba|to be announced|venue pending/i.test(loc)) return "venue_pending";
+  // annual/recurring/scheduled without explicit confirmed → treat as proposed for public trust
+  if (st === "annual" || st === "recurring" || st === "scheduled") return "proposed";
+  return st ? "proposed" : "proposed";
+}
+
+function eventIsConfirmedPublic(e, todayStr) {
+  return eventPublicStatus(e, todayStr) === "confirmed";
+}
+
+function eventStatusBadgeHtml(publicStatus) {
+  const map = {
+    confirmed: '<span class="badge confirmed">Confirmed</span>',
+    venue_pending: '<span class="badge planned">Venue pending</span>',
+    proposed: '<span class="badge planned">Proposed</span>',
+    cancelled: '<span class="badge other">Cancelled</span>',
+    past: '<span class="badge other">Past</span>',
+  };
+  return map[publicStatus] || '<span class="badge planned">Listed</span>';
+}
+
+function eventCardHtml(e, opts = {}) {
+  const today = opts.today || todayYmd();
+  const publicStatus = opts.publicStatus || eventPublicStatus(e, today);
+  const isConfirmed = publicStatus === "confirmed";
   const scope = e.districtScope === "nearby" ? "nearby" : "in";
   const scopeBadge =
     scope === "nearby"
-      ? '<span class="badge other">Just outside · voters likely</span>'
+      ? '<span class="badge other">Nearby</span>'
       : '<span class="badge published">In district</span>';
-  const pri =
-    e.priority === "high"
-      ? '<span class="badge pri">Priority</span>'
-      : e.priority === "medium"
-        ? '<span class="badge marked">Medium</span>'
-        : '<span class="badge other">Optional</span>';
   const gear = e.gear || {};
   const roles = (e.volunteerRoles || []).map((r) => `<li>${esc(r)}</li>`).join("");
-  const cls = e.highlight ? "card event-card highlight" : "card event-card";
-  const gCal = googleCalendarUrl(e);
-  const share = e.socialShare || `${e.title} — ${e.dayLabel || e.date || ""}. https://sd33-field-hub.onrender.com/events`;
-  return `<article class="${cls}" style="margin-bottom:1rem" data-scope="${scope}" data-district="${esc(
+  const gCal = isConfirmed ? googleCalendarUrl(e) : "";
+  const share = e.socialShare || `${e.title} — ${e.dayLabel || e.date || ""}.`;
+  const desc = String(e.description || "").trim();
+  const shortDesc = desc.length > 160 ? desc.slice(0, 157) + "…" : desc;
+  const typeLabel = String(e.type || "event").replace(/_/g, " ");
+  return `<article class="card event-card event-card--${esc(publicStatus)}" style="margin-bottom:1rem" data-scope="${scope}" data-status="${esc(publicStatus)}" data-district="${esc(
     (e.districts || []).join(" ")
   )}" data-type="${esc(e.type || "")}" data-community="${esc(e.community || "")}">
-    <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.4rem">
-      ${e.highlight ? '<span class="badge pri">Featured</span>' : ""}
+    <div class="event-card-badges" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.5rem">
+      ${eventStatusBadgeHtml(publicStatus)}
       ${scopeBadge}
-      ${pri}
-      <span class="badge other">${esc(e.type || "event")}</span>
+      <span class="badge other">${esc(typeLabel)}</span>
       ${e.community ? `<span class="badge published">${esc(e.community)}</span>` : ""}
     </div>
-    <h2 style="margin:0.35rem 0;font-size:1.25rem">${esc(e.title)}</h2>
-    <p><strong>${esc(e.dayLabel || "Date TBA")}</strong>${e.time ? " · " + esc(e.time) : ""}</p>
-    <p>${esc(e.locationName || "")}${e.address ? " · " + esc(e.address) : ""}</p>
-    <p>${esc(e.description || "")}</p>
-    ${
-      e.nearbyReason
-        ? `<p><strong>Why nearby still matters:</strong> ${esc(e.nearbyReason)}</p>`
-        : ""
-    }
-    <p class="muted"><strong>District labels:</strong> ${esc((e.districts || []).join(" · "))}${
-      e.community ? ` · <strong>Community:</strong> ${esc(e.community)}` : ""
-    }</p>
-    <div class="card" style="background:#f8fafc;margin:0.75rem 0;box-shadow:none">
-      <h3 style="margin:0 0 0.5rem;font-size:1rem">What to wear / bring as a volunteer</h3>
-      <ul style="margin:0;padding-left:1.2rem">
-        <li><strong>Stickers:</strong> ${esc(gear.stickers || "Ask captain")}</li>
-        <li><strong>Literature:</strong> ${esc(gear.literature || "Match house district + Senate 33")}</li>
-        <li><strong>Shirts:</strong> ${esc(gear.shirts || "Campaign shirt or solid color")}</li>
-      </ul>
-    </div>
-    ${
-      roles
-        ? `<p class="muted"><strong>Roles:</strong></p><ul>${roles}</ul>`
-        : ""
-    }
-    ${e.source ? `<p class="muted">Source / more info: <a href="${esc(e.source)}" target="_blank" rel="noopener">${esc(e.source)}</a></p>` : ""}
+    <h2 class="event-card-title" style="margin:0.25rem 0;font-size:1.2rem;font-family:var(--font-display)">${esc(e.title)}</h2>
+    <p class="event-card-when" style="margin:0.35rem 0"><strong>${esc(e.dayLabel || e.date || "Date TBA")}</strong>${e.time ? " · " + esc(e.time) : ""}</p>
+    <p class="event-card-where" style="margin:0.25rem 0">${esc(e.locationName || "Location TBA")}${e.address ? " · " + esc(e.address) : ""}</p>
+    ${shortDesc ? `<p class="event-card-desc" style="margin:0.5rem 0">${esc(shortDesc)}</p>` : ""}
+    <p class="muted" style="margin:0.35rem 0;font-size:0.9rem">${esc((e.districts || []).join(" · "))}</p>
+    <details class="event-details-accordion" style="margin:0.75rem 0">
+      <summary style="cursor:pointer;font-weight:700;color:var(--navy)">Volunteer details &amp; gear</summary>
+      <div style="margin-top:0.65rem">
+        ${
+          e.nearbyReason
+            ? `<p><strong>Why nearby still matters:</strong> ${esc(e.nearbyReason)}</p>`
+            : ""
+        }
+        <ul style="margin:0;padding-left:1.2rem">
+          <li><strong>Stickers:</strong> ${esc(gear.stickers || "Ask captain")}</li>
+          <li><strong>Literature:</strong> ${esc(gear.literature || "Match house district + Senate 33")}</li>
+          <li><strong>Shirts:</strong> ${esc(gear.shirts || "Campaign shirt or solid color")}</li>
+        </ul>
+        ${roles ? `<p class="muted" style="margin-top:0.65rem"><strong>Roles:</strong></p><ul>${roles}</ul>` : ""}
+        ${e.source ? `<p class="muted">Source: <a href="${esc(e.source)}" target="_blank" rel="noopener">Read the source</a></p>` : ""}
+      </div>
+    </details>
     <p class="cta-row">
-      <a class="btn btn-gold" href="/volunteer?event=${encodeURIComponent(e.id || "")}">Sign up · add to calendar</a>
-      ${gCal ? `<a class="btn btn-navy" href="${esc(gCal)}" target="_blank" rel="noopener">Google Calendar</a>` : ""}
-      <a class="btn" href="/events/${encodeURIComponent(e.id || "")}.ics">Apple / Outlook (.ics)</a>
-      <button type="button" class="btn" onclick="navigator.clipboard.writeText(${JSON.stringify(share)});this.textContent='Copied!'">Copy social post</button>
+      <a class="btn btn-primary" href="/volunteer?event=${encodeURIComponent(e.id || "")}">Sign up for this event</a>
+      ${
+        isConfirmed
+          ? `${gCal ? `<a class="btn btn-secondary" href="${esc(gCal)}" target="_blank" rel="noopener">Add to Google Calendar</a>` : ""}
+      <a class="btn btn-secondary" href="/events/${encodeURIComponent(e.id || "")}.ics">Add to calendar (.ics)</a>`
+          : `<span class="muted" style="align-self:center">Calendar file available after venue is confirmed.</span>`
+      }
+      <button type="button" class="btn btn-ghost" onclick="navigator.clipboard.writeText(${JSON.stringify(share)});this.textContent='Copied!'">Copy share text</button>
     </p>
   </article>`;
 }
@@ -3499,112 +3526,182 @@ function googleCalendarUrl(event) {
 app.get("/events", (req, res) => {
   const data = loadJson(EVENTS_FILE);
   const today = todayYmd();
-  const events = (data.events || []).filter((e) => isEventUpcoming(e, today));
+  const allEvents = data.events || [];
   const filter = req.query.scope || "all"; // all | in | nearby
   const district = req.query.district || ""; // 33A | 33B | SD33
-  const typeFilter = String(req.query.type || ""); // social | breakfast | happy_hour | lunch
+  const typeFilter = String(req.query.type || "");
   const community = String(req.query.community || "");
-  let list = events.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  if (filter === "in") list = list.filter((e) => e.districtScope !== "nearby");
-  if (filter === "nearby") list = list.filter((e) => e.districtScope === "nearby");
-  if (district === "33A") list = list.filter((e) => (e.districts || []).some((d) => /33A/i.test(d)));
-  if (district === "33B") list = list.filter((e) => (e.districts || []).some((d) => /33B/i.test(d)));
-  if (district === "SD33") list = list.filter((e) => (e.districts || []).some((d) => /SD\s*33|Senate/i.test(d) || e.districtScope === "in"));
-  if (community) list = list.filter((e) => String(e.community || "").toLowerCase() === community.toLowerCase());
-  if (typeFilter === "social") {
-    list = list.filter((e) =>
-      /social|happy_hour|breakfast|lunch|karaoke/i.test(String(e.type || ""))
-    );
-  } else if (typeFilter) {
-    list = list.filter((e) => String(e.type || "").toLowerCase() === typeFilter.toLowerCase());
+  const statusView = String(req.query.view || "confirmed"); // confirmed | proposed | past | all
+  const q = String(req.query.q || "").trim().toLowerCase();
+
+  function applyFilters(list) {
+    let out = list.slice();
+    if (filter === "in") out = out.filter((e) => e.districtScope !== "nearby");
+    if (filter === "nearby") out = out.filter((e) => e.districtScope === "nearby");
+    if (district === "33A") out = out.filter((e) => (e.districts || []).some((d) => /33A/i.test(d)));
+    if (district === "33B") out = out.filter((e) => (e.districts || []).some((d) => /33B/i.test(d)));
+    if (district === "SD33") {
+      out = out.filter(
+        (e) =>
+          (e.districts || []).some((d) => /SD\s*33|Senate/i.test(d)) || e.districtScope === "in"
+      );
+    }
+    if (community) {
+      out = out.filter((e) => String(e.community || "").toLowerCase() === community.toLowerCase());
+    }
+    if (typeFilter === "social") {
+      out = out.filter((e) => /social|happy_hour|breakfast|lunch|karaoke/i.test(String(e.type || "")));
+    } else if (typeFilter) {
+      out = out.filter((e) => String(e.type || "").toLowerCase() === typeFilter.toLowerCase());
+    }
+    if (q) {
+      out = out.filter((e) => {
+        const blob = [e.title, e.locationName, e.community, e.description, (e.districts || []).join(" ")]
+          .join(" ")
+          .toLowerCase();
+        return blob.includes(q);
+      });
+    }
+    return out.sort((a, b) => String(a.date).localeCompare(String(b.date)));
   }
 
-  const communities = [...new Set(events.map((e) => e.community).filter(Boolean))].sort();
-  const inCount = events.filter((e) => e.districtScope !== "nearby").length;
-  const nearCount = events.filter((e) => e.districtScope === "nearby").length;
-  const cards = list.map(eventCardHtml).join("");
-  const communityBtns = communities
-    .map(
-      (c) =>
-        `<a class="btn ${community === c ? "" : "btn-navy"}" href="/events?community=${encodeURIComponent(c)}">${esc(c)}</a>`
-    )
+  const annotated = allEvents.map((e) => ({
+    e,
+    publicStatus: eventPublicStatus(e, today),
+  }));
+  const confirmedPool = annotated.filter((x) => x.publicStatus === "confirmed").map((x) => x.e);
+  const proposedPool = annotated
+    .filter((x) => x.publicStatus === "proposed" || x.publicStatus === "venue_pending")
+    .map((x) => x.e);
+  const pastPool = annotated
+    .filter((x) => x.publicStatus === "past" || x.publicStatus === "cancelled")
+    .map((x) => x.e)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+  let sourcePool = confirmedPool;
+  if (statusView === "proposed") sourcePool = proposedPool;
+  else if (statusView === "past") sourcePool = pastPool;
+  else if (statusView === "all") sourcePool = allEvents.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  else sourcePool = confirmedPool;
+
+  const list = applyFilters(sourcePool);
+  const communities = [
+    ...new Set(allEvents.map((e) => e.community).filter(Boolean)),
+  ].sort();
+  const cards = list
+    .map((e) => eventCardHtml(e, { today, publicStatus: eventPublicStatus(e, today) }))
     .join("");
+  const emptyMsg =
+    statusView === "confirmed"
+      ? `<div class="empty-state"><strong>No confirmed events match these filters.</strong><p class="muted">View <a href="/events?view=proposed">proposed activities</a> or <a href="/volunteer">volunteer for future opportunities</a>.</p></div>`
+      : `<div class="empty-state"><strong>No events match these filters.</strong><p class="muted"><a href="/events">Clear filters</a> or <a href="/volunteer">volunteer</a>.</p></div>`;
+
+  function viewHref(view) {
+    const p = new URLSearchParams();
+    p.set("view", view);
+    if (filter && filter !== "all") p.set("scope", filter);
+    if (district) p.set("district", district);
+    if (typeFilter) p.set("type", typeFilter);
+    if (community) p.set("community", community);
+    if (q) p.set("q", q);
+    return "/events?" + p.toString();
+  }
+  function chip(active, href, label) {
+    return `<a class="btn ${active ? "btn-primary" : "btn-secondary"} btn-sm" href="${esc(href)}">${label}</a>`;
+  }
 
   const body = `
-    <section class="hero prose">
-      <span class="badge pri">Live interactive calendar</span>
-      <h2>Upcoming Events Calendar</h2>
-      <p>Click any date to see details—time, location, gear, and signup. Upcoming only (as of <strong>${esc(today)}</strong>). Past events hide automatically. Also filter by community or district below.</p>
+    <header class="page-intro">
+      <h1>Events</h1>
+      <p>Confirmed public events first. Proposed or venue-pending activities are separated so neighbors are not misled. As of <strong>${esc(today)}</strong>.</p>
       <p class="muted">${esc(data.note || "")}</p>
       <div class="cta-row">
-        <a class="btn btn-gold" href="/volunteer">Volunteer signup · add to calendar</a>
-        <a class="btn" href="/volunteer#ideas">Suggest an event idea</a>
+        <a class="btn btn-primary" href="/volunteer">Volunteer for events</a>
+        <a class="btn btn-secondary" href="/volunteer#ideas">Suggest an event idea</a>
       </div>
-    </section>
+    </header>
 
-    <section id="live-calendar" class="live-calendar-wrap card home-section" aria-label="Interactive month calendar">
-      <div class="cal-toolbar">
-        <div class="cal-nav">
-          <button type="button" class="btn" id="cal-prev" aria-label="Previous month">←</button>
-          <button type="button" class="btn btn-navy" id="cal-today">Today</button>
-          <button type="button" class="btn" id="cal-next" aria-label="Next month">→</button>
-        </div>
-        <h2 id="cal-month-label" class="cal-month-label">Loading…</h2>
-        <div class="cal-legend" aria-hidden="true">
-          <span><i class="cal-dot dot-fest"></i> Festival / fair</span>
-          <span><i class="cal-dot dot-doors"></i> Doors</span>
-          <span><i class="cal-dot dot-social"></i> Social</span>
-          <span><i class="cal-dot dot-meal"></i> Meal</span>
-          <span><i class="cal-dot dot-gotv"></i> GOTV</span>
-        </div>
-      </div>
-      <div class="cal-layout">
-        <div id="cal-grid" class="cal-grid" role="grid" aria-labelledby="cal-month-label"></div>
-        <div id="cal-day-detail" class="cal-day-detail" aria-live="polite">
-          <p class="muted">Loading events…</p>
-        </div>
-      </div>
-    </section>
-    <script src="/js/calendar-app.js?v=1"></script>
-
-    <div class="card" style="margin-bottom:1rem">
-      <h3>Filter event list</h3>
-      <p class="muted">${list.length} showing · ${inCount} in-district upcoming · ${nearCount} nearby · past events hidden</p>
-      <p style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.65rem">
-        <a class="btn ${filter === "all" && !district && !typeFilter && !community ? "" : "btn-navy"}" href="/events">All upcoming</a>
-        <a class="btn ${filter === "in" ? "" : "btn-navy"}" href="/events?scope=in">In district only</a>
-        <a class="btn ${filter === "nearby" ? "" : "btn-navy"}" href="/events?scope=nearby">Nearby (outside)</a>
-        <a class="btn ${typeFilter === "social" ? "" : "btn-navy"}" href="/events?type=social">Happy hour · breakfast · lunch · social</a>
-        <a class="btn ${district === "33A" ? "" : "btn-navy"}" href="/events?district=33A">HD 33A</a>
-        <a class="btn ${district === "33B" ? "" : "btn-navy"}" href="/events?district=33B">HD 33B</a>
-        <a class="btn ${district === "SD33" ? "" : "btn-navy"}" href="/events?district=SD33">SD 33</a>
-      </p>
-      <p class="muted" style="margin:0 0 0.35rem"><strong>By community</strong> (no city left out):</p>
-      <p style="display:flex;flex-wrap:wrap;gap:0.5rem">${communityBtns}</p>
+    <div class="filter-bar" role="search" aria-label="Filter events">
+      <label>Search<input type="search" name="q" form="events-filter" id="ev-q" value="${esc(req.query.q || "")}" placeholder="Name, city, or activity" /></label>
+      <label>Status
+        <select id="ev-view" form="events-filter" onchange="location.href=this.value">
+          <option value="${esc(viewHref("confirmed"))}" ${statusView === "confirmed" ? "selected" : ""}>Confirmed only</option>
+          <option value="${esc(viewHref("proposed"))}" ${statusView === "proposed" ? "selected" : ""}>Proposed / venue pending</option>
+          <option value="${esc(viewHref("past"))}" ${statusView === "past" ? "selected" : ""}>Past or cancelled</option>
+          <option value="${esc(viewHref("all"))}" ${statusView === "all" ? "selected" : ""}>All listed</option>
+        </select>
+      </label>
+      <span class="filter-result-count" aria-live="polite">${list.length} event${list.length === 1 ? "" : "s"} · ${confirmedPool.length} confirmed · ${proposedPool.length} proposed</span>
     </div>
 
-    <div class="card" style="margin-bottom:1rem;border-left:4px solid var(--gold)">
-      <h3>Quick gear guide (all events)</h3>
-      <table>
-        <thead><tr><th>Setting</th><th>Stickers</th><th>Literature</th><th>Shirts</th></tr></thead>
-        <tbody>
-          <tr><td>Parade</td><td>Yes</td><td>Palm cards matching house district on route + Senate 33</td><td>Matching team shirts</td></tr>
-          <tr><td>Festival / fair</td><td>Yes</td><td>Door lit or palm cards; booth rules apply</td><td>Campaign shirt for booth crew</td></tr>
-          <tr><td>Pancake breakfast</td><td>Subtle</td><td>One-pager if host allows table</td><td>Polo / solid / small logo</td></tr>
-          <tr><td>Karaoke / social</td><td>Welcome table</td><td>Light lit only</td><td>Friendly campaign or solid</td></tr>
-          <tr><td>School / youth sports</td><td>Outside only if OK</td><td>Minimal — respect families</td><td>Solid color preferred</td></tr>
-        </tbody>
-      </table>
-      <p class="muted">Always: Housley (SD 33) + Stout (33A) and/or Johnson (33B) by turf. Never put materials in mailboxes. Follow event organizer rules.</p>
-    </div>
+    <p class="cta-row" style="flex-wrap:wrap;margin:0.75rem 0 1rem">
+      ${chip(statusView === "confirmed", viewHref("confirmed"), "Confirmed")}
+      ${chip(statusView === "proposed", viewHref("proposed"), "Proposed")}
+      ${chip(statusView === "past", viewHref("past"), "Past")}
+      ${chip(filter === "in", "/events?view=" + encodeURIComponent(statusView) + "&scope=in", "In district")}
+      ${chip(filter === "nearby", "/events?view=" + encodeURIComponent(statusView) + "&scope=nearby", "Nearby")}
+      ${chip(district === "33A", "/events?view=" + encodeURIComponent(statusView) + "&district=33A", "HD 33A")}
+      ${chip(district === "33B", "/events?view=" + encodeURIComponent(statusView) + "&district=33B", "HD 33B")}
+      ${chip(district === "SD33", "/events?view=" + encodeURIComponent(statusView) + "&district=SD33", "SD 33")}
+      ${chip(typeFilter === "social", "/events?view=" + encodeURIComponent(statusView) + "&type=social", "Social / meals")}
+      <a class="btn btn-ghost btn-sm" href="/events">Clear filters</a>
+    </p>
+    <p class="muted" style="margin:0 0 0.75rem"><strong>Community:</strong>
+      ${communities
+        .map(
+          (c) =>
+            `<a href="/events?view=${encodeURIComponent(statusView)}&community=${encodeURIComponent(c)}">${esc(c)}</a>`
+        )
+        .join(" · ")}
+    </p>
 
-    <h2 id="list">${list.length} event card${list.length === 1 ? "" : "s"}</h2>
-    ${cards || "<p class=\"muted\">No events match this filter.</p>"}
+    <details class="card section" style="margin-bottom:1rem">
+      <summary style="cursor:pointer;font-weight:700">Month calendar &amp; gear guide</summary>
+      <div style="margin-top:1rem">
+        <section id="live-calendar" class="live-calendar-wrap" aria-label="Interactive month calendar">
+          <div class="cal-toolbar">
+            <div class="cal-nav">
+              <button type="button" class="btn btn-secondary btn-sm" id="cal-prev" aria-label="Previous month">←</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="cal-today">Today</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="cal-next" aria-label="Next month">→</button>
+            </div>
+            <h2 id="cal-month-label" class="cal-month-label">Loading…</h2>
+          </div>
+          <div class="cal-layout">
+            <div id="cal-grid" class="cal-grid" role="grid" aria-labelledby="cal-month-label"></div>
+            <div id="cal-day-detail" class="cal-day-detail" aria-live="polite"><p class="muted">Select a day…</p></div>
+          </div>
+        </section>
+        <script src="/js/calendar-app.js?v=2"></script>
+        <div style="margin-top:1rem;overflow-x:auto">
+          <table>
+            <thead><tr><th>Setting</th><th>Stickers</th><th>Literature</th><th>Shirts</th></tr></thead>
+            <tbody>
+              <tr><td>Parade</td><td>Yes</td><td>Palm cards by house district + Senate 33</td><td>Team shirts</td></tr>
+              <tr><td>Festival / fair</td><td>Yes</td><td>Door lit or palm cards; booth rules</td><td>Booth crew shirt</td></tr>
+              <tr><td>Meal / social</td><td>Subtle</td><td>Light table lit if host allows</td><td>Solid / small logo</td></tr>
+            </tbody>
+          </table>
+          <p class="muted">Never place materials in U.S. mailboxes. Follow organizer rules and Minnesota poll-buffer law near voting places.</p>
+        </div>
+      </div>
+    </details>
 
-    <section class="card" style="margin-top:1rem">
-      <h3>Don’t see an event?</h3>
-      <p>Submit a parade, breakfast, fair, or festival idea — including events just outside the district that still draw our voters.</p>
-      <a class="btn btn-gold" href="/volunteer#ideas">Submit event idea</a>
+    <h2 id="list" class="section-title">${
+      statusView === "confirmed"
+        ? "Confirmed upcoming"
+        : statusView === "proposed"
+          ? "Proposed or venue pending"
+          : statusView === "past"
+            ? "Past or cancelled"
+            : "All listed events"
+    }</h2>
+    ${cards || emptyMsg}
+
+    <section class="card section" style="margin-top:1.25rem">
+      <h3 style="margin-top:0">Don’t see your event?</h3>
+      <p class="muted">Suggest a parade, fair, breakfast, or community gathering—including nearby events that draw district neighbors.</p>
+      <a class="btn btn-primary" href="/volunteer#ideas">Suggest an event idea</a>
     </section>`;
   sendPage(req, res, "Events", body);
 });
@@ -3785,39 +3882,62 @@ app.get("/volunteer", (req, res) => {
     .join("");
 
   const preActivity = String(req.query.activity || "").trim();
+  const preFocus = String(req.query.focus || "").trim();
   const body = `
     ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
     <header class="page-intro">
-      <span class="badge pri">Join the team</span>
-      <h1>Volunteer</h1>
-      <p>Start with a short form. Optional details expand below. While this site is in development preview, submissions are not stored.</p>
+      <span class="badge pri">About 2 minutes</span>
+      <h1>Volunteer with neighbors in SD&nbsp;33</h1>
+      <p>Help doors, events, literature, phones, or signs across Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B. Start with a short interest form—optional details come after.</p>
+      <p class="muted"><strong>Development preview:</strong> this form is for layout testing only. Submissions are not stored or transmitted while private development is active.</p>
     </header>
 
     <section class="card section" aria-label="Short volunteer path">
-      <h2 class="section-title" style="margin-top:0">Quick start</h2>
-      <p class="muted" style="margin-top:0">Name, email, phone, and one activity. You can add more on the full form.</p>
+      <h2 class="section-title" style="margin-top:0">Step 1 — Basic interest</h2>
+      <p class="muted" style="margin-top:0">Required fields only. Estimated time: under two minutes.</p>
       <form class="stack" method="post" action="/volunteer" id="vol-form-short">
-        <label for="vol-name-s">Full name *</label>
+        <label for="vol-name-s">First and last name *</label>
         <input id="vol-name-s" name="name" required maxlength="100" autocomplete="name" />
         <label for="vol-email-s">Email *</label>
         <input id="vol-email-s" name="email" type="email" required maxlength="160" autocomplete="email" />
-        <label for="vol-phone-s">Mobile phone *</label>
-        <input id="vol-phone-s" name="phone" type="tel" required maxlength="40" autocomplete="tel" placeholder="651-555-0100" inputmode="tel" />
-        <label for="vol-act-s">Primary activity</label>
-        <select id="vol-act-s" name="activities">
+        <label for="vol-phone-s">Mobile phone <span class="muted">(optional for now)</span></label>
+        <input id="vol-phone-s" name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="651-555-0100" inputmode="tel" />
+        <label for="vol-town-s">City or township <span class="muted">(optional)</span></label>
+        <input id="vol-town-s" name="town" maxlength="80" list="vol-towns-s" autocomplete="address-level2" />
+        <datalist id="vol-towns-s">
+          <option>Bayport</option><option>Dellwood</option><option>Forest Lake</option><option>Grant</option>
+          <option>Hugo</option><option>Mahtomedi</option><option>Marine on St. Croix</option><option>May Township</option>
+          <option>Oak Park Heights</option><option>Scandia</option><option>Stillwater</option>
+          <option>Stillwater Township</option><option>Willernie</option>
+        </datalist>
+        <label for="vol-act-s">Preferred activity *</label>
+        <select id="vol-act-s" name="activities" required>
           <option value="doors" ${preActivity === "doors" ? "selected" : ""}>Knock doors</option>
           <option value="events" ${preActivity === "events" ? "selected" : ""}>Community events</option>
           <option value="phones" ${preActivity === "phones" ? "selected" : ""}>Make calls</option>
-          <option value="lit" ${preActivity === "lit" ? "selected" : ""}>Literature</option>
-          <option value="team_lead" ${preActivity === "team_lead" ? "selected" : ""}>Lead a small team</option>
-          <option value="signs" ${preActivity === "signs" ? "selected" : ""}>Yard signs</option>
+          <option value="lit" ${preActivity === "lit" ? "selected" : ""}>Help with literature</option>
+          <option value="team_lead" ${preActivity === "team_lead" ? "selected" : ""}>Host or lead a small team</option>
+          <option value="signs" ${preActivity === "signs" ? "selected" : ""}>Help with signs</option>
         </select>
+        <label for="vol-focus-s">Candidate or district preference <span class="muted">(optional)</span></label>
+        <select id="vol-focus-s" name="campaigns">
+          <option value="">No preference yet</option>
+          <option value="local_three" ${preFocus === "local" ? "selected" : ""}>All three local seats</option>
+          <option value="housley" ${preFocus === "housley" ? "selected" : ""}>Karin Housley — SD 33</option>
+          <option value="stout" ${preFocus === "stout" ? "selected" : ""}>Stacey Stout — HD 33A</option>
+          <option value="johnson" ${preFocus === "johnson" ? "selected" : ""}>Jessica L. Johnson — HD 33B</option>
+        </select>
+        <fieldset class="consent-fieldset" style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:0.75rem 1rem;margin:0">
+          <legend style="font-weight:700;padding:0 0.35rem">Consent *</legend>
+          <label class="check-row"><input type="checkbox" name="consentContact" value="yes" required /><span>I understand this is a development preview and that real volunteer intake is not active until the owner enables public mode.</span></label>
+          <label class="check-row"><input type="checkbox" name="consentPrivacy" value="yes" required /><span>I have read the <a href="/privacy">privacy notice</a> and understand how contact info would be used when public mode is enabled.</span></label>
+        </fieldset>
         <input type="hidden" name="whyVolunteer" value="Quick start interest (full form optional)" />
         <div class="cta-row">
-          <button class="btn btn-primary" type="submit">Submit interest</button>
-          <a class="btn btn-secondary" href="#vol-full">Full form instead</a>
+          <button class="btn btn-primary" type="submit">Choose My Volunteer Role</button>
+          <a class="btn btn-secondary" href="#vol-full">Add optional preferences</a>
         </div>
-        <p class="muted">By submitting, you understand this development site may block storage until public mode is activated.</p>
+        <p class="muted">No marketing, SMS, or data-sharing boxes are pre-checked. Optional contact preferences appear only when public mode is enabled.</p>
       </form>
     </section>
 
@@ -3915,12 +4035,12 @@ app.get("/volunteer", (req, res) => {
           <div id="campaign-kit" class="campaign-kit" aria-live="polite"></div>
 
           <div class="check-list" style="margin-top:0.75rem">
-            <label class="check-row"><input type="checkbox" name="wantBundlePack" value="yes" id="want-pack" checked />
-              <span><strong>Send me a bundle pack</strong> for the candidates I checked (lit to incorporate, stickers, shirt if sized, early-vote / sample-ballot cards when available)</span></label>
+            <label class="check-row"><input type="checkbox" name="wantBundlePack" value="yes" id="want-pack" />
+              <span><strong>Send me a bundle pack</strong> for the candidates I checked (lit, stickers, shirt if sized, early-vote cards when available) — optional, not pre-checked</span></label>
             <label class="check-row"><input type="checkbox" name="requestDbAccess" value="yes" id="req-db" />
               <span><strong>Request field database access</strong> (Pulsar / campaign walk lists) after I meet a captain or candidate campaign. <span class="muted">Not a public voter-file dump — campaign-controlled access only.</span></span></label>
-            <label class="check-row"><input type="checkbox" name="connectVolunteers" value="yes" id="connect-vols" checked />
-              <span><strong>Connect me with other volunteers</strong> who share my candidates and live in my district or nearby — happy hours, breakfasts, lunches, and events together</span></label>
+            <label class="check-row"><input type="checkbox" name="connectVolunteers" value="yes" id="connect-vols" />
+              <span><strong>Connect me with other volunteers</strong> who share my candidates nearby — optional, not pre-checked</span></label>
           </div>
 
           <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Events I want to do with like-minded neighbors</p>
@@ -4311,8 +4431,12 @@ async function notifySignup(entry, eventObj, kits) {
 }
 
 app.post("/volunteer", async (req, res) => {
-  const interests = asArray(req.body.interest).map(String);
-  const campaigns = asArray(req.body.campaigns).map(String);
+  // Accept multi-check interest[] or single select name="activities" from quick-start form
+  const interests = [
+    ...asArray(req.body.interest).map(String),
+    ...asArray(req.body.activities).map(String),
+  ].filter(Boolean);
+  const campaigns = asArray(req.body.campaigns).map(String).filter(Boolean);
   const social = asArray(req.body.social).map(String);
   const issues = asArray(req.body.issues).map(String);
   const pack = buildBundlePack(campaigns, String(req.body.houseDistrict || ""));
@@ -4347,16 +4471,18 @@ app.post("/volunteer", async (req, res) => {
     shirtSize: String(req.body.shirtSize || "").slice(0, 10),
     wantContribute: req.body.wantContribute === "yes",
     contributeFor: String(req.body.contributeFor || "").slice(0, 40),
+    consentContact: req.body.consentContact === "yes",
+    consentPrivacy: req.body.consentPrivacy === "yes",
     needsCaptainFollowUp: true,
     packStatus: req.body.wantBundlePack === "yes" ? "queued" : "none",
     dbAccessStatus: req.body.requestDbAccess === "yes" || interests.includes("pulsar") ? "requested" : "none",
   };
-  if (!entry.name || !entry.email || !entry.phone) {
-    req.session.flash = "Name, email, and phone are required.";
+  if (!entry.name || !entry.email) {
+    req.session.flash = "Name and email are required.";
     return res.redirect("/volunteer");
   }
   if (!entry.whyVolunteer || entry.whyVolunteer.trim().length < 3) {
-    req.session.flash = "Please share why you are volunteering this election cycle.";
+    req.session.flash = "Please share a brief note about why you want to help (or use the quick-start form).";
     return res.redirect("/volunteer");
   }
   if (entry.wearShirt && !entry.shirtSize) {
@@ -4561,12 +4687,19 @@ app.get("/volunteer/calendar/:id.ics", (req, res) => {
   res.send(entry.ics);
 });
 
-/** Public .ics for any upcoming event (no signup required) */
+/** Public .ics only for confirmed upcoming events (no signup required) */
 app.get("/events/:id.ics", (req, res) => {
   const id = String(req.params.id || "").replace(/\.ics$/i, "");
+  const today = todayYmd();
   const event = (loadJson(EVENTS_FILE).events || []).find((e) => e.id === id);
-  if (!event || !isEventUpcoming(event, todayYmd())) {
+  if (!event || !isEventUpcoming(event, today)) {
     return res.status(404).type("text").send("Event not found or already past.");
+  }
+  if (!eventIsConfirmedPublic(event, today)) {
+    return res
+      .status(404)
+      .type("text")
+      .send("Calendar file is available only for confirmed events with a known venue. Check the events page for status.");
   }
   const ics = buildIcs(event, "");
   res.setHeader("Content-Type", "text/calendar; charset=utf-8");
@@ -5310,6 +5443,16 @@ app.get("/district-facts", (req, res) => {
         <li>General election: <strong>November 3, 2026</strong> (confirm on SOS calendar)</li>
       </ul>
       <p class="muted">Candidate file as of ${esc(data.asOf || "—")}. <a href="https://www.sos.mn.gov/" target="_blank" rel="noopener">sos.mn.gov</a></p>
+    </section>
+    <section class="card section" id="voting-records">
+      <h2 class="section-title">Voting records &amp; results</h2>
+      <p>This page intentionally does <strong>not</strong> invent 2024 presidential city-level totals, legislative margins, or turnout figures. When the owner attaches cited official results (SOS canvass, county abstract, or legislative journals), they will appear here with clear “official result” versus “site calculation” labels.</p>
+      <ul>
+        <li>Use the Minnesota Secretary of State for official election results and filings.</li>
+        <li>Legislative roll-call voting records belong to the Minnesota Legislature’s official systems—not this Field Hub.</li>
+        <li>Competitive history for organizing context is discussed only when cited; see Corrections if a figure looks wrong.</li>
+      </ul>
+      <p class="muted">Map: <a href="/map">District Map</a> · Candidate directory: <a href="/candidates">Candidates</a></p>
     </section>
     <section class="card section">
       <h2 class="section-title">Methodology &amp; sources</h2>
