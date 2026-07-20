@@ -6,7 +6,7 @@
       "office": "Governor of Minnesota",
       "scope": "Statewide",
       "gop": [
-        { "name": "Mike Lindell", "party": "GOP", "note": "LEADING · MyPillow CEO · running mate Phillip Parrish · Trump endorsed", "leading": true },
+        { "name": "Mike Lindell", "party": "GOP", "note": "MyPillow CEO · running mate Phillip Parrish · Trump endorsed", "leading": true },
         { "name": "Kendall Qualls", "party": "GOP", "note": "MNGOP endorsed · running mate Brian Nicholson" },
         { "name": "Lisa Demuth", "party": "GOP", "note": "House Speaker · running mate Ryan Wilson" },
         { "name": "Loner Blue", "party": "GOP", "note": "Running mate Andrew Maass" },

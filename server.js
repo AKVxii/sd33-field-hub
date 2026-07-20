@@ -389,7 +389,7 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
             : "";
           const boxCls = c.leading ? "lit-box cand-pick priority" : "lit-box cand-pick";
           return `<label class="${boxCls}" for="${esc(id)}">
-            <input type="checkbox" id="${esc(id)}" name="pick" value="${esc(val)}" ${c.leading ? "checked" : ""} />
+            <input type="checkbox" id="${esc(id)}" name="pick" value="${esc(val)}" />
             <span>
               <span class="lbl"><span class="tag-gop">GOP</span> ${esc(c.name)}${lead}</span>
               ${c.note ? `<div class="muted">${esc(c.note)}</div>` : ""}
@@ -836,9 +836,9 @@ app.get("/", (req, res) => {
     <div class="grid" style="margin-bottom:1rem">
       <article class="card">
         <div class="card-photo loon"></div>
-        <h3>Governor (GOP) — Lindell leading</h3>
-        <p><span class="tag-gop">GOP</span> <strong>Mike Lindell</strong> listed first (Trump-endorsed). Check your pick on the ballot tool.</p>
-        <a class="btn" href="/my-gop-ballot">Pick candidates</a>
+        <h3>GOP ballot by address</h3>
+        <p>Enter an address to see <span class="tag-gop">GOP</span> candidates for each race. Candidates marked <span class="badge pri">LEADING</span> when currently leading in their race.</p>
+        <a class="btn" href="/my-gop-ballot">Open ballot tool</a>
       </article>
       <article class="card">
         <div class="card-photo valley"></div>
@@ -1929,7 +1929,7 @@ app.get("/review", (req, res) => {
         <div class="card-photo loon"></div>
         <h3>1. Try the tools (5 min)</h3>
         <ul class="checklist">
-          <li><a href="/my-gop-ballot">GOP ballot by address</a> — Lindell listed leading for Governor</li>
+          <li><a href="/my-gop-ballot">GOP ballot by address</a> — check preferred candidates; <span class="badge pri">LEADING</span> where applicable</li>
           <li>Check preferred candidates (pre-primary + post package)</li>
           <li><a href="/field/doors">Doors</a> + busy-street <strong>sign ask</strong></li>
           <li><a href="/carry">Lit to carry</a> checkboxes</li>
@@ -1958,7 +1958,7 @@ app.get("/review", (req, res) => {
       <table>
         <tr><th>Focus</th><th>Detail</th></tr>
         <tr><td>Seats to win</td><td>SD 33 (Housley GOP) · HD 33A open · HD 33B challenge</td></tr>
-        <tr><td>Governor (GOP list)</td><td><strong>Mike Lindell leading</strong> (first / LEADING badge), then Qualls, Demuth, others</td></tr>
+        <tr><td>Candidate lists</td><td><span class="tag-gop">GOP</span> candidates by race; <span class="badge pri">LEADING</span> label when a candidate is leading</td></tr>
         <tr><td>Field emphasis</td><td>Doors &gt; signs on busy streets &gt; phones &gt; lit</td></tr>
         <tr><td>Busy street rule</td><td>Interested in candidate → ask for sign location + log person &amp; contact</td></tr>
         <tr><td>Visual brand</td><td>Loons, lakes, St. Croix valley — Minnesota pride</td></tr>
@@ -2010,29 +2010,23 @@ app.get("/win-playbook", (req, res) => {
 
     <div class="card" style="margin-bottom:1rem">
       <h3>North star</h3>
-      <p>Win <strong>three local seats</strong> (Senate 33 + both house halves). Use top-of-ticket energy (<span class="tag-gop">GOP</span> Governor with <strong>Lindell leading</strong> on our list, U.S. Senate, U.S. House) to lift turnout — but never skip the local name on the door piece.</p>
+      <p>Win <strong>three local seats</strong> (Senate 33 + both house halves). Use top-of-ticket energy (<span class="tag-gop">GOP</span> Governor, U.S. Senate, U.S. House) to lift turnout — but never skip the local name on the door piece. On candidate lists, <span class="badge pri">LEADING</span> marks who is currently leading in that race.</p>
     </div>
 
-    <div class="two" style="margin-bottom:1rem">
-      <div class="card">
-        <h3>What already works on this site</h3>
-        <ul class="checklist">
-          <li>Address → GOP ballot + checkboxes</li>
-          <li>Pre-primary vs post-primary package</li>
-          <li>Lit carry checklist</li>
-          <li>Doors / phones / signs / poll rings</li>
-          <li>Busy-street sign ask + person + contact log</li>
-          <li>MnDOT/county thoroughfare priorities</li>
-          <li>Share + review + feedback</li>
-          <li>Contact CSV import for real voter file</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Governor display (your request)</h3>
-        <p><span class="badge pri">LEADING</span> <strong>Mike Lindell (GOP)</strong> is first on every Governor list — not Demuth.</p>
-        <p class="muted">Primary Aug 11 · others still listed for honest choice &amp; feedback.</p>
-        <a class="btn" href="/my-gop-ballot">See ballot</a>
-      </div>
+    <div class="card" style="margin-bottom:1rem">
+      <h3>What already works on this site</h3>
+      <ul class="checklist">
+        <li>Address → GOP ballot + checkboxes</li>
+        <li>Pre-primary vs post-primary package</li>
+        <li><span class="badge pri">LEADING</span> labels when a candidate is leading</li>
+        <li>Lit carry checklist</li>
+        <li>Doors / phones / signs / poll rings</li>
+        <li>Busy-street sign ask + person + contact log</li>
+        <li>MnDOT/county thoroughfare priorities</li>
+        <li>Share + review + feedback</li>
+        <li>Contact CSV import for real voter file</li>
+      </ul>
+      <p><a class="btn" href="/my-gop-ballot">See ballot</a></p>
     </div>
 
     <section class="card" style="margin-bottom:1rem">
@@ -2142,7 +2136,7 @@ app.get("/share", (req, res) => {
 
 ${base}/review
 
-GOP ballot by address (Lindell listed leading for Governor):
+GOP ballot by address:
 ${shareUrl}
 
 Thanks!
