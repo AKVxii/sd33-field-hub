@@ -784,7 +784,7 @@ function layout(title, body, opts = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for every community in the district." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=home10" />
+  <link rel="stylesheet" href="/css/lit.css?v=cal1" />
   ${extraHead}
 </head>
 <body>
@@ -796,7 +796,7 @@ function layout(title, body, opts = {}) {
       <nav class="nav" id="primary-nav" aria-label="Primary">
         <a href="/"${n("/")}>Home</a>
         <a href="/map"${n("/map")}>District map</a>
-        <a href="/events"${n("/events")}>Events</a>
+        <a href="/events"${n("/events")}>Events calendar</a>
         <a href="/volunteer"${n("/volunteer")}>Volunteer signup</a>
         <a href="/pulsar"${n("/pulsar")}>Pulsar (doors)</a>
         <a href="/schedule"${n("/schedule")}>Shift board</a>
@@ -2983,9 +2983,9 @@ app.get("/events", (req, res) => {
 
   const body = `
     <section class="hero prose">
-      <span class="badge pri">Events · by community · social-ready</span>
+      <span class="badge pri">Live interactive calendar</span>
       <h2>Upcoming Events Calendar</h2>
-      <p>Upcoming only (as of <strong>${esc(today)}</strong>). Past events are removed automatically. Browse by <strong>community</strong>, district, or type. Each card has gear, roles, Google Calendar, .ics, and a ready-to-post social caption.</p>
+      <p>Click any date to see details—time, location, gear, and signup. Upcoming only (as of <strong>${esc(today)}</strong>). Past events hide automatically. Also filter by community or district below.</p>
       <p class="muted">${esc(data.note || "")}</p>
       <div class="cta-row">
         <a class="btn btn-gold" href="/volunteer">Volunteer signup · add to calendar</a>
@@ -2994,8 +2994,33 @@ app.get("/events", (req, res) => {
       </div>
     </section>
 
+    <section id="live-calendar" class="live-calendar-wrap card home-section" aria-label="Interactive month calendar">
+      <div class="cal-toolbar">
+        <div class="cal-nav">
+          <button type="button" class="btn" id="cal-prev" aria-label="Previous month">←</button>
+          <button type="button" class="btn btn-navy" id="cal-today">Today</button>
+          <button type="button" class="btn" id="cal-next" aria-label="Next month">→</button>
+        </div>
+        <h2 id="cal-month-label" class="cal-month-label">Loading…</h2>
+        <div class="cal-legend" aria-hidden="true">
+          <span><i class="cal-dot dot-fest"></i> Festival / fair</span>
+          <span><i class="cal-dot dot-doors"></i> Doors</span>
+          <span><i class="cal-dot dot-social"></i> Social</span>
+          <span><i class="cal-dot dot-meal"></i> Meal</span>
+          <span><i class="cal-dot dot-gotv"></i> GOTV</span>
+        </div>
+      </div>
+      <div class="cal-layout">
+        <div id="cal-grid" class="cal-grid" role="grid" aria-labelledby="cal-month-label"></div>
+        <div id="cal-day-detail" class="cal-day-detail" aria-live="polite">
+          <p class="muted">Loading events…</p>
+        </div>
+      </div>
+    </section>
+    <script src="/js/calendar-app.js?v=1"></script>
+
     <div class="card" style="margin-bottom:1rem">
-      <h3>Filter events</h3>
+      <h3>Filter event list</h3>
       <p class="muted">${list.length} showing · ${inCount} in-district upcoming · ${nearCount} nearby · past events hidden</p>
       <p style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.65rem">
         <a class="btn ${filter === "all" && !district && !typeFilter && !community ? "" : "btn-navy"}" href="/events">All upcoming</a>
@@ -3025,7 +3050,7 @@ app.get("/events", (req, res) => {
       <p class="muted">Always: Housley (SD 33) + Stout (33A) and/or Johnson (33B) by turf. Never put materials in mailboxes. Follow event organizer rules.</p>
     </div>
 
-    <h2>${list.length} event${list.length === 1 ? "" : "s"}</h2>
+    <h2 id="list">${list.length} event card${list.length === 1 ? "" : "s"}</h2>
     ${cards || "<p class=\"muted\">No events match this filter.</p>"}
 
     <section class="card" style="margin-top:1rem">
@@ -3969,6 +3994,51 @@ app.get("/events/:id.ics", (req, res) => {
   res.setHeader("Content-Type", "text/calendar; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="sd33-event-${id.slice(0, 24)}.ics"`);
   res.send(ics);
+});
+
+/** JSON feed for interactive calendar (includes multi-day spans) */
+app.get("/api/events.json", (req, res) => {
+  const today = todayYmd();
+  const all = loadJson(EVENTS_FILE).events || [];
+  // Calendar shows upcoming + current multi-day; also recent 7 days for context optional
+  const events = all
+    .filter((e) => e.date && String(e.dateEnd || e.date) >= today)
+    .map((e) => ({
+      id: e.id,
+      title: e.title,
+      type: e.type,
+      status: e.status,
+      date: e.date,
+      dateEnd: e.dateEnd || e.date,
+      timeStart: e.timeStart || null,
+      timeEnd: e.timeEnd || null,
+      dayLabel: e.dayLabel,
+      time: e.time,
+      community: e.community || "",
+      locationName: e.locationName || "",
+      address: e.address || "",
+      districts: e.districts || [],
+      districtScope: e.districtScope || "in",
+      priority: e.priority || "",
+      description: e.description || "",
+      socialShare: e.socialShare || "",
+      source: e.source || "",
+      gear: e.gear || {},
+      volunteerRoles: e.volunteerRoles || [],
+      highlight: !!e.highlight,
+      googleCalendar: googleCalendarUrl(e),
+    }))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  res.setHeader("Cache-Control", "public, max-age=120");
+  res.json({
+    asOf: today,
+    count: events.length,
+    events,
+  });
+});
+
+app.get("/calendar", (req, res) => {
+  res.redirect(302, "/events#live-calendar");
 });
 
 app.post("/volunteer/idea", (req, res) => {
