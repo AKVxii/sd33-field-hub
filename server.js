@@ -938,7 +938,7 @@ app.get("/", (req, res) => {
         <ul class="checklist">
           <li><span class="tag-gop">GOP</span> Governor — primary winner lit</li>
           <li><span class="tag-gop">GOP</span> U.S. Senate — primary winner lit</li>
-          <li><span class="tag-gop">GOP</span> U.S. House MN-04 or MN-06 (match address)</li>
+          <li><span class="tag-gop">GOP</span> U.S. House MN-04 or MN-08 (match address — not MN-06 in SD 33)</li>
         </ul>
         <p class="muted">Before Aug 11: focus local three seats. After primary: add nominee statewide/federal pieces.</p>
       </article>
