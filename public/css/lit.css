@@ -392,15 +392,19 @@ form.card label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
   .gallery img { height: 110px; }
 }
 
-/* Loon + faint historic Minnesota flag heritage block */
+/* Loon + original historic Minnesota flag (1957–2023 seal design — not the 2024 redesign) */
 .heritage-band {
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 1.15rem;
+  grid-template-columns: 1.1fr 0.72fr 1.15fr;
+  gap: 1rem;
   align-items: stretch;
   margin: 0 0 1.35rem;
 }
-@media (max-width: 800px) {
+@media (max-width: 900px) {
+  .heritage-band { grid-template-columns: 1fr 1fr; }
+  .heritage-copy { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
   .heritage-band { grid-template-columns: 1fr; }
 }
 .heritage-loon {
@@ -410,17 +414,6 @@ form.card label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
   min-height: 220px;
   box-shadow: var(--shadow);
   background: var(--navy) url("/images/loon-lake.jpg") center/cover no-repeat;
-}
-.heritage-loon::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    url("/images/mn-flag-historic.jpg") right 8% center / min(48%, 220px) auto no-repeat;
-  opacity: 0.16;
-  mix-blend-mode: soft-light;
-  pointer-events: none;
-  z-index: 1;
 }
 .heritage-loon::after {
   content: "";
@@ -449,6 +442,38 @@ form.card label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
   opacity: 0.9;
   margin-top: 0.2rem;
 }
+.heritage-flag {
+  position: relative;
+  border-radius: calc(var(--radius) + 2px);
+  overflow: hidden;
+  min-height: 220px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+  background: #0c1a2e url("/images/mn-flag-historic.jpg") center/cover no-repeat;
+  display: flex;
+  align-items: flex-end;
+}
+.heritage-flag::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(6, 26, 46, 0.75) 0%, transparent 55%);
+  pointer-events: none;
+}
+.heritage-flag-caption {
+  position: relative;
+  z-index: 1;
+  padding: 0.85rem 0.9rem;
+  color: #fff;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+.heritage-flag-caption strong {
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 0.2rem;
+}
 .heritage-copy {
   background: var(--card);
   border: 1px solid var(--line);
@@ -471,6 +496,21 @@ form.card label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
   font-size: 0.95rem;
 }
 .heritage-copy p:last-child { margin-bottom: 0; }
+.values-band {
+  border-left: 4px solid var(--lake);
+  background: linear-gradient(90deg, #eef7fb, #fff);
+  border-radius: 0 12px 12px 0;
+  padding: 1rem 1.15rem;
+  margin: 0 0 1.35rem;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+}
+.values-band h2 {
+  margin: 0 0 0.4rem;
+  color: var(--navy);
+  font-size: 1.15rem;
+}
+.values-band p { margin: 0; color: #2a3540; font-size: 0.96rem; max-width: 70ch; }
 .image-rights {
   font-size: 0.78rem;
   color: var(--muted);
