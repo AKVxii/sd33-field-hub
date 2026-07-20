@@ -1,6 +1,78 @@
 {
   "asOf": "2026-07-20",
-  "note": "Primary Aug 11, 2026 (canceled where unopposed) · General Nov 3, 2026. House 33A/33B GOP names from Ballotpedia candidate filings. Verify at SOS. Party labels: GOP = Republican.",
+  "note": "Primary Aug 11, 2026 (canceled where unopposed) · General Nov 3, 2026. House 33A/33B GOP names from Ballotpedia candidate filings. Verify at SOS. Party labels: GOP = Republican. District areas list every community in the district—candidates are presented by district geography, not hometown spin.",
+  "districtAreas": {
+    "sd33": {
+      "label": "Senate District 33",
+      "areas": [
+        "Bayport",
+        "Dellwood",
+        "Forest Lake",
+        "Grant (Precinct 2)",
+        "Hugo",
+        "Mahtomedi",
+        "Marine on St. Croix",
+        "May Township",
+        "Oak Park Heights",
+        "Scandia",
+        "Stillwater",
+        "Stillwater Township",
+        "Willernie"
+      ],
+      "note": "Full SD 33 — every community listed (SOS precinct geography). Local candidates serve the whole district, not a single city."
+    },
+    "hd33a": {
+      "label": "House District 33A",
+      "areas": [
+        "Dellwood",
+        "Forest Lake (Precincts 2, 4, 5)",
+        "Grant (Precinct 2)",
+        "Hugo",
+        "Mahtomedi (Precincts 1, 2)",
+        "Willernie"
+      ],
+      "note": "All 33A communities and precincts listed. Candidate serves House District 33A as a whole."
+    },
+    "hd33b": {
+      "label": "House District 33B",
+      "areas": [
+        "Bayport",
+        "Forest Lake (Precincts 1, 3)",
+        "Marine on St. Croix",
+        "May Township",
+        "Oak Park Heights",
+        "Scandia",
+        "Stillwater (all wards)",
+        "Stillwater Township (Precincts 1, 2)"
+      ],
+      "note": "All 33B communities and precincts listed. Candidate serves House District 33B as a whole."
+    },
+    "cd4_in_sd33": {
+      "label": "U.S. House MN-04 (within SD 33)",
+      "areas": [
+        "Bayport",
+        "Dellwood",
+        "Mahtomedi",
+        "Oak Park Heights",
+        "Stillwater",
+        "Willernie",
+        "parts of Stillwater Township"
+      ],
+      "note": "Federal MN-04 portion of SD 33 — list is district geography, not candidate residence."
+    },
+    "cd8_in_sd33": {
+      "label": "U.S. House MN-08 (within SD 33)",
+      "areas": [
+        "Forest Lake",
+        "Hugo",
+        "Marine on St. Croix",
+        "May Township",
+        "Scandia",
+        "Stillwater Township (Precinct 1)"
+      ],
+      "note": "Federal MN-08 portion of SD 33 — list is district geography, not candidate residence."
+    }
+  },
   "races": {
     "governor": {
       "office": "Governor of Minnesota",
@@ -53,11 +125,12 @@
     },
     "usHouse4": {
       "office": "U.S. House — Minnesota District 4",
-      "scope": "Within SD 33: Stillwater, Oak Park Heights, Bayport, Mahtomedi, Dellwood, Willernie, parts of Stillwater Twp (SOS May 2026)",
+      "districtKey": "cd4_in_sd33",
+      "scope": "Within SD 33 (all communities listed equally): Bayport; Dellwood; Mahtomedi; Oak Park Heights; Stillwater; Willernie; parts of Stillwater Township (SOS May 2026). Candidates serve the district—not presented by hometown.",
       "gop": [
-        { "name": "Paul Wikstrom", "party": "GOP", "note": "MNGOP endorsed" },
-        { "name": "Paul Xiong", "party": "GOP", "note": "" },
-        { "name": "Gene Rechtzigel", "party": "GOP", "note": "" }
+        { "name": "Paul Wikstrom", "party": "GOP", "note": "MNGOP endorsed · MN-04 district candidate" },
+        { "name": "Paul Xiong", "party": "GOP", "note": "MN-04 district candidate" },
+        { "name": "Gene Rechtzigel", "party": "GOP", "note": "MN-04 district candidate" }
       ],
       "other": [
         { "name": "Betty McCollum", "party": "DFL", "note": "Incumbent" },
@@ -66,9 +139,10 @@
     },
     "usHouse8": {
       "office": "U.S. House — Minnesota District 8",
-      "scope": "Within SD 33: Forest Lake, Hugo, Scandia, Marine on St. Croix, May Twp, Stillwater Twp P-1 (SOS May 2026)",
+      "districtKey": "cd8_in_sd33",
+      "scope": "Within SD 33 (all communities listed equally): Forest Lake; Hugo; Marine on St. Croix; May Township; Scandia; Stillwater Township Precinct 1 (SOS May 2026). Candidates serve the district—not presented by hometown.",
       "gop": [
-        { "name": "Pete Stauber", "party": "GOP", "note": "Incumbent" }
+        { "name": "Pete Stauber", "party": "GOP", "note": "Incumbent · MN-08 district" }
       ],
       "other": [
         { "name": "See SOS candidate finder for DFL field", "party": "DFL", "note": "Confirm filings for 2026" }
@@ -76,35 +150,38 @@
     },
     "stateSenate33": {
       "office": "Minnesota State Senate — District 33",
-      "scope": "SOS: Bayport, Dellwood, Forest Lake, Grant P-2, Hugo, Mahtomedi, Marine on St. Croix, May Twp, Scandia, Oak Park Heights, Stillwater, Stillwater Twp, Willernie",
+      "districtKey": "sd33",
+      "scope": "Entire Senate District 33 (all communities listed equally): Bayport; Dellwood; Forest Lake; Grant (P-2); Hugo; Mahtomedi; Marine on St. Croix; May Township; Oak Park Heights; Scandia; Stillwater; Stillwater Township; Willernie. Candidate serves the full district—not a single city.",
       "winSeat": true,
       "gop": [
-        { "name": "Karin Housley", "party": "GOP", "note": "Incumbent" }
+        { "name": "Karin Housley", "party": "GOP", "note": "Incumbent · Senate District 33" }
       ],
       "other": [
-        { "name": "Nat Smith", "party": "DFL", "note": "Challenger" }
+        { "name": "Nat Smith", "party": "DFL", "note": "Challenger · Senate District 33" }
       ]
     },
     "house33A": {
       "office": "Minnesota House — District 33A",
-      "scope": "SOS precincts: Dellwood; Forest Lake P-2, P-4, P-5; Grant P-2; Hugo (all); Mahtomedi P-1, P-2; Willernie",
+      "districtKey": "hd33a",
+      "scope": "Entire House District 33A (all communities/precincts listed equally): Dellwood; Forest Lake (P-2, P-4, P-5); Grant (P-2); Hugo; Mahtomedi (P-1, P-2); Willernie. Candidate serves the full house district—not a single city.",
       "winSeat": true,
       "gop": [
-        { "name": "Stacey Stout", "party": "GOP", "note": "Republican nominee · open seat · staceystout.com" }
+        { "name": "Stacey Stout", "party": "GOP", "note": "Republican nominee · House District 33A · open seat" }
       ],
       "other": [
-        { "name": "Angela Thompson", "party": "DFL", "note": "DFL nominee · general election Nov. 3, 2026" }
+        { "name": "Angela Thompson", "party": "DFL", "note": "DFL nominee · House District 33A · general election Nov. 3, 2026" }
       ]
     },
     "house33B": {
       "office": "Minnesota House — District 33B",
-      "scope": "SOS precincts: Bayport; Forest Lake P-1, P-3; Marine on St. Croix; May Twp; Oak Park Heights; Scandia; Stillwater (all wards); Stillwater Twp P-1, P-2",
+      "districtKey": "hd33b",
+      "scope": "Entire House District 33B (all communities/precincts listed equally): Bayport; Forest Lake (P-1, P-3); Marine on St. Croix; May Township; Oak Park Heights; Scandia; Stillwater (all wards); Stillwater Township (P-1, P-2). Candidate serves the full house district—not a single city.",
       "winSeat": true,
       "gop": [
-        { "name": "Jessica L. Johnson", "party": "GOP", "note": "Republican nominee · challenging incumbent Josiah Hill" }
+        { "name": "Jessica L. Johnson", "party": "GOP", "note": "Republican nominee · House District 33B" }
       ],
       "other": [
-        { "name": "Josiah Hill", "party": "DFL", "note": "Incumbent" }
+        { "name": "Josiah Hill", "party": "DFL", "note": "Incumbent · House District 33B" }
       ]
     },
     "attorneyGeneral": {
@@ -212,7 +289,7 @@
     },
     {
       "id": "lit_cd8_gop",
-      "label": "U.S. House MN-08 — Pete Stauber (GOP) (Forest Lake / Hugo / Scandia area)",
+      "label": "U.S. House MN-08 — Pete Stauber (GOP) — Forest Lake, Hugo, Marine on St. Croix, May Township, Scandia, Stillwater Twp P-1",
       "party": "GOP",
       "seat": "US House 8",
       "priority": 2,

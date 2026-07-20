@@ -188,6 +188,24 @@ function signAskCalloutAndForm(opts = {}) {
 function loadCandidates() {
   return JSON.parse(fs.readFileSync(CAND_FILE, "utf8"));
 }
+/** Full district community lists — equal billing, no hometown spin */
+function districtAreas(key) {
+  const d = loadCandidates().districtAreas || {};
+  return d[key] || { label: key, areas: [], note: "" };
+}
+function formatAreaList(key, sep = "; ") {
+  const d = districtAreas(key);
+  return (d.areas || []).join(sep);
+}
+function areaListHtml(key) {
+  const d = districtAreas(key);
+  const items = (d.areas || []).map((a) => `<li>${esc(a)}</li>`).join("");
+  return `<div class="district-areas">
+    <p class="muted" style="margin:0 0 0.4rem"><strong>${esc(d.label || "")}</strong> — all communities and precincts (equal listing; candidates serve the full district):</p>
+    <ul class="area-grid">${items}</ul>
+    ${d.note ? `<p class="muted" style="margin:0.4rem 0 0;font-size:0.88rem">${esc(d.note)}</p>` : ""}
+  </div>`;
+}
 function loadJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
@@ -764,9 +782,9 @@ function layout(title, body, opts = {}) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for Forest Lake, Stillwater, and neighboring communities." />
+  <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for every community in the district." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=home9" />
+  <link rel="stylesheet" href="/css/lit.css?v=home10" />
   ${extraHead}
 </head>
 <body>
@@ -995,7 +1013,7 @@ app.get("/", (req, res) => {
       <div class="photo-hero-content">
         <span class="badge pri">Washington County · Minnesota</span>
         <h2>St. Croix Valley Field Hub</h2>
-        <p>A public volunteer resource for Minnesota <strong>Senate District&nbsp;33</strong> and <strong>House Districts&nbsp;33A and&nbsp;33B</strong>—Forest Lake, Stillwater, Hugo, and neighboring communities along the lakes and the St.&nbsp;Croix River.</p>
+        <p>A public volunteer resource for Minnesota <strong>Senate District&nbsp;33</strong> and <strong>House Districts&nbsp;33A and&nbsp;33B</strong>—serving every community in the district along the lakes and the St.&nbsp;Croix River. Candidates are listed by <strong>district</strong>, with all cities and townships named equally.</p>
         <div class="cta-row">
           <a class="btn btn-gold" href="/map">District Map &amp; Candidates</a>
           <a class="btn" href="/events">Events, Parades &amp; Breakfasts</a>
@@ -1031,16 +1049,39 @@ app.get("/", (req, res) => {
 
     <section class="values-band home-section" aria-label="Our standards for candidates">
       <h2>Merit, Leadership &amp; Transparency</h2>
-      <p>We value the true merit and leadership of each candidate for our community—integrity, competence, and service over slogans. We favor transparency: clear public records, honest debate, and open field practices so neighbors can judge who will serve Forest Lake, Stillwater, and the St.&nbsp;Croix Valley with accountability.</p>
+      <p>We value the true merit and leadership of each candidate for our community—integrity, competence, and service over slogans. We favor transparency: clear public records, honest debate, and open field practices so neighbors in every city and township can judge who will serve their full district with accountability. We do not center a candidate on a single hometown; we name the whole district.</p>
+    </section>
+
+    <section class="card home-section" aria-label="All communities in Senate District 33">
+      <h2 class="section-title">Every Community in the District</h2>
+      <p class="muted">No city or township is left out. Local candidates run for the <strong>district as a whole</strong>—not as representatives of only one town.</p>
+      <div class="grid" style="margin-top:0.75rem">
+        <article>
+          <h3 style="margin-top:0">Senate District 33</h3>
+          ${areaListHtml("sd33")}
+          <p style="margin-top:0.5rem"><span class="tag-gop">GOP</span> <strong>Karin Housley</strong> — full SD&nbsp;33</p>
+        </article>
+        <article>
+          <h3 style="margin-top:0">House District 33A</h3>
+          ${areaListHtml("hd33a")}
+          <p style="margin-top:0.5rem"><span class="tag-gop">GOP</span> <strong>Stacey Stout</strong> — full HD&nbsp;33A</p>
+        </article>
+        <article>
+          <h3 style="margin-top:0">House District 33B</h3>
+          ${areaListHtml("hd33b")}
+          <p style="margin-top:0.5rem"><span class="tag-gop">GOP</span> <strong>Jessica L. Johnson</strong> — full HD&nbsp;33B</p>
+        </article>
+      </div>
+      <p class="muted" style="margin:0.85rem 0 0">U.S. House within SD&nbsp;33: <strong>MN-04</strong> — ${esc(formatAreaList("cd4_in_sd33", "; "))} · <strong>MN-08</strong> — ${esc(formatAreaList("cd8_in_sd33", "; "))}.</p>
     </section>
 
     <section class="heritage-band home-section" aria-label="Minnesota loon and historic state flag">
       <div class="heritage-loon" role="img" aria-label="Common loon on a Minnesota lake"></div>
       <div class="heritage-flag" role="img" aria-label="Historic Minnesota state flag, 1957 to 2023 design"></div>
       <div class="heritage-copy">
-        <h2>Forest Lake &amp; Neighboring Towns</h2>
-        <p>From the shoreline and main streets of Forest Lake to Stillwater and Hugo, this hub offers professional field tools for residents who care about Minnesota’s future and the legislative seats that shape daily life in Senate District&nbsp;33.</p>
-        <p class="muted" style="margin:0">Volunteer for doors, community events, and literature. Choose candidates on merit. Request a bundle pack and connect with neighbors in your district or nearby.</p>
+        <h2>St. Croix Valley · Full District</h2>
+        <p>Professional field tools for every resident of Senate District&nbsp;33—every city and township named above. Choose candidates on merit for the district they serve.</p>
+        <p class="muted" style="margin:0">Volunteer for doors, community events, and literature. Request a bundle pack and connect with neighbors across the district or nearby.</p>
         <div class="cta-row">
           <a class="btn btn-gold" href="/volunteer">Join the Team</a>
           <a class="btn btn-navy" href="/win-three">Win Path: Three Seats</a>
@@ -1090,11 +1131,11 @@ app.get("/", (req, res) => {
 
     <section class="card prose home-section">
       <h2 class="section-title">Win Path: Three Seats</h2>
-      <p>Senate District&nbsp;33 elects one senator and two representatives. Our recruitment and field plan prioritizes:</p>
+      <p>Senate District&nbsp;33 elects one senator and two representatives. Candidates are centered on the <strong>district they serve</strong>, with every community listed. Our recruitment and field plan prioritizes:</p>
       <ul>
-        <li><strong>Senate District&nbsp;33</strong> — Karin Housley (GOP)</li>
-        <li><strong>House District&nbsp;33A</strong> — Stacey Stout (GOP)</li>
-        <li><strong>House District&nbsp;33B</strong> — Jessica L. Johnson (GOP)</li>
+        <li><strong>Senate District&nbsp;33</strong> — Karin Housley (GOP) · all SD&nbsp;33 communities</li>
+        <li><strong>House District&nbsp;33A</strong> — Stacey Stout (GOP) · all 33A communities and precincts</li>
+        <li><strong>House District&nbsp;33B</strong> — Jessica L. Johnson (GOP) · all 33B communities and precincts</li>
       </ul>
       <p>Close races are decided by doors (Pulsar), community events, signs on busy streets (with permission), and early vote. <a href="/win-three">Read the full three-seat win plan →</a></p>
       <div class="cta-row">
@@ -1139,7 +1180,7 @@ app.get("/", (req, res) => {
       <div class="phase"><strong>August&nbsp;12 Through Labor Day</strong>
         Swap in <span class="tag-gop">GOP</span> primary winners for Governor, U.S. Senate, and U.S. House. Revisit soft IDs and new move-ins.</div>
       <div class="phase"><strong>September Persuasion</strong>
-        High-density routes in Stillwater, Forest Lake, and Hugo. Combined slate piece. Track “no literature” and “already had literature” on walk sheets.</div>
+        High-density routes across all SD&nbsp;33 communities (every city and township). Combined slate piece. Track “no literature” and “already had literature” on walk sheets.</div>
       <div class="phase"><strong>October Get-Out-the-Vote</strong>
         Early-vote push. Chase absentees. Sample ballots at doors and at churches or community boards where allowed. Double-cover soft Republicans and independents.</div>
       <div class="phase"><strong>Final Ten Days</strong>
@@ -1195,10 +1236,12 @@ app.get("/candidates", (req, res) => {
     .map((key) => {
       const r = races[key];
       if (!r) return "";
+      const areasBlock = r.districtKey ? areaListHtml(r.districtKey) : "";
       return `<section class="card" style="margin-bottom:1rem">
         <h2>${esc(r.office)} ${r.winSeat ? '<span class="badge pri">WIN SEAT</span>' : ""}</h2>
         <p class="muted">${esc(r.scope)}</p>
-        <div class="two">
+        ${areasBlock}
+        <div class="two" style="margin-top:0.85rem">
           <div>
             <h3><span class="tag-gop">GOP</span> candidates</h3>
             ${candList(r.gop)}
@@ -1214,9 +1257,9 @@ app.get("/candidates", (req, res) => {
 
   const body = `
     <section class="hero">
-      <h2>All candidates · every seat labeled</h2>
+      <h2>All Candidates · Every Seat · Full District Areas</h2>
       <p>Data as of <strong>${esc(data.asOf)}</strong>. ${esc(data.note)}</p>
-      <p class="muted">GOP = Republican Party of Minnesota. Primary: Aug 11, 2026 · General: Nov 3, 2026.</p>
+      <p class="muted">GOP = Republican Party of Minnesota. Primary: Aug 11, 2026 · General: Nov 3, 2026. Candidates are labeled by the <strong>district they serve</strong>; every community in that district is listed so no city or area feels left out.</p>
     </section>
     ${sections}
     <p class="muted">Always verify: <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">Minnesota SOS candidate filings</a>.</p>`;
@@ -1261,12 +1304,18 @@ app.get("/carry", (req, res) => {
       <label>I drop in</label>
       <select name="houseDistrict" required>
         <option value="">Select…</option>
-        <option value="33A">House 33A (Forest Lake / Hugo / Mahtomedi side)</option>
-        <option value="33B">House 33B (Stillwater / Bayport / Scandia side)</option>
-        <option value="BOTH">Both 33A and 33B</option>
+        <option value="33A">House 33A — Dellwood, Forest Lake (P-2/4/5), Grant P-2, Hugo, Mahtomedi, Willernie</option>
+        <option value="33B">House 33B — Bayport, Forest Lake (P-1/3), Marine, May Twp, Oak Park Heights, Scandia, Stillwater, Stillwater Twp</option>
+        <option value="BOTH">Both 33A and 33B (full SD 33)</option>
       </select>
-      <label>Town / starting area</label>
-      <input type="text" name="town" maxlength="80" placeholder="e.g. Stillwater, Forest Lake, Hugo…" />
+      <label>Town / starting area (any community in the district)</label>
+      <input type="text" name="town" maxlength="80" placeholder="Any SD 33 city or township…" list="carry-towns" />
+      <datalist id="carry-towns">
+        <option>Bayport</option><option>Dellwood</option><option>Forest Lake</option><option>Grant</option>
+        <option>Hugo</option><option>Mahtomedi</option><option>Marine on St. Croix</option><option>May Township</option>
+        <option>Oak Park Heights</option><option>Scandia</option><option>Stillwater</option>
+        <option>Stillwater Township</option><option>Willernie</option>
+      </datalist>
       <label>Shift preference</label>
       <select name="shift">
         <option>Saturday morning</option>
@@ -1327,47 +1376,40 @@ app.post("/carry", (req, res) => {
 app.get("/turf", (req, res) => {
   const body = `
     <section class="hero">
-      <h2>Turf: SD 33 = House 33A + House 33B</h2>
-      <p>Every volunteer works one house district per shift when possible. Senate 33 lit goes on <strong>every</strong> door in both halves.</p>
+      <h2>District Turf: SD 33 = House 33A + House 33B</h2>
+      <p>Every volunteer works one house district per shift when possible. Senate&nbsp;33 literature goes on <strong>every</strong> door in both halves. Communities are listed in full so no city or township is left out. Candidates serve the <strong>district</strong>, not a single hometown.</p>
     </section>
     <div class="grid">
       <article class="card">
-        <h3>House 33A turf</h3>
-        <p><span class="tag-gop">GOP</span> open seat (Patti Anderson retiring)</p>
-        <ul>
-          <li>Forest Lake (parts)</li>
-          <li>Hugo</li>
-          <li>Mahtomedi / Dellwood area</li>
-          <li>Other 33A Washington County precincts</li>
-        </ul>
-        <p><strong>Always drop:</strong> SD33 Housley (GOP) + 33A GOP house lit + sample ballot.</p>
-        <p class="muted">Skip 33B house piece here unless using combined SD33 slate.</p>
+        <h3>House District 33A — Full Area List</h3>
+        <p><span class="tag-gop">GOP</span> <strong>Stacey Stout</strong> · open seat · serves all of HD&nbsp;33A</p>
+        ${areaListHtml("hd33a")}
+        <p style="margin-top:0.75rem"><strong>Always drop:</strong> SD&nbsp;33 Housley (GOP) + 33A house lit + sample ballot.</p>
+        <p class="muted">Skip 33B house piece here unless using a combined SD&nbsp;33 slate piece.</p>
       </article>
       <article class="card">
-        <h3>House 33B turf</h3>
-        <p><span class="tag-gop">GOP</span> challenge to incumbent Josiah Hill (DFL)</p>
-        <ul>
-          <li>Stillwater</li>
-          <li>Oak Park Heights</li>
-          <li>Bayport</li>
-          <li>Marine on St. Croix</li>
-          <li>Scandia · May Township</li>
-          <li>Parts of Forest Lake</li>
-        </ul>
-        <p><strong>Always drop:</strong> SD33 Housley (GOP) + 33B GOP house lit + sample ballot.</p>
+        <h3>House District 33B — Full Area List</h3>
+        <p><span class="tag-gop">GOP</span> <strong>Jessica L. Johnson</strong> · serves all of HD&nbsp;33B</p>
+        ${areaListHtml("hd33b")}
+        <p style="margin-top:0.75rem"><strong>Always drop:</strong> SD&nbsp;33 Housley (GOP) + 33B house lit + sample ballot.</p>
       </article>
     </div>
     <section class="card" style="margin-top:1rem">
-      <h2>Priority order inside a turf</h2>
+      <h3>Senate District 33 — Full Area List</h3>
+      <p><span class="tag-gop">GOP</span> <strong>Karin Housley</strong> · serves the entire Senate district (union of 33A + 33B)</p>
+      ${areaListHtml("sd33")}
+    </section>
+    <section class="card" style="margin-top:1rem">
+      <h2>Priority Order Inside a District</h2>
       <ol>
-        <li>High-turnout GOP &amp; independent precincts (persuasion + turnout)</li>
-        <li>Soft DFL / swing blocks near main corridors</li>
+        <li>High-turnout GOP and independent precincts (persuasion + turnout)</li>
+        <li>Soft DFL / swing blocks near main corridors in <em>any</em> listed community</li>
         <li>Low-propensity friendly voters (GOTV only in final weeks)</li>
       </ol>
-      <p>Captains assign walk sheets. Prefer map apps or printed turfs of 40–70 doors per bag.</p>
-      <p><a class="btn" href="/carry">Request lit for my turf</a></p>
+      <p>Captains assign walk sheets across the full district list—not only the largest city. Prefer map apps or printed routes of 40–70 doors per bag.</p>
+      <p><a class="btn" href="/carry">Request Literature for My District</a> <a class="btn btn-navy" href="/map">District Map</a></p>
     </section>`;
-  sendPage(req, res, "Turf", body);
+  sendPage(req, res, "District Turf", body);
 });
 
 /* ---------- How-to ---------- */
@@ -2679,7 +2721,7 @@ app.get("/api/map-lookup", (req, res) => {
       level: "Local · State House",
       office: "State House · HD 33A",
       districtNote:
-        "GOP: Stacey Stout · SOS precincts include Dellwood; Forest Lake P-2/P-4/P-5; Grant P-2; Hugo; Mahtomedi; Willernie" +
+        "GOP: Stacey Stout · House District 33A (full): Dellwood; Forest Lake P-2/P-4/P-5; Grant P-2; Hugo; Mahtomedi; Willernie" +
         (precinctName ? " · Matched precinct: " + precinctName : ""),
       candidates: gopList("house33A"),
     });
@@ -2688,7 +2730,7 @@ app.get("/api/map-lookup", (req, res) => {
       level: "Local · State House",
       office: "State House · HD 33B",
       districtNote:
-        "GOP: Jessica L. Johnson · SOS precincts include Bayport; Forest Lake P-1/P-3; Marine; May Twp; Oak Park Heights; Scandia; Stillwater; Stillwater Twp" +
+        "GOP: Jessica L. Johnson · House District 33B (full): Bayport; Forest Lake P-1/P-3; Marine on St. Croix; May Township; Oak Park Heights; Scandia; Stillwater; Stillwater Township" +
         (precinctName ? " · Matched precinct: " + precinctName : ""),
       candidates: gopList("house33B"),
     });
@@ -2764,13 +2806,18 @@ app.get("/map", (req, res) => {
       <h2>Find your races — local, state &amp; federal</h2>
       <p>Enter an address or click the map. Layers use <strong>Minnesota Secretary of State precinct boundaries (May 2026)</strong> — not freehand shapes. Town markers: <span style="background:#fde047;padding:0 0.35rem;border-radius:3px">yellow = HD 33A</span> · <span style="background:#f9a8d4;padding:0 0.35rem;border-radius:3px">pink = HD 33B</span>.</p>
       <p class="muted">${esc(geo.note || "")}</p>
-      <ul style="font-size:0.9rem">
-        <li><strong>HD 33A</strong> — <span class="tag-gop">GOP</span> Stacey Stout · Dellwood; Forest Lake P-2/P-4/P-5; Grant P-2; Hugo; Mahtomedi; Willernie</li>
-        <li><strong>HD 33B</strong> — <span class="tag-gop">GOP</span> Jessica L. Johnson · Bayport; Forest Lake P-1/P-3; Marine; May Twp; Oak Park Heights; Scandia; Stillwater; Stillwater Twp</li>
-        <li><strong>SD 33</strong> — <span class="tag-gop">GOP</span> Karin Housley · full Senate district (union of 33A + 33B)</li>
-        <li><strong>U.S. House</strong> — within SD 33: <strong>MN-04</strong> (Stillwater / Mahtomedi area) or <strong>MN-08</strong> (Forest Lake / Hugo / Scandia area) per SOS — not MN-06</li>
-      </ul>
-      <p class="muted">Cross-checked with SOS legislative maps &amp; Ballotpedia 2026 candidate lists. Official ballot: <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a></p>
+      <div class="card" style="margin:0.75rem 0;font-size:0.92rem">
+        <p><strong>HD 33A</strong> — <span class="tag-gop">GOP</span> Stacey Stout (full district)</p>
+        ${areaListHtml("hd33a")}
+        <p style="margin-top:0.75rem"><strong>HD 33B</strong> — <span class="tag-gop">GOP</span> Jessica L. Johnson (full district)</p>
+        ${areaListHtml("hd33b")}
+        <p style="margin-top:0.75rem"><strong>SD 33</strong> — <span class="tag-gop">GOP</span> Karin Housley (full Senate district)</p>
+        ${areaListHtml("sd33")}
+        <p style="margin-top:0.75rem"><strong>U.S. House within SD 33</strong> (not MN-06 for most addresses):</p>
+        <p class="muted" style="margin:0.35rem 0"><strong>MN-04:</strong> ${esc(formatAreaList("cd4_in_sd33", "; "))}</p>
+        <p class="muted" style="margin:0"><strong>MN-08:</strong> ${esc(formatAreaList("cd8_in_sd33", "; "))}</p>
+      </div>
+      <p class="muted">Cross-checked with SOS legislative maps and Ballotpedia 2026 candidate lists. Official ballot: <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>. Candidates are presented by district geography—not hometown spin.</p>
     </section>
     <div class="map-legend" aria-label="District color legend">${legend}</div>
     <div class="map-layout">
@@ -2780,12 +2827,13 @@ app.get("/map", (req, res) => {
           <h3>Pin an address</h3>
           <label for="map-street">Street</label>
           <input id="map-street" name="street" placeholder="123 Main St N" autocomplete="street-address" />
-          <label for="map-city">City</label>
-          <input id="map-city" name="city" placeholder="Stillwater" list="map-cities" autocomplete="address-level2" />
+          <label for="map-city">City or township (any in SD 33)</label>
+          <input id="map-city" name="city" placeholder="Any district community" list="map-cities" autocomplete="address-level2" />
           <datalist id="map-cities">
-            <option>Stillwater</option><option>Forest Lake</option><option>Hugo</option>
-            <option>Oak Park Heights</option><option>Bayport</option><option>Scandia</option>
-            <option>Mahtomedi</option><option>Marine on St. Croix</option>
+            <option>Bayport</option><option>Dellwood</option><option>Forest Lake</option><option>Grant</option>
+            <option>Hugo</option><option>Mahtomedi</option><option>Marine on St. Croix</option>
+            <option>May Township</option><option>Oak Park Heights</option><option>Scandia</option>
+            <option>Stillwater</option><option>Stillwater Township</option><option>Willernie</option>
           </datalist>
           <label for="map-zip">ZIP</label>
           <input id="map-zip" name="zip" placeholder="55082" autocomplete="postal-code" />
@@ -2962,21 +3010,21 @@ const CAMPAIGN_KIT_MAP = {
     shirt: "Local slate shirt if available",
   },
   housley: {
-    title: "Karin Housley — SD 33",
-    lit: "Senate 33 lit on every door and event table",
-    events: "All SD 33 events (Stillwater, Forest Lake, Hugo, Scandia…)",
+    title: "Karin Housley — Senate District 33 (full district)",
+    lit: "Senate 33 lit on every door and event table across all SD 33 communities",
+    events: "All SD 33 events in every city and township in the district",
     shirt: "SD 33 / Housley shirt if available",
   },
   stout: {
-    title: "Stacey Stout — HD 33A",
-    lit: "House 33A lit (Hugo, Mahtomedi, Dellwood, Forest Lake P-2/4/5)",
-    events: "HD 33A-labeled events on /events?district=33A",
+    title: "Stacey Stout — House District 33A (full district)",
+    lit: "House 33A lit for all 33A communities: Dellwood; Forest Lake P-2/4/5; Grant P-2; Hugo; Mahtomedi; Willernie",
+    events: "HD 33A-labeled events on /events?district=33A — every 33A community",
     shirt: "Stout / 33A shirt if available",
   },
   johnson: {
-    title: "Jessica L. Johnson — HD 33B",
-    lit: "House 33B lit (Stillwater, Bayport, Scandia, Marine…)",
-    events: "HD 33B-labeled events on /events?district=33B + Lumberjack Days",
+    title: "Jessica L. Johnson — House District 33B (full district)",
+    lit: "House 33B lit for all 33B communities: Bayport; Forest Lake P-1/3; Marine on St. Croix; May Township; Oak Park Heights; Scandia; Stillwater; Stillwater Township",
+    events: "HD 33B-labeled events on /events?district=33B — every 33B community",
     shirt: "Johnson / 33B shirt if available",
   },
   lindell: {
@@ -3022,15 +3070,15 @@ const CAMPAIGN_KIT_MAP = {
     shirt: "Emmer shirt if that campaign issues inventory",
   },
   stauber: {
-    title: "Pete Stauber — U.S. House MN-08",
-    lit: "Stauber lit for Forest Lake / Hugo / Scandia / Marine turf (CD-8 in SD 33)",
-    events: "Forest Lake, Hugo, Scandia events",
+    title: "Pete Stauber — U.S. House MN-08 (SD 33 portion)",
+    lit: "Stauber lit for MN-08 communities in SD 33: Forest Lake; Hugo; Marine on St. Croix; May Township; Scandia; Stillwater Township P-1",
+    events: "Events in all MN-08 / SD 33 communities listed above",
     shirt: "Stauber shirt if available",
   },
   cd4: {
-    title: "U.S. House MN-04 GOP field",
-    lit: "MN-04 GOP lit (Wikstrom / nominee) for Stillwater / Mahtomedi / Bayport / OPH",
-    events: "Stillwater Lumberjack Days, Main Street, Mahtomedi area",
+    title: "U.S. House MN-04 GOP field (SD 33 portion)",
+    lit: "MN-04 GOP lit for: Bayport; Dellwood; Mahtomedi; Oak Park Heights; Stillwater; Willernie; parts of Stillwater Township",
+    events: "Events in all MN-04 / SD 33 communities listed above",
     shirt: "MN-04 campaign shirt if available",
   },
 };
@@ -3133,15 +3181,21 @@ app.get("/volunteer", (req, res) => {
           <label for="vol-phone">Mobile phone * <span class="muted">(confirmation text when enabled)</span></label>
           <input id="vol-phone" name="phone" type="tel" required maxlength="40" autocomplete="tel" placeholder="651-555-0100" inputmode="tel" />
 
-          <label for="vol-town">City / town</label>
-          <input id="vol-town" name="town" maxlength="80" placeholder="Stillwater, Forest Lake, Hugo…" />
+          <label for="vol-town">City or township (any in SD 33)</label>
+          <input id="vol-town" name="town" maxlength="80" placeholder="Any district community…" list="vol-towns" />
+          <datalist id="vol-towns">
+            <option>Bayport</option><option>Dellwood</option><option>Forest Lake</option><option>Grant</option>
+            <option>Hugo</option><option>Mahtomedi</option><option>Marine on St. Croix</option><option>May Township</option>
+            <option>Oak Park Heights</option><option>Scandia</option><option>Stillwater</option>
+            <option>Stillwater Township</option><option>Willernie</option>
+          </datalist>
 
           <label for="vol-hd">House District (if known)</label>
           <select id="vol-hd" name="houseDistrict">
             <option value="">Not sure</option>
-            <option value="33A">33A — Stacey Stout</option>
-            <option value="33B">33B — Jessica L. Johnson</option>
-            <option value="BOTH">Either / both</option>
+            <option value="33A">33A — Stacey Stout (Dellwood, FL P-2/4/5, Grant P-2, Hugo, Mahtomedi, Willernie)</option>
+            <option value="33B">33B — Jessica L. Johnson (Bayport, FL P-1/3, Marine, May Twp, OPH, Scandia, Stillwater, Stillwater Twp)</option>
+            <option value="BOTH">Either / both (full SD 33)</option>
           </select>
 
           <label for="why-volunteer">Why Are You Volunteering This Election Cycle?</label>
@@ -3180,12 +3234,12 @@ app.get("/volunteer", (req, res) => {
           <p class="form-label-strong camp-section-title">Who I want to campaign for <span class="muted">(check all that apply — builds your bundle pack)</span></p>
           <p class="muted camp-hint">Local candidates running in your district first; then U.S. Senate, statewide (Gov, SOS, AG, Auditor), and federal house. Verify names at <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">candidates.sos.mn.gov</a>.</p>
 
-          <p class="camp-group-label">Local priority — SD 33 / HD 33A / HD 33B</p>
+          <p class="camp-group-label">Local priority — full districts (all communities listed on home and /turf)</p>
           <div class="check-list" role="group" aria-label="Local candidates">
-            ${campaignCheck("local_three", "<strong>Win all three local</strong> — Housley + Stout + Johnson bundle pack")}
-            ${campaignCheck("housley", "<strong>Karin Housley</strong> — State Senate 33")}
-            ${campaignCheck("stout", "<strong>Stacey Stout</strong> — House 33A")}
-            ${campaignCheck("johnson", "<strong>Jessica L. Johnson</strong> — House 33B")}
+            ${campaignCheck("local_three", "<strong>Win all three local</strong> — Housley + Stout + Johnson (full SD 33 / 33A / 33B)")}
+            ${campaignCheck("housley", "<strong>Karin Housley</strong> — Senate District 33 (entire district)")}
+            ${campaignCheck("stout", "<strong>Stacey Stout</strong> — House District 33A (entire district)")}
+            ${campaignCheck("johnson", "<strong>Jessica L. Johnson</strong> — House District 33B (entire district)")}
           </div>
 
           <p class="camp-group-label">Statewide — Governor, U.S. Senate, SOS, AG, Auditor</p>
@@ -3198,11 +3252,11 @@ app.get("/volunteer", (req, res) => {
             ${campaignCheck("auditor", "<strong>State Auditor</strong> — GOP field / nominee")}
           </div>
 
-          <p class="camp-group-label">U.S. House (by turf)</p>
+          <p class="camp-group-label">U.S. House (by district portion within SD 33)</p>
           <div class="check-list" role="group" aria-label="Federal house candidates">
-            ${campaignCheck("stauber", "<strong>Pete Stauber</strong> — U.S. House MN-08 (Forest Lake / Hugo / Scandia area)")}
-            ${campaignCheck("cd4", "<strong>U.S. House MN-04 GOP</strong> — Wikstrom / field (Stillwater / Mahtomedi area)")}
-            ${campaignCheck("emmer", "<strong>Tom Emmer</strong> — U.S. House MN-06 (most of SD 33 is MN-04/08; we’ll still connect you)")}
+            ${campaignCheck("stauber", "<strong>Pete Stauber</strong> — U.S. House MN-08 (Forest Lake; Hugo; Marine on St. Croix; May Township; Scandia; Stillwater Twp P-1)")}
+            ${campaignCheck("cd4", "<strong>U.S. House MN-04 GOP</strong> — Wikstrom / field (Bayport; Dellwood; Mahtomedi; Oak Park Heights; Stillwater; Willernie; parts of Stillwater Twp)")}
+            ${campaignCheck("emmer", "<strong>Tom Emmer</strong> — U.S. House MN-06 (optional connect; most of SD 33 is MN-04 or MN-08)")}
           </div>
           <div id="campaign-kit" class="campaign-kit" aria-live="polite"></div>
 
