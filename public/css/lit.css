@@ -561,6 +561,37 @@ form.card label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
 .cta-row { display: flex; flex-wrap: wrap; gap: 0.55rem; margin-top: 1rem; }
 .review-stars { color: var(--gold); letter-spacing: 0.1em; font-size: 1.1rem; }
 
+/* Home page address lookup — first thing after hero */
+.home-address-box {
+  border-left: 4px solid var(--gop);
+  box-shadow: var(--shadow);
+}
+.home-address-form label {
+  display: block;
+  font-weight: 700;
+  margin: 0.35rem 0 0.25rem;
+  color: var(--navy);
+}
+.home-address-form input,
+.home-address-form select {
+  width: 100%;
+  max-width: none;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  background: #fff;
+}
+.home-address-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.55fr;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.35rem;
+}
+@media (max-width: 720px) {
+  .home-address-grid { grid-template-columns: 1fr; }
+}
+
 /* Live interactive month calendar */
 .live-calendar-wrap {
   margin-bottom: 1.35rem;

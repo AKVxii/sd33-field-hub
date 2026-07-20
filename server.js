@@ -784,7 +784,7 @@ function layout(title, body, opts = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for every community in the district." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=cal1" />
+  <link rel="stylesheet" href="/css/lit.css?v=addr1" />
   ${extraHead}
 </head>
 <body>
@@ -1016,11 +1016,58 @@ app.get("/", (req, res) => {
         <h2>St. Croix Valley Field Hub</h2>
         <p>A public volunteer resource for Minnesota <strong>Senate District&nbsp;33</strong> and <strong>House Districts&nbsp;33A and&nbsp;33B</strong>—serving every community in the district along the lakes and the St.&nbsp;Croix River. Candidates are listed by <strong>district</strong>, with all cities and townships named equally.</p>
         <div class="cta-row">
-          <a class="btn btn-gold" href="/map">District Map &amp; Candidates</a>
-          <a class="btn" href="/events">Events, Parades &amp; Breakfasts</a>
+          <a class="btn btn-gold" href="#find-address">Enter Your Address</a>
+          <a class="btn" href="/events">Events Calendar</a>
           <a class="btn btn-navy" href="/volunteer">Volunteer Signup</a>
         </div>
       </div>
+    </section>
+
+    <section id="find-address" class="card home-address-box home-section" aria-label="Find candidates by address">
+      <h2 class="section-title" style="margin-top:0">Find Your Candidates — Enter Address</h2>
+      <p class="muted" style="margin-top:0">Enter a street address to see districts and preferred GOP candidates for that door. Works for every community in SD&nbsp;33.</p>
+      <form class="stack home-address-form" method="get" action="/my-gop-ballot">
+        <div class="home-address-grid">
+          <div>
+            <label for="home-street">Street Address</label>
+            <input id="home-street" type="text" name="street" required maxlength="120" placeholder="123 Main St N" autocomplete="street-address" />
+          </div>
+          <div>
+            <label for="home-city">City or Township</label>
+            <select id="home-city" name="city" required>
+              <option value="">Select…</option>
+              ${[
+                "Bayport",
+                "Dellwood",
+                "Forest Lake",
+                "Grant",
+                "Hugo",
+                "Mahtomedi",
+                "Marine on St. Croix",
+                "May Township",
+                "Oak Park Heights",
+                "Scandia",
+                "Stillwater",
+                "Stillwater Township",
+                "Willernie",
+              ]
+                .map((c) => `<option value="${esc(c)}">${esc(c)}</option>`)
+                .join("")}
+            </select>
+          </div>
+          <div>
+            <label for="home-zip">ZIP <span class="muted">(optional)</span></label>
+            <input id="home-zip" type="text" name="zip" maxlength="10" placeholder="55082" autocomplete="postal-code" />
+          </div>
+        </div>
+        <label for="home-q">Or paste full address in one line</label>
+        <input id="home-q" type="text" name="q" maxlength="200" placeholder="123 Main St, Stillwater, MN 55082" />
+        <div class="cta-row" style="margin-top:0.75rem">
+          <button class="btn btn-gold" type="submit">Show My Candidates</button>
+          <a class="btn btn-navy" href="/map">Open District Map</a>
+        </div>
+        <p class="muted" style="margin:0.65rem 0 0;font-size:0.88rem">Always confirm your precinct at <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>.</p>
+      </form>
     </section>
 
     <div class="gallery gallery-5" aria-label="Local scenery">
