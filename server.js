@@ -661,7 +661,7 @@ function layout(title, body, opts = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="St. Croix Valley volunteer field hub for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and volunteer tools for residents and the press." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=nav3" />
+  <link rel="stylesheet" href="/css/lit.css?v=vol4" />
   ${extraHead}
 </head>
 <body>
