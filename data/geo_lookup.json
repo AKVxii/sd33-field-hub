@@ -11,20 +11,21 @@
     "scandia": { "house": "33B", "senate": "33", "usHouse": ["4", "6"], "confidence": "medium" },
     "may township": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
     "stillwater township": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "high" },
-    "forest lake": { "house": "33A", "senate": "33", "usHouse": ["4", "6"], "confidence": "medium", "note": "Parts of Forest Lake may be 33A or 33B — confirm pollfinder" },
-    "hugo": { "house": "33A", "senate": "33", "usHouse": ["4", "6"], "confidence": "high" },
+    "forest lake": { "house": "BOTH", "senate": "33", "usHouse": ["8"], "confidence": "medium", "note": "Forest Lake is split: HD 33A (P-2/4/5) and HD 33B (P-1/3). Both house GOP candidates shown—confirm exact precinct at pollfinder.sos.mn.gov. U.S. House MN-08 in SD 33." },
+    "hugo": { "house": "33A", "senate": "33", "usHouse": ["8"], "confidence": "high" },
     "mahtomedi": { "house": "33A", "senate": "33", "usHouse": ["4"], "confidence": "high" },
     "dellwood": { "house": "33A", "senate": "33", "usHouse": ["4"], "confidence": "high" },
     "grant": { "house": "33A", "senate": "33", "usHouse": ["4"], "confidence": "medium" },
+    "willernie": { "house": "33A", "senate": "33", "usHouse": ["4"], "confidence": "high" },
     "lake elmo": { "house": "33B", "senate": "33", "usHouse": ["4"], "confidence": "low", "note": "Only edges may touch SD 33 — confirm" }
   },
   "zips": {
     "55082": { "house": "33B", "senate": "33", "usHouse": ["4"], "cityHint": "Stillwater / OPH area", "confidence": "high" },
     "55003": { "house": "33B", "senate": "33", "usHouse": ["4"], "cityHint": "Bayport", "confidence": "high" },
     "55047": { "house": "33B", "senate": "33", "usHouse": ["4"], "cityHint": "Marine on St. Croix", "confidence": "high" },
-    "55073": { "house": "33B", "senate": "33", "usHouse": ["4", "6"], "cityHint": "Scandia", "confidence": "medium" },
-    "55025": { "house": "33A", "senate": "33", "usHouse": ["4", "6"], "cityHint": "Forest Lake", "confidence": "medium" },
-    "55038": { "house": "33A", "senate": "33", "usHouse": ["4", "6"], "cityHint": "Hugo", "confidence": "high" },
+    "55073": { "house": "33B", "senate": "33", "usHouse": ["8"], "cityHint": "Scandia", "confidence": "medium" },
+    "55025": { "house": "BOTH", "senate": "33", "usHouse": ["8"], "cityHint": "Forest Lake (split 33A/33B by precinct)", "confidence": "medium" },
+    "55038": { "house": "33A", "senate": "33", "usHouse": ["8"], "cityHint": "Hugo", "confidence": "high" },
     "55115": { "house": "33A", "senate": "33", "usHouse": ["4"], "cityHint": "Mahtomedi / Dellwood area", "confidence": "medium" }
   },
   "streetHints": {
@@ -32,9 +33,15 @@
     "stillwater blvd": { "house": "33B" },
     "dellwood": { "house": "33A", "note": "Dellwood Rd may span; city still rules" },
     "scandia trail": { "house": "33A", "note": "Forest Lake / Scandia Trail often 33A" },
-    "lake street": { "house": "33A", "note": "Forest Lake Lake St often 33A" },
+    "lake street": { "city": "forest lake", "house": "BOTH", "usHouse": ["8"], "note": "Forest Lake Lake St — city split 33A/33B; confirm precinct" },
+    "beach drive": { "city": "forest lake", "house": "BOTH", "usHouse": ["8"], "confidence": "medium", "note": "Beach Drive (Forest Lake) — address resolved to Forest Lake MN-08; house district split by precinct—confirm pollfinder" },
+    "beach dr": { "city": "forest lake", "house": "BOTH", "usHouse": ["8"], "confidence": "medium", "note": "Beach Dr (Forest Lake) — confirm 33A vs 33B at pollfinder.sos.mn.gov" },
+    "broadway": { "city": "forest lake", "house": "BOTH", "usHouse": ["8"], "confidence": "medium", "note": "Broadway in Forest Lake area" },
     "main street": { "house": "33B", "note": "Stillwater Main often 33B" },
     "4th street sw": { "house": "33A" },
-    "north shore": { "house": "33A" }
+    "north shore": { "house": "33A", "city": "forest lake", "usHouse": ["8"] },
+    "south shore": { "city": "forest lake", "house": "BOTH", "usHouse": ["8"] },
+    "highway 61": { "city": "forest lake", "house": "BOTH", "usHouse": ["8"] },
+    "hwy 61": { "city": "forest lake", "house": "BOTH", "usHouse": ["8"] }
   }
 }

@@ -252,33 +252,92 @@ function normalizeCity(s) {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+const KNOWN_CITY_ALIASES = [
+  ["oak park heights", "oak park heights"],
+  ["marine on st croix", "marine on st croix"],
+  ["marine on st. croix", "marine on st croix"],
+  ["stillwater township", "stillwater township"],
+  ["may township", "may township"],
+  ["forest lake", "forest lake"],
+  ["stillwater", "stillwater"],
+  ["bayport", "bayport"],
+  ["scandia", "scandia"],
+  ["mahtomedi", "mahtomedi"],
+  ["dellwood", "dellwood"],
+  ["willernie", "willernie"],
+  ["hugo", "hugo"],
+  ["grant", "grant"],
+  ["lake elmo", "lake elmo"],
+];
+
+function detectCityInText(text) {
+  const low = normalizeCity(text);
+  if (!low) return "";
+  for (const [alias, canon] of KNOWN_CITY_ALIASES) {
+    if (low.includes(alias)) return canon;
+  }
+  return "";
+}
+
 function resolveAddress(input) {
   const geo = loadJson(GEO_FILE);
-  const street = String(input.street || input.address || "").trim();
-  const cityRaw = String(input.city || "").trim();
-  const zip = String(input.zip || "").trim().slice(0, 5);
+  let street = String(input.street || input.address || "").trim();
+  let cityRaw = String(input.city || "").trim();
+  let zip = String(input.zip || "").trim().slice(0, 5);
   const freeform = String(input.q || input.fullAddress || "").trim();
 
-  // Allow single-box: "123 Main St, Stillwater, MN 55082"
+  // Merge freeform into parse when street/city incomplete
+  const blob = [street, freeform, cityRaw, zip].filter(Boolean).join(" ");
   let city = cityRaw;
-  let streetUse = street;
+  let streetUse = street || freeform;
   let zipUse = zip;
-  if (freeform && !street && !city) {
-    streetUse = freeform;
-    const zipM = freeform.match(/\b(55\d{3})\b/);
-    if (zipM) zipUse = zipM[1];
-    const parts = freeform.split(",").map((p) => p.trim());
-    if (parts.length >= 2) {
-      // last parts often "Stillwater MN 55082" or "Stillwater, MN"
-      const maybeCity = parts[parts.length - 1].replace(/\bMN\b/i, "").replace(/\d{5}.*/, "").trim();
-      const mid = parts[parts.length - 2].replace(/\bMN\b/i, "").replace(/\d{5}.*/, "").trim();
-      city = mid || maybeCity || city;
-      if (parts.length >= 3) city = parts[1].replace(/\bMN\b/i, "").trim() || city;
+
+  const zipM = blob.match(/\b(55\d{3})\b/);
+  if (!zipUse && zipM) zipUse = zipM[1];
+
+  // Parse "123 Beach Drive, Forest Lake, MN 55025" from street or q
+  const parseSource = freeform || street;
+  if (parseSource.includes(",")) {
+    const parts = parseSource.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 1 && !street) streetUse = parts[0];
+    if (parts.length >= 1 && street && parts[0].length < street.length) {
+      // street field may be full line
+      const first = parts[0];
+      if (/^\d/.test(first)) streetUse = first;
+    }
+    if (!city && parts.length >= 2) {
+      city = parts[1].replace(/\bMN\b/i, "").replace(/\d{5}.*/, "").trim();
+    }
+    if (parts.length >= 3 && !city) {
+      city = parts[parts.length - 2].replace(/\bMN\b/i, "").replace(/\d{5}.*/, "").trim();
     }
   }
 
+  // Detect city name anywhere in the text (e.g. only street="1731 Beach Drive" + city select Forest Lake)
+  if (!city) {
+    const found = detectCityInText(blob);
+    if (found) city = found;
+  }
+
+  // Street-only: apply streetHints that carry a city default (Beach Drive → Forest Lake)
+  const streetLow = (streetUse + " " + freeform + " " + city).toLowerCase();
+  let hintMatch = null;
+  if (geo.streetHints) {
+    // Prefer longer hints first
+    const hints = Object.entries(geo.streetHints).sort((a, b) => b[0].length - a[0].length);
+    for (const [hint, v] of hints) {
+      if (streetLow.includes(hint)) {
+        hintMatch = { ...v, from: "street", hint };
+        break;
+      }
+    }
+  }
+  if (!city && hintMatch && hintMatch.city) {
+    city = hintMatch.city;
+  }
+
   const cityKey = normalizeCity(city);
-  const streetLow = (streetUse + " " + freeform).toLowerCase();
   const result = {
     street: streetUse,
     city: city || "",
@@ -299,7 +358,7 @@ function resolveAddress(input) {
     const c = geo.cities[cityKey];
     matched = matched
       ? {
-          house: c.house || matched.house,
+          house: c.house === "BOTH" || matched.house === "BOTH" ? "BOTH" : c.house || matched.house,
           senate: c.senate || matched.senate,
           usHouse: c.usHouse || matched.usHouse,
           confidence: c.confidence || matched.confidence,
@@ -317,18 +376,33 @@ function resolveAddress(input) {
       }
     }
   }
-  // street hints refine house district
-  if (geo.streetHints) {
-    for (const [hint, v] of Object.entries(geo.streetHints)) {
-      if (streetLow.includes(hint)) {
-        if (v.house) {
-          if (!matched) matched = { house: v.house, senate: "33", usHouse: ["4"], confidence: "low", from: "street" };
-          else if (matched.confidence === "medium" || matched.confidence === "low") {
-            matched.house = v.house;
-          }
-        }
-        if (v.note) result.notes.push(v.note);
+
+  // Street hints refine / fill match
+  if (hintMatch) {
+    if (!matched) {
+      matched = {
+        house: hintMatch.house || "BOTH",
+        senate: "33",
+        usHouse: hintMatch.usHouse || ["8"],
+        confidence: hintMatch.confidence || "medium",
+        note: hintMatch.note,
+        from: "street",
+      };
+      if (hintMatch.city && !result.city) {
+        result.city = hintMatch.city
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
       }
+    } else {
+      if (hintMatch.house === "BOTH") matched.house = "BOTH";
+      else if (hintMatch.house && (matched.confidence === "medium" || matched.confidence === "low" || matched.house === "BOTH")) {
+        // keep BOTH for Forest Lake unless hint is specific
+        if (matched.house !== "BOTH") matched.house = hintMatch.house;
+      }
+      if (hintMatch.usHouse) matched.usHouse = hintMatch.usHouse;
+      if (hintMatch.note) result.notes.push(hintMatch.note);
+      if (hintMatch.confidence) matched.confidence = hintMatch.confidence;
     }
   }
 
@@ -340,12 +414,17 @@ function resolveAddress(input) {
     if (matched.note) result.notes.push(matched.note);
     if (matched.cityHint) result.notes.push("ZIP area: " + matched.cityHint);
     result.matchedVia = matched.from;
+    // Pretty city name for display
+    if (!result.city && matched.from === "street" && hintMatch && hintMatch.city) {
+      result.city = hintMatch.city.replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+    if (result.city === "forest lake") result.city = "Forest Lake";
   } else if (streetUse || freeform) {
     result.notes.push(
-      "Could not match city/ZIP to a map rule. Showing statewide + all SD 33 local GOP races. Pick town from the list for a tighter house district."
+      "Could not match city/ZIP. Showing statewide + all SD 33 local GOP races only. Select a city from the list for a tighter house district."
     );
     result.house = "BOTH";
-    result.usHouse = ["4", "6"];
+    result.usHouse = ["4", "8"];
     result.confidence = "low";
     result.matchedVia = "fallback";
   } else {
@@ -353,6 +432,13 @@ function resolveAddress(input) {
     result.notes.push("Enter a street and city or ZIP.");
   }
 
+  // Never invent MN-06 for SD 33 core (Emmer is optional connect only)
+  if (Array.isArray(result.usHouse)) {
+    result.usHouse = result.usHouse.filter((d) => d === "4" || d === "8");
+    if (!result.usHouse.length) result.usHouse = ["4", "8"];
+  }
+
+  result.notes.push("Only Republican (GOP) candidates are listed and can be selected.");
   return result;
 }
 
@@ -375,13 +461,20 @@ function gopBallotForDistricts(districts) {
   function add(key, label) {
     const r = races[key];
     if (!r) return;
-    let candidates = (r.gop || []).map((c) => ({
-      name: c.name,
-      party: "GOP",
-      note: c.note || "",
-      leading: !!c.leading,
-      nominee: false,
-    }));
+    // GOP only — never list DFL/other for checkboxes
+    let candidates = (r.gop || [])
+      .filter((c) => {
+        const p = String(c.party || "GOP").toUpperCase();
+        return p === "GOP" || p === "R" || p === "REPUBLICAN" || !c.party;
+      })
+      .map((c) => ({
+        name: c.name,
+        party: "GOP",
+        note: c.note || "",
+        leading: !!c.leading,
+        nominee: false,
+      }));
+    if (!candidates.length) return;
     const winName = phase.winners && phase.winners[key];
     if (post && winName) {
       candidates = candidates
@@ -419,20 +512,20 @@ function gopBallotForDistricts(districts) {
   add("stateAuditor", "Minnesota State Auditor");
 
   const uh = districts.usHouse || [];
-  if (uh.includes("4") || uh.length === 0) add("usHouse4", "U.S. House — Minnesota District 4");
-  if (uh.includes("8")) add("usHouse8", "U.S. House — Minnesota District 8");
-  if (uh.includes("6")) add("usHouse6", "U.S. House — Minnesota District 6");
+  if (uh.includes("4")) add("usHouse4", "U.S. House — Minnesota District 4 (GOP only)");
+  if (uh.includes("8")) add("usHouse8", "U.S. House — Minnesota District 8 (GOP only)");
+  // MN-06 (Emmer) not auto-listed for SD 33 addresses — most of district is 4 or 8
 
-  add("stateSenate33", "Minnesota State Senate — District 33");
+  add("stateSenate33", "Minnesota State Senate — District 33 (GOP only)");
 
-  if (districts.house === "33A") add("house33A", "Minnesota House — District 33A");
-  else if (districts.house === "33B") add("house33B", "Minnesota House — District 33B");
+  if (districts.house === "33A") add("house33A", "Minnesota House — District 33A (GOP only)");
+  else if (districts.house === "33B") add("house33B", "Minnesota House — District 33B (GOP only)");
   else {
-    add("house33A", "Minnesota House — District 33A (confirm if your address is 33A)");
-    add("house33B", "Minnesota House — District 33B (confirm if your address is 33B)");
+    add("house33A", "Minnesota House — District 33A (GOP — confirm precinct if city is split)");
+    add("house33B", "Minnesota House — District 33B (GOP — confirm precinct if city is split)");
   }
 
-  return { asOf: data.asOf, races: out, phase };
+  return { asOf: data.asOf, races: out.filter((r) => (r.candidates || []).length > 0), phase };
 }
 
 function renderGopBallot(districts, ballot, formVals, opts = {}) {
@@ -451,6 +544,7 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
   const raceBlocks = (ballot.races || [])
     .map((r) => {
       const cands = (r.candidates || [])
+        .filter((c) => String(c.party || "GOP").toUpperCase() === "GOP")
         .map((c, idx) => {
           const val = `${r.key}||${c.name}`;
           const id = `c_${r.key}_${idx}`.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -462,7 +556,7 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
           const boxCls =
             c.nominee || c.leading ? "lit-box cand-pick priority" : "lit-box cand-pick";
           return `<label class="${boxCls}" for="${esc(id)}">
-            <input type="checkbox" id="${esc(id)}" name="pick" value="${esc(val)}" ${
+            <input type="checkbox" id="${esc(id)}" name="pick" value="${esc(val)}" data-party="GOP" ${
             isPost && c.nominee ? "checked" : ""
           } />
             <span>
@@ -472,12 +566,13 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
           </label>`;
         })
         .join("");
+      if (!cands) return "";
       return `<section class="card" style="margin-bottom:0.85rem">
         <h3>${esc(r.label || r.office)} ${r.winSeat ? '<span class="badge pri">Local Priority Seat</span>' : ""}</h3>
-        <p class="muted">${esc(r.scope || "")} · Select your preferred <span class="tag-gop">GOP</span> candidate${
+        <p class="muted">${esc(r.scope || "")} · <strong>GOP only</strong> — check preferred Republican candidate(s)${
           isPost ? " (nominees highlighted for the general election)" : " (pre-primary)"
         }</p>
-        ${cands || '<p class="muted">No GOP candidates listed yet for this office.</p>'}
+        ${cands}
       </section>`;
     })
     .join("");
@@ -1030,11 +1125,11 @@ app.get("/", (req, res) => {
         <div class="home-address-grid">
           <div>
             <label for="home-street">Street Address</label>
-            <input id="home-street" type="text" name="street" required maxlength="120" placeholder="123 Main St N" autocomplete="street-address" />
+            <input id="home-street" type="text" name="street" required maxlength="120" placeholder="1731 Beach Drive" autocomplete="street-address" />
           </div>
           <div>
-            <label for="home-city">City or Township</label>
-            <select id="home-city" name="city" required>
+            <label for="home-city">City or Township <span class="muted">(optional if street is known, e.g. Beach Drive)</span></label>
+            <select id="home-city" name="city">
               <option value="">Select…</option>
               ${[
                 "Bayport",
