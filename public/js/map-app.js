@@ -30,15 +30,28 @@
   L.control.layers(null, layerControls, { collapsed: false }).addTo(map);
 
   (layersData.townPins || []).forEach(function (t) {
+    const houseLine = t.houseLabel || (t.house ? "State House · HD " + t.house : "House TBD");
+    const gopLine = t.gopHouse ? "<br/>GOP House: <strong>" + t.gopHouse + "</strong>" : "";
+    const fed = t.usHouse ? "<br/>U.S. House (guide): MN-0" + t.usHouse : "";
+    const note = t.note ? "<br/><em>" + t.note + "</em>" : "";
     L.circleMarker([t.lat, t.lng], {
-      radius: 5,
+      radius: 6,
       color: "#0a2744",
-      fillColor: "#fff",
-      fillOpacity: 0.9,
+      fillColor: t.house === "33A" ? "#fde047" : "#f9a8d4",
+      fillOpacity: 0.95,
       weight: 2,
     })
       .addTo(map)
-      .bindPopup("<strong>" + t.name + "</strong><br/>House district (guide): " + (t.house || "—"));
+      .bindPopup(
+        "<strong>" +
+          t.name +
+          "</strong><br/>" +
+          houseLine +
+          gopLine +
+          "<br/>State Senate · SD 33" +
+          fed +
+          note
+      );
   });
 
   let pin = null;

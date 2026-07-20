@@ -1,112 +1,244 @@
 {
-  "note": "Approximate district outlines for volunteer map visualization only — not official SOS boundaries. Confirm precincts at pollfinder.sos.mn.gov.",
-  "center": [45.15, -92.9],
+  "note": "Approximate district outlines for volunteer visualization only — not official Minnesota SOS boundaries. Always confirm your precinct and ballot at pollfinder.sos.mn.gov.",
+  "center": [45.16, -92.9],
   "zoom": 10,
   "layers": [
     {
       "id": "us_house_4",
-      "label": "U.S. House MN-04",
+      "label": "U.S. House · MN-04",
       "level": "federal",
       "color": "#7dd3fc",
-      "fillOpacity": 0.22,
+      "fillOpacity": 0.18,
       "raceKey": "usHouse4",
       "geojson": {
         "type": "Feature",
-        "properties": { "name": "U.S. House MN-04 (approx.)" },
+        "properties": {
+          "name": "U.S. House MN-04 (approx.)",
+          "label": "U.S. House · MN-04"
+        },
         "geometry": {
           "type": "Polygon",
           "coordinates": [[
-            [-93.05, 44.92], [-92.72, 44.92], [-92.72, 45.12],
-            [-92.85, 45.18], [-93.05, 45.12], [-93.05, 44.92]
+            [-93.0, 44.95],
+            [-92.72, 44.95],
+            [-92.72, 45.22],
+            [-92.9, 45.22],
+            [-93.0, 45.12],
+            [-93.0, 44.95]
           ]]
         }
       }
     },
     {
       "id": "us_house_6",
-      "label": "U.S. House MN-06",
+      "label": "U.S. House · MN-06",
       "level": "federal",
       "color": "#86efac",
-      "fillOpacity": 0.2,
+      "fillOpacity": 0.16,
       "raceKey": "usHouse6",
       "geojson": {
         "type": "Feature",
-        "properties": { "name": "U.S. House MN-06 (approx.)" },
+        "properties": {
+          "name": "U.S. House MN-06 (approx.)",
+          "label": "U.S. House · MN-06"
+        },
         "geometry": {
           "type": "Polygon",
           "coordinates": [[
-            [-93.15, 45.12], [-92.75, 45.12], [-92.7, 45.42],
-            [-93.2, 45.42], [-93.15, 45.12]
+            [-93.12, 45.18],
+            [-92.78, 45.18],
+            [-92.75, 45.4],
+            [-93.15, 45.4],
+            [-93.12, 45.18]
           ]]
         }
       }
     },
     {
       "id": "sd_33",
-      "label": "State Senate 33",
+      "label": "State Senate · SD 33",
       "level": "state",
       "color": "#c4b5fd",
-      "fillOpacity": 0.28,
+      "fillOpacity": 0.22,
       "raceKey": "stateSenate33",
       "geojson": {
         "type": "Feature",
-        "properties": { "name": "Senate District 33 (approx.)" },
+        "properties": {
+          "name": "State Senate District 33 (approx.)",
+          "label": "State Senate · SD 33"
+        },
         "geometry": {
           "type": "Polygon",
           "coordinates": [[
-            [-93.05, 45.0], [-92.72, 45.0], [-92.7, 45.35],
-            [-93.08, 45.35], [-93.05, 45.0]
+            [-93.08, 44.98],
+            [-92.72, 44.98],
+            [-92.7, 45.32],
+            [-93.1, 45.32],
+            [-93.08, 44.98]
           ]]
         }
       }
     },
     {
       "id": "hd_33a",
-      "label": "House 33A",
+      "label": "State House · HD 33A",
       "level": "local",
       "color": "#fde047",
-      "fillOpacity": 0.38,
+      "fillOpacity": 0.4,
       "raceKey": "house33A",
+      "candidateGop": "Stacey Stout",
       "geojson": {
         "type": "Feature",
-        "properties": { "name": "House District 33A (approx.)" },
+        "properties": {
+          "name": "State House District 33A (approx.)",
+          "label": "State House · HD 33A",
+          "gopCandidate": "Stacey Stout",
+          "communities": "Forest Lake (parts), Hugo, Mahtomedi, Dellwood & nearby"
+        },
         "geometry": {
           "type": "Polygon",
           "coordinates": [[
-            [-93.08, 45.14], [-92.88, 45.14], [-92.85, 45.34],
-            [-93.1, 45.34], [-93.08, 45.14]
+            [-93.1, 45.05],
+            [-92.9, 45.05],
+            [-92.88, 45.2],
+            [-92.9, 45.32],
+            [-93.1, 45.32],
+            [-93.1, 45.05]
           ]]
         }
       }
     },
     {
       "id": "hd_33b",
-      "label": "House 33B",
+      "label": "State House · HD 33B",
       "level": "local",
       "color": "#f9a8d4",
-      "fillOpacity": 0.38,
+      "fillOpacity": 0.4,
       "raceKey": "house33B",
+      "candidateGop": "Jessica L. Johnson",
       "geojson": {
         "type": "Feature",
-        "properties": { "name": "House District 33B (approx.)" },
+        "properties": {
+          "name": "State House District 33B (approx.)",
+          "label": "State House · HD 33B",
+          "gopCandidate": "Jessica L. Johnson",
+          "communities": "Stillwater, Oak Park Heights, Bayport, Marine on St. Croix, Scandia, May Township, parts of Forest Lake"
+        },
         "geometry": {
           "type": "Polygon",
           "coordinates": [[
-            [-92.95, 44.98], [-92.72, 44.98], [-92.7, 45.18],
-            [-92.95, 45.2], [-92.95, 44.98]
+            [-92.95, 44.98],
+            [-92.72, 44.98],
+            [-92.7, 45.28],
+            [-92.85, 45.3],
+            [-92.95, 45.22],
+            [-92.95, 44.98]
           ]]
         }
       }
     }
   ],
   "townPins": [
-    { "name": "Stillwater", "lat": 45.056, "lng": -92.806, "house": "33B" },
-    { "name": "Oak Park Heights", "lat": 45.031, "lng": -92.793, "house": "33B" },
-    { "name": "Bayport", "lat": 45.021, "lng": -92.781, "house": "33B" },
-    { "name": "Marine on St. Croix", "lat": 45.198, "lng": -92.771, "house": "33B" },
-    { "name": "Scandia", "lat": 45.254, "lng": -92.806, "house": "33B" },
-    { "name": "Forest Lake", "lat": 45.278, "lng": -92.985, "house": "33A" },
-    { "name": "Hugo", "lat": 45.16, "lng": -92.993, "house": "33A" },
-    { "name": "Mahtomedi", "lat": 45.07, "lng": -92.952, "house": "33A" }
+    {
+      "name": "Stillwater",
+      "lat": 45.0561,
+      "lng": -92.806,
+      "house": "33B",
+      "senate": "33",
+      "usHouse": "4",
+      "houseLabel": "State House · HD 33B",
+      "gopHouse": "Jessica L. Johnson"
+    },
+    {
+      "name": "Oak Park Heights",
+      "lat": 45.0314,
+      "lng": -92.793,
+      "house": "33B",
+      "senate": "33",
+      "usHouse": "4",
+      "houseLabel": "State House · HD 33B",
+      "gopHouse": "Jessica L. Johnson"
+    },
+    {
+      "name": "Bayport",
+      "lat": 45.0214,
+      "lng": -92.781,
+      "house": "33B",
+      "senate": "33",
+      "usHouse": "4",
+      "houseLabel": "State House · HD 33B",
+      "gopHouse": "Jessica L. Johnson"
+    },
+    {
+      "name": "Marine on St. Croix",
+      "lat": 45.198,
+      "lng": -92.771,
+      "house": "33B",
+      "senate": "33",
+      "usHouse": "4",
+      "houseLabel": "State House · HD 33B",
+      "gopHouse": "Jessica L. Johnson"
+    },
+    {
+      "name": "Scandia",
+      "lat": 45.2536,
+      "lng": -92.8058,
+      "house": "33B",
+      "senate": "33",
+      "usHouse": "6",
+      "houseLabel": "State House · HD 33B",
+      "gopHouse": "Jessica L. Johnson"
+    },
+    {
+      "name": "May Township",
+      "lat": 45.15,
+      "lng": -92.84,
+      "house": "33B",
+      "senate": "33",
+      "usHouse": "4",
+      "houseLabel": "State House · HD 33B",
+      "gopHouse": "Jessica L. Johnson"
+    },
+    {
+      "name": "Forest Lake",
+      "lat": 45.2779,
+      "lng": -92.9852,
+      "house": "33A",
+      "senate": "33",
+      "usHouse": "6",
+      "houseLabel": "State House · HD 33A",
+      "gopHouse": "Stacey Stout",
+      "note": "Parts of Forest Lake may fall in HD 33B — confirm address"
+    },
+    {
+      "name": "Hugo",
+      "lat": 45.16,
+      "lng": -92.9933,
+      "house": "33A",
+      "senate": "33",
+      "usHouse": "6",
+      "houseLabel": "State House · HD 33A",
+      "gopHouse": "Stacey Stout"
+    },
+    {
+      "name": "Mahtomedi",
+      "lat": 45.0697,
+      "lng": -92.9516,
+      "house": "33A",
+      "senate": "33",
+      "usHouse": "4",
+      "houseLabel": "State House · HD 33A",
+      "gopHouse": "Stacey Stout"
+    },
+    {
+      "name": "Dellwood",
+      "lat": 45.0897,
+      "lng": -92.9722,
+      "house": "33A",
+      "senate": "33",
+      "usHouse": "4",
+      "houseLabel": "State House · HD 33A",
+      "gopHouse": "Stacey Stout"
+    }
   ]
 }
