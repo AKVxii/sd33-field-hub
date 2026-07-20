@@ -338,47 +338,83 @@ function resolveAddress(input) {
   return result;
 }
 
+function loadElectionPhase() {
+  const file = path.join(DATA, "election_phase.json");
+  try {
+    return loadJson(file) || {};
+  } catch {
+    return { mode: "pre_primary" };
+  }
+}
+
 function gopBallotForDistricts(districts) {
   const data = loadCandidates();
+  const phase = loadElectionPhase();
   const races = data.races;
   const out = [];
+  const post = phase.mode === "post_primary" && phase.winnersUploaded;
 
   function add(key, label) {
     const r = races[key];
     if (!r) return;
+    let candidates = (r.gop || []).map((c) => ({
+      name: c.name,
+      party: "GOP",
+      note: c.note || "",
+      leading: !!c.leading,
+      nominee: false,
+    }));
+    const winName = phase.winners && phase.winners[key];
+    if (post && winName) {
+      candidates = candidates
+        .filter((c) => c.name === winName || /field|nominee|primary/i.test(c.name))
+        .map((c) => ({
+          ...c,
+          nominee: c.name === winName,
+          note: c.name === winName ? "Primary winner / nominee — support through the general election" : c.note,
+          leading: c.name === winName,
+        }));
+      if (!candidates.some((c) => c.name === winName)) {
+        candidates.unshift({
+          name: winName,
+          party: "GOP",
+          note: "Primary winner / nominee — support through the general election",
+          leading: true,
+          nominee: true,
+        });
+      }
+    }
     out.push({
       key,
       office: r.office,
       scope: r.scope,
       label: label || r.office,
       winSeat: !!r.winSeat,
-      candidates: (r.gop || []).map((c) => ({
-        name: c.name,
-        party: "GOP",
-        note: c.note || "",
-        leading: !!c.leading,
-      })),
+      candidates,
     });
   }
 
-  add("governor", "Governor of Minnesota (statewide)");
-  add("usSenate", "U.S. Senate — Minnesota (statewide)");
+  add("governor", "Governor of Minnesota");
+  add("usSenate", "U.S. Senate — Minnesota");
+  add("attorneyGeneral", "Minnesota Attorney General");
+  add("secretaryOfState", "Minnesota Secretary of State");
+  add("stateAuditor", "Minnesota State Auditor");
 
   const uh = districts.usHouse || [];
-  if (uh.includes("4") || uh.length === 0) add("usHouse4", "U.S. House · MN-04");
-  if (uh.includes("8")) add("usHouse8", "U.S. House · MN-08");
-  if (uh.includes("6")) add("usHouse6", "U.S. House · MN-06");
+  if (uh.includes("4") || uh.length === 0) add("usHouse4", "U.S. House — Minnesota District 4");
+  if (uh.includes("8")) add("usHouse8", "U.S. House — Minnesota District 8");
+  if (uh.includes("6")) add("usHouse6", "U.S. House — Minnesota District 6");
 
-  add("stateSenate33", "State Senate District 33");
+  add("stateSenate33", "Minnesota State Senate — District 33");
 
-  if (districts.house === "33A") add("house33A", "State House District 33A");
-  else if (districts.house === "33B") add("house33B", "State House District 33B");
+  if (districts.house === "33A") add("house33A", "Minnesota House — District 33A");
+  else if (districts.house === "33B") add("house33B", "Minnesota House — District 33B");
   else {
-    add("house33A", "State House District 33A (if your address is 33A)");
-    add("house33B", "State House District 33B (if your address is 33B)");
+    add("house33A", "Minnesota House — District 33A (confirm if your address is 33A)");
+    add("house33B", "Minnesota House — District 33B (confirm if your address is 33B)");
   }
 
-  return { asOf: data.asOf, races: out };
+  return { asOf: data.asOf, races: out, phase };
 }
 
 function renderGopBallot(districts, ballot, formVals, opts = {}) {
@@ -388,23 +424,29 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
       : districts.confidence === "medium"
         ? "marked"
         : "draft";
+  const phase = ballot.phase || loadElectionPhase();
+  const isPost = phase.mode === "post_primary" && phase.winnersUploaded;
   const thanks = opts.thanks
-    ? `<div class="flash">Thanks — your preferred candidate picks were saved. You can update them anytime.</div>`
+    ? `<div class="flash">Thank you. Your preferred candidates have been saved. You may update them at any time.</div>`
     : "";
 
-  // Checkbox list inside one POST form for preferences
   const raceBlocks = (ballot.races || [])
     .map((r) => {
       const cands = (r.candidates || [])
         .map((c, idx) => {
           const val = `${r.key}||${c.name}`;
           const id = `c_${r.key}_${idx}`.replace(/[^a-zA-Z0-9_]/g, "_");
-          const lead = c.leading
-            ? ' <span class="badge pri">LEADING</span>'
-            : "";
-          const boxCls = c.leading ? "lit-box cand-pick priority" : "lit-box cand-pick";
+          const lead = c.nominee
+            ? ' <span class="badge published">NOMINEE</span>'
+            : c.leading
+              ? ' <span class="badge pri">LEADING</span>'
+              : "";
+          const boxCls =
+            c.nominee || c.leading ? "lit-box cand-pick priority" : "lit-box cand-pick";
           return `<label class="${boxCls}" for="${esc(id)}">
-            <input type="checkbox" id="${esc(id)}" name="pick" value="${esc(val)}" />
+            <input type="checkbox" id="${esc(id)}" name="pick" value="${esc(val)}" ${
+            isPost && c.nominee ? "checked" : ""
+          } />
             <span>
               <span class="lbl"><span class="tag-gop">GOP</span> ${esc(c.name)}${lead}</span>
               ${c.note ? `<div class="muted">${esc(c.note)}</div>` : ""}
@@ -413,29 +455,52 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
         })
         .join("");
       return `<section class="card" style="margin-bottom:0.85rem">
-        <h3>${esc(r.label || r.office)} ${r.winSeat ? '<span class="badge pri">LOCAL WIN SEAT</span>' : ""}</h3>
-        <p class="muted">${esc(r.scope || "")} · Check one or more preferred <span class="tag-gop">GOP</span> candidates</p>
-        ${cands || "<p class=\"muted\">No GOP candidates listed yet.</p>"}
+        <h3>${esc(r.label || r.office)} ${r.winSeat ? '<span class="badge pri">Local Priority Seat</span>' : ""}</h3>
+        <p class="muted">${esc(r.scope || "")} · Select your preferred <span class="tag-gop">GOP</span> candidate${
+          isPost ? " (nominees highlighted for the general election)" : " (pre-primary)"
+        }</p>
+        ${cands || '<p class="muted">No GOP candidates listed yet for this office.</p>'}
       </section>`;
     })
     .join("");
 
   const notes = (districts.notes || []).map((n) => `<li>${esc(n)}</li>`).join("");
 
+  const phaseBanner = isPost
+    ? `<div class="card home-section" style="border-left:4px solid var(--green);margin-bottom:1rem">
+        <span class="badge published">Post-Primary</span>
+        <h2 class="section-title" style="margin:0.45rem 0">${esc(phase.postPrimaryTitle || "Post-Primary: Nominees and Team Path")}</h2>
+        <p>${esc(phase.postPrimaryBody || "")}</p>
+        <p><strong>${esc(phase.teamPushHeadline || "Move Forward as a Team")}</strong> ${esc(phase.teamPushBody || "")}</p>
+        ${phase.winnersAsOf ? `<p class="muted">Results published as of ${esc(phase.winnersAsOf)}.</p>` : ""}
+      </div>`
+    : `<div class="card home-section" style="border-left:4px solid var(--gold);margin-bottom:1rem">
+        <span class="badge pri">Pre-Primary</span>
+        <h2 class="section-title" style="margin:0.45rem 0">${esc(phase.prePrimaryTitle || "Pre-Primary Preferences")}</h2>
+        <p>${esc(phase.prePrimaryBody || "")}</p>
+        <p class="muted"><strong>Primary:</strong> ${esc(phase.primaryDateLabel || "August 11, 2026")} · <strong>General election:</strong> ${esc(phase.generalDateLabel || "November 3, 2026")}</p>
+        <p class="muted">${esc(phase.winnersNote || "")}</p>
+      </div>`;
+
   return `
     ${thanks}
     <section class="hero">
-      <span class="badge pri">Volunteer tool</span>
-      <h2>GOP candidates for this address</h2>
-      <p>Enter a door address → see <span class="tag-gop">GOP</span> candidates → <strong>check your preferred picks</strong> (pre-primary or post-primary package).</p>
-      <p><a class="btn btn-navy" href="/share">Share this site for feedback</a></p>
+      <span class="badge pri">Find Your Ballot</span>
+      <h2>GOP Candidates for Your Address</h2>
+      <p>Enter a street address to view Republican candidates for your districts. Select your preferred candidates${
+        isPost
+          ? " for the general election package."
+          : " before the primary. After the primary, winners and results will be published here for a unified team push."
+      }</p>
     </section>
 
+    ${phaseBanner}
+
     <form class="card stack" method="get" action="/my-gop-ballot" style="margin-bottom:1rem">
-      <label>Street address</label>
-      <input type="text" name="street" value="${esc(formVals.street || "")}" placeholder="123 Main St N" />
-      <label>City / town</label>
-      <select name="city">
+      <label for="bal-street">Street Address</label>
+      <input id="bal-street" type="text" name="street" value="${esc(formVals.street || "")}" placeholder="123 Main St N" autocomplete="street-address" />
+      <label for="bal-city">City / Town</label>
+      <select id="bal-city" name="city">
         <option value="">Select city…</option>
         ${[
           "Stillwater",
@@ -459,12 +524,12 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
           )
           .join("")}
       </select>
-      <label>ZIP (optional — improves match)</label>
-      <input type="text" name="zip" value="${esc(formVals.zip || "")}" placeholder="55082" maxlength="10" />
-      <label>Or paste full address in one line</label>
-      <input type="text" name="q" value="${esc(formVals.q || "")}" placeholder="123 Main St, Stillwater, MN 55082" />
+      <label for="bal-zip">ZIP Code <span class="muted">(optional — improves match)</span></label>
+      <input id="bal-zip" type="text" name="zip" value="${esc(formVals.zip || "")}" placeholder="55082" maxlength="10" autocomplete="postal-code" />
+      <label for="bal-q">Or Paste Full Address</label>
+      <input id="bal-q" type="text" name="q" value="${esc(formVals.q || "")}" placeholder="123 Main St, Stillwater, MN 55082" />
       <div class="row-actions">
-        <button class="btn" type="submit">Show GOP candidates</button>
+        <button class="btn" type="submit">Show Candidates</button>
       </div>
     </form>
 
@@ -472,12 +537,12 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
       formVals.submitted
         ? `
     <div class="card" style="margin-bottom:1rem">
-      <h3>Match result</h3>
+      <h3>District Match</h3>
       <p><strong>Address:</strong> ${esc(formVals.street || formVals.q || "—")}${
             formVals.city ? ", " + esc(formVals.city) : ""
           } ${esc(formVals.zip || "")}</p>
       <p>
-        <span class="badge ${confColor}">confidence: ${esc(districts.confidence || "low")}</span>
+        <span class="badge ${confColor}">Match confidence: ${esc(districts.confidence || "low")}</span>
         · State Senate: <strong>SD ${esc(districts.senate || "33")}</strong>
         · State House: <strong>${esc(
           districts.house === "BOTH" ? "33A or 33B — confirm" : "HD " + (districts.house || "?")
@@ -485,7 +550,7 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
         · U.S. House: <strong>MN-${esc((districts.usHouse || []).join(" / ") || "?")}</strong>
       </p>
       ${notes ? `<ul class="muted">${notes}</ul>` : ""}
-      <p class="muted">Always double-check precinct at
+      <p class="muted">Confirm your precinct at
         <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>.
         Candidate list as of ${esc(ballot.asOf || "")}.
       </p>
@@ -500,53 +565,93 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
       <input type="hidden" name="usHouse" value="${esc((districts.usHouse || []).join(","))}" />
 
       <div class="card" style="margin-bottom:1rem;border-color:#e0b84a">
-        <h3>When is this pick for?</h3>
-        <p class="muted">Choose one (or both if you want a pre-primary lean <em>and</em> a post-primary package).</p>
+        <h3>${isPost ? "General Election Package" : "Preference Period"}</h3>
+        ${
+          isPost
+            ? `<p class="muted">Nominees are highlighted. Confirm who you will support through the general election, then save so captains can issue the correct literature package.</p>
+        <label class="lit-box priority">
+          <input type="checkbox" name="phase" value="post_package" checked />
+          <span>
+            <span class="lbl">Post-primary package — support nominees as one team</span>
+            <div class="muted">Local slate (Senate 33 / House 33A or 33B) plus statewide and federal nominees when literature is available.</div>
+          </span>
+        </label>
+        <label class="lit-box">
+          <input type="checkbox" name="wantFullPackage" value="yes" checked />
+          <span>
+            <span class="lbl">Send me the full post-primary literature package</span>
+            <div class="muted">Governor, U.S. Senate, U.S. House, and local seats for my address.</div>
+          </span>
+        </label>
+        <label class="lit-box">
+          <input type="checkbox" name="teamPushOk" value="yes" checked />
+          <span>
+            <span class="lbl">I will help move forward as a team for the general election</span>
+            <div class="muted">Captains may contact me about doors, events, and pack pickup for the winning slate.</div>
+          </span>
+        </label>`
+            : `<p class="muted">Select pre-primary preferences now. After ${esc(
+                phase.primaryDateLabel || "the primary"
+              )}, winners and results will be uploaded; we will then invite you to support nominees and advance as a team.</p>
         <label class="lit-box priority">
           <input type="checkbox" name="phase" value="pre_primary" checked />
           <span>
             <span class="lbl">Pre-primary preferences</span>
-            <div class="muted">Before Aug 11 — check who you favor in contested GOP primaries (Governor, U.S. Senate, U.S. House, etc.).</div>
+            <div class="muted">Before ${esc(phase.primaryDateLabel || "August 11, 2026")} — select the candidates you prefer in contested primaries and local races.</div>
           </span>
         </label>
-        <label class="lit-box priority">
+        <label class="lit-box">
           <input type="checkbox" name="phase" value="post_package" />
           <span>
-            <span class="lbl">Post-primary package (still an option)</span>
-            <div class="muted">After primary (or “I’ll carry the full GOP package”) — support the nominees + local SD33 / 33A / 33B slate for doors &amp; lit.</div>
+            <span class="lbl">Also notify me for the post-primary team package</span>
+            <div class="muted">After winners are published, I want the full nominee literature package for my address.</div>
           </span>
         </label>
         <label class="lit-box">
           <input type="checkbox" name="wantFullPackage" value="yes" />
           <span>
-            <span class="lbl">I want the full post-primary GOP package lit</span>
-            <div class="muted">Governor nominee + U.S. Senate nominee + U.S. House + Housley + local house — when available.</div>
+            <span class="lbl">I want the full post-primary literature package when available</span>
+            <div class="muted">Governor, U.S. Senate, U.S. House, Senate 33, and House 33A or 33B.</div>
           </span>
         </label>
+        <label class="lit-box">
+          <input type="checkbox" name="teamPushOk" value="yes" checked />
+          <span>
+            <span class="lbl">After the primary, contact me to move forward as a team</span>
+            <div class="muted">Support for nominees and local seats through the general election.</div>
+          </span>
+        </label>`
+        }
       </div>
 
-      <h2 style="margin-top:0.5rem">Check your preferred <span class="tag-gop">GOP</span> candidate(s)</h2>
-      <p class="muted">Check boxes next to every candidate you prefer. You can pick more than one per race if you are still deciding (pre-primary).</p>
+      <h2 style="margin-top:0.5rem">${
+        isPost ? "Confirm Nominees and Local Slate" : "Select Your Preferred Candidates"
+      }</h2>
+      <p class="muted">${
+        isPost
+          ? "Review nominees for each office. Adjust selections if needed, then save."
+          : "Check every candidate you prefer. You may select more than one per race while the primary field remains open."
+      }</p>
       ${raceBlocks}
 
       <div class="card stack">
-        <h3>Your info (optional but helps follow-up)</h3>
-        <label>Your name</label>
-        <input type="text" name="name" maxlength="100" placeholder="First name or full name" />
-        <label>Email or phone</label>
-        <input type="text" name="contact" maxlength="160" placeholder="so we can send package / turf updates" />
-        <label>Notes</label>
-        <textarea name="notes" rows="2" maxlength="500" placeholder="e.g. only local races, need post-primary lit only…"></textarea>
+        <h3>Contact Information <span class="muted">(optional — helps with package follow-up)</span></h3>
+        <label for="pref-name">Name</label>
+        <input id="pref-name" type="text" name="name" maxlength="100" autocomplete="name" />
+        <label for="pref-contact">Email or Phone</label>
+        <input id="pref-contact" type="text" name="contact" maxlength="160" autocomplete="email" />
+        <label for="pref-notes">Notes</label>
+        <textarea id="pref-notes" name="notes" rows="2" maxlength="500" placeholder="Optional notes for captains"></textarea>
         <div class="row-actions">
-          <button class="btn" type="submit">Save my preferred candidates</button>
-          <a class="btn btn-navy" href="/share">Share site for feedback</a>
+          <button class="btn" type="submit">Save Preferred Candidates</button>
+          <a class="btn btn-navy" href="/volunteer">Volunteer Signup</a>
         </div>
       </div>
     </form>
 
     <div class="card" style="margin-top:1rem;border:2px solid var(--gop)">
-      <h3 style="color:var(--gop)">On a busy street?</h3>
-      <p><strong>If this address is on a busy street</strong> and they are interested in a candidate — <strong>ask for a yard sign location!</strong></p>
+      <h3 style="color:var(--gop)">Busy Street Sign Request</h3>
+      <p>If this address is on a busy street and the resident supports a candidate, ask about a yard sign location and log it below.</p>
     </div>
     ${signAskCalloutAndForm({
       redirect: "/my-gop-ballot?street=" + encodeURIComponent(formVals.street || "") + "&city=" + encodeURIComponent(formVals.city || "") + "&zip=" + encodeURIComponent(formVals.zip || "") + "&q=" + encodeURIComponent(formVals.q || ""),
@@ -555,12 +660,12 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
     })}
 
     <div class="card" style="margin-top:1rem">
-      <p><a class="btn btn-navy" href="/carry">Choose literature to carry</a>
-      <a class="btn btn-navy" href="/field/doors">Door lists</a>
-      <a class="btn btn-navy" href="/team/sign-asks">View sign asks</a>
-      <a class="btn btn-navy" href="/team/preferences">View team pick totals</a></p>
+      <p><a class="btn btn-navy" href="/carry">Choose Literature</a>
+      <a class="btn btn-navy" href="/field/doors">Door Lists</a>
+      <a class="btn btn-navy" href="/team/sign-asks">Sign Requests</a>
+      <a class="btn btn-navy" href="/team/preferences">Preference Totals</a></p>
     </div>`
-        : `<div class="card"><p class="muted">Submit an address above to see GOP candidates and check your preferred picks (pre-primary and/or post-primary package).</p></div>`
+        : `<div class="card"><p class="muted">Enter an address above to view candidates for your districts and save your preferred selections.</p></div>`
     }`;
 }
 
@@ -830,6 +935,8 @@ app.post("/my-gop-ballot/prefer", (req, res) => {
     usHouse: String(req.body.usHouse || ""),
     phases,
     wantFullPackage: req.body.wantFullPackage === "yes",
+    teamPushOk: req.body.teamPushOk === "yes",
+    electionMode: (loadElectionPhase().mode || "pre_primary"),
     preferred,
   };
 
@@ -927,13 +1034,13 @@ app.get("/", (req, res) => {
       <div class="heritage-loon" role="img" aria-label="Common loon on a Minnesota lake with a faint historic Minnesota flag watermark">
         <div class="heritage-loon-caption">
           <strong>The Loon · Land of 10,000 Lakes</strong>
-          <span>Historic Minnesota flag (1957–2023), faint and present—our heritage, our home</span>
+          <span>Historic Minnesota flag (1957–2023) · heritage display</span>
         </div>
       </div>
       <div class="heritage-copy">
-        <h2>Neighbors Who Love This Place</h2>
-        <p>From Forest Lake’s shoreline to Stillwater’s Main Street, this hub is built for people who care about Minnesota’s future—clean language, clear tools, and a path to win the seats that shape our daily lives.</p>
-        <p class="muted" style="margin:0">Parade season, lake evenings, and door-to-door weekends. Sign up, request a bundle pack, and join like-minded residents in your district or nearby.</p>
+        <h2>Minnesota Communities, Local Seats</h2>
+        <p>From Forest Lake to Stillwater and neighboring towns, this hub provides professional field tools for residents who care about Minnesota’s future and the legislative seats that shape daily life in Senate District&nbsp;33.</p>
+        <p class="muted" style="margin:0">Volunteer for doors, community events, and literature. Request a bundle pack and connect with neighbors in your district or nearby.</p>
         <div class="cta-row">
           <a class="btn btn-gold" href="/volunteer">Join the Team</a>
           <a class="btn btn-navy" href="/win-three">Win Path: Three Seats</a>
@@ -2080,7 +2187,7 @@ app.get("/review", (req, res) => {
         <tr><td>Candidate lists</td><td><span class="tag-gop">GOP</span> candidates by race; <span class="badge pri">LEADING</span> label when a candidate is leading</td></tr>
         <tr><td>Field emphasis</td><td>Doors &gt; signs on busy streets &gt; phones &gt; lit</td></tr>
         <tr><td>Busy street rule</td><td>Interested in candidate → ask for sign location + log person &amp; contact</td></tr>
-        <tr><td>Visual brand</td><td>Loons, lakes, St. Croix valley — Minnesota pride</td></tr>
+        <tr><td>Visual presentation</td><td>St. Croix Valley, lakes, and community imagery</td></tr>
       </table>
     </section>
 
@@ -2190,17 +2297,29 @@ app.get("/win-playbook", (req, res) => {
     </section>
 
     <section class="card">
-      <h3>Visual brand (why loons &amp; lakes)</h3>
-      <div class="gallery">
-        <img src="/images/loon-lake.jpg" alt="Loon" />
-        <img src="/images/st-croix-valley.jpg" alt="Valley" />
-        <img src="/images/mn-lake-shore.jpg" alt="Shore" />
-        <img src="/images/autumn-lakeside.jpg" alt="Autumn" />
+      <h3>St. Croix Valley Imagery</h3>
+      <div class="gallery" aria-label="St. Croix Valley and Minnesota lakes">
+        <figure>
+          <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" />
+          <figcaption>Minnesota Loon</figcaption>
+        </figure>
+        <figure>
+          <img src="/images/forest-lake-scenic.jpg" alt="Forest Lake, Minnesota" />
+          <figcaption>Forest Lake</figcaption>
+        </figure>
+        <figure>
+          <img src="/images/st-croix-valley.jpg" alt="St. Croix River valley" />
+          <figcaption>St. Croix Valley</figcaption>
+        </figure>
+        <figure>
+          <img src="/images/forest-lake-july4-parade.jpg" alt="Independence Day community parade" />
+          <figcaption>Community Events</figcaption>
+        </figure>
       </div>
-      <p>People vote for neighbors who love this place. The site uses St. Croix valley, lakes, and loon imagery so the campaign feels local — not generic national template.</p>
-      <p><a class="btn btn-gold" href="/review">Send for review</a> <a class="btn" href="/share">Share links</a></p>
+      <p>Photography and original illustrations reflect Washington County and the St.&nbsp;Croix Valley for a professional local presentation.</p>
+      <p><a class="btn btn-gold" href="/review">Send for Review</a> <a class="btn" href="/share">Share Links</a></p>
     </section>`;
-  sendPage(req, res, "Win playbook", body);
+  sendPage(req, res, "Field Guide", body);
 });
 
 /* ---------- Share site + collect feedback ---------- */
@@ -2251,7 +2370,7 @@ app.get("/share", (req, res) => {
 
       <article class="card">
         <h3>Text / email blurb</h3>
-        <textarea id="blurb" rows="10" readonly class="share-input" style="max-width:100%">Please review our SD 33 St. Croix Valley volunteer site (lakes, loons, local races). Try the tools and tell us what to change so we win Senate 33 + House 33A + 33B:
+        <textarea id="blurb" rows="10" readonly class="share-input" style="max-width:100%">Please review the St. Croix Valley Field Hub for Minnesota Senate District 33 and House Districts 33A and 33B. Use the tools and share any feedback so we can win these seats:
 
 ${base}/review
 
@@ -2824,6 +2943,9 @@ app.get("/events", (req, res) => {
 function activityCheck(value, labelHtml) {
   return `<label class="check-row"><input type="checkbox" name="interest" value="${esc(value)}" /><span>${labelHtml}</span></label>`;
 }
+function issueCheck(value, labelHtml) {
+  return `<label class="check-row"><input type="checkbox" name="issues" value="${esc(value)}" /><span>${labelHtml}</span></label>`;
+}
 function campaignCheck(value, labelHtml) {
   return `<label class="check-row"><input type="checkbox" name="campaigns" value="${esc(value)}" class="campaign-cb" data-campaign="${esc(value)}" /><span>${labelHtml}</span></label>`;
 }
@@ -3013,15 +3135,33 @@ app.get("/volunteer", (req, res) => {
           <label for="vol-town">City / town</label>
           <input id="vol-town" name="town" maxlength="80" placeholder="Stillwater, Forest Lake, Hugo…" />
 
-          <label for="vol-hd">House district (if known)</label>
+          <label for="vol-hd">House District (if known)</label>
           <select id="vol-hd" name="houseDistrict">
             <option value="">Not sure</option>
-            <option value="33A">33A — Stacey Stout turf</option>
-            <option value="33B">33B — Jessica L. Johnson turf</option>
+            <option value="33A">33A — Stacey Stout</option>
+            <option value="33B">33B — Jessica L. Johnson</option>
             <option value="BOTH">Either / both</option>
           </select>
 
-          <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Preferred volunteer activities <span class="muted">(check all that apply)</span></p>
+          <label for="why-volunteer">Why Are You Volunteering This Election Cycle?</label>
+          <textarea id="why-volunteer" name="whyVolunteer" rows="3" maxlength="1200" required placeholder="Share what motivates you to volunteer this year…"></textarea>
+
+          <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Major Issue(s) of Concern <span class="muted">(check all that apply)</span></p>
+          <div class="check-list" role="group" aria-label="Major issues of concern">
+            ${issueCheck("taxes", "Taxes")}
+            ${issueCheck("education", "Education")}
+            ${issueCheck("roads", "Roads")}
+            ${issueCheck("public_safety", "Public safety")}
+            ${issueCheck("wellbeing", "General well-being of Minnesota and its future")}
+            ${issueCheck("all_above", "All of the above and more")}
+            <label class="check-row"><input type="checkbox" name="issues" value="other" id="issue-other" /><span>Other</span></label>
+          </div>
+          <div id="issue-other-box" class="shirt-size-box" aria-live="polite">
+            <label for="issue-other-text">Please describe other issue(s)</label>
+            <input id="issue-other-text" name="issuesOther" maxlength="400" placeholder="Optional detail if you selected Other" />
+          </div>
+
+          <p class="form-label-strong" style="font-weight:700;margin:1rem 0 0.35rem">Preferred Volunteer Activities <span class="muted">(check all that apply)</span></p>
           <div class="check-list" role="group" aria-label="Volunteer activities">
             ${activityCheck("doors", "Door knocking")}
             ${activityCheck("pulsar", "Get on <strong>Pulsar</strong> / field walk lists — meet campaign for access")}
@@ -3240,8 +3380,8 @@ app.get("/volunteer", (req, res) => {
       </ol>
       <p class="muted">See <a href="/events">event cards</a> for stickers / lit / shirts by setting.</p>
     </section>
-    <script src="/js/volunteer-form.js?v=4"></script>`;
-  sendPage(req, res, "Volunteer signup", body);
+    <script src="/js/volunteer-form.js?v=5"></script>`;
+  sendPage(req, res, "Volunteer Signup", body);
 });
 
 function asArray(val) {
@@ -3307,6 +3447,8 @@ async function notifySignup(entry, eventObj, kits) {
     `Phone: ${entry.phone}`,
     `Town: ${entry.town || "—"}`,
     `HD: ${entry.houseDistrict || "—"}`,
+    `Why volunteering: ${entry.whyVolunteer || "—"}`,
+    `Issues: ${(entry.issues || []).join(", ") || "—"}${entry.issuesOther ? " · other: " + entry.issuesOther : ""}`,
     `Activities: ${(entry.interests || []).join(", ") || "—"}`,
     `Campaigns: ${(entry.campaigns || []).join(", ") || "—"}`,
     `Bundle pack: ${entry.wantBundlePack ? "YES — assemble lit pack" : "no"}`,
@@ -3440,6 +3582,7 @@ app.post("/volunteer", async (req, res) => {
   const interests = asArray(req.body.interest).map(String);
   const campaigns = asArray(req.body.campaigns).map(String);
   const social = asArray(req.body.social).map(String);
+  const issues = asArray(req.body.issues).map(String);
   const pack = buildBundlePack(campaigns, String(req.body.houseDistrict || ""));
   const entry = {
     id: "vol_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
@@ -3449,6 +3592,9 @@ app.post("/volunteer", async (req, res) => {
     phone: String(req.body.phone || "").slice(0, 40),
     town: String(req.body.town || "").slice(0, 80),
     houseDistrict: String(req.body.houseDistrict || ""),
+    whyVolunteer: String(req.body.whyVolunteer || "").slice(0, 1200),
+    issues,
+    issuesOther: String(req.body.issuesOther || "").slice(0, 400),
     interests,
     campaigns,
     social,
@@ -3475,6 +3621,10 @@ app.post("/volunteer", async (req, res) => {
   };
   if (!entry.name || !entry.email || !entry.phone) {
     req.session.flash = "Name, email, and phone are required.";
+    return res.redirect("/volunteer");
+  }
+  if (!entry.whyVolunteer || entry.whyVolunteer.trim().length < 3) {
+    req.session.flash = "Please share why you are volunteering this election cycle.";
     return res.redirect("/volunteer");
   }
   if (entry.wearShirt && !entry.shirtSize) {
@@ -3870,6 +4020,8 @@ app.get("/team/volunteers", (req, res) => {
           <td>${esc(v.town)} ${esc(v.houseDistrict)}
             <div class="muted">Scope: ${esc(v.eventScope || "—")}</div></td>
           <td>${esc((v.interests || []).join(", "))}
+            <div class="muted">Why: ${esc((v.whyVolunteer || "").slice(0, 100))}</div>
+            <div class="muted">Issues: ${esc((v.issues || []).join(", ") || "—")}${v.issuesOther ? " · " + esc(String(v.issuesOther).slice(0, 60)) : ""}</div>
             <div class="muted">Campaigns: ${esc((v.campaigns || []).join(", ") || "—")}</div>
             <div class="muted">Social: ${esc((v.social || []).join(", ") || "—")}</div></td>
           <td>

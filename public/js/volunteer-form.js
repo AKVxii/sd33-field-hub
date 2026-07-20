@@ -43,6 +43,15 @@
     toggle(teamLeadCb, teamLeadBox);
   }
 
+  var issueOtherCb = document.getElementById("issue-other");
+  var issueOtherBox = document.getElementById("issue-other-box");
+  if (issueOtherCb) {
+    issueOtherCb.addEventListener("change", function () {
+      toggle(issueOtherCb, issueOtherBox);
+    });
+    toggle(issueOtherCb, issueOtherBox);
+  }
+
   var kits = {
     local_three: {
       title: "Win all three local",

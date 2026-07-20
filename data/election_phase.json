@@ -1,0 +1,28 @@
+{
+  "mode": "pre_primary",
+  "primaryDate": "2026-08-11",
+  "primaryDateLabel": "August 11, 2026",
+  "generalDate": "2026-11-03",
+  "generalDateLabel": "November 3, 2026",
+  "prePrimaryTitle": "Pre-Primary Preferences",
+  "prePrimaryBody": "Enter your address, then select the candidates you prefer before the primary. After the primary, this page will be updated with winners and results. We will then ask supporters to advance together as one team for the general election.",
+  "postPrimaryTitle": "Post-Primary: Nominees and Team Path",
+  "postPrimaryBody": "Primary winners and results have been published. Please support the nominees and local slate as one team through the general election. Literature packages will reflect the winning candidates.",
+  "winnersUploaded": false,
+  "winnersAsOf": null,
+  "winnersNote": "After the primary, administrators will upload winners and results here. Contacts who saved preferences will be invited to support nominees and move forward as a team.",
+  "teamPushHeadline": "Move Forward as a Team",
+  "teamPushBody": "When primary results are final, we unite behind the nominees—local, statewide, and federal—and work together through Election Day.",
+  "winners": {
+    "governor": null,
+    "usSenate": null,
+    "usHouse4": null,
+    "usHouse8": null,
+    "attorneyGeneral": null,
+    "secretaryOfState": null,
+    "stateAuditor": null,
+    "stateSenate33": "Karin Housley",
+    "house33A": "Stacey Stout",
+    "house33B": "Jessica L. Johnson"
+  }
+}
