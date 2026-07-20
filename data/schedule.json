@@ -1,0 +1,31 @@
+{
+  "shifts": [
+    {
+      "id": "shift_2026_08_01_karaoke",
+      "date": "2026-08-01",
+      "label": "Karaoke Night — greeters & setup",
+      "time": "5:00 p.m. – 9:30 p.m.",
+      "location": "Stillwater",
+      "slots": 12,
+      "signedUp": []
+    },
+    {
+      "id": "shift_doors_sat_am",
+      "date": "recurring-sat",
+      "label": "Saturday doors — morning",
+      "time": "10:00 a.m. – noon",
+      "location": "Stillwater / Forest Lake (assigned at meet)",
+      "slots": 20,
+      "signedUp": []
+    },
+    {
+      "id": "shift_phones_tue",
+      "date": "recurring-tue",
+      "label": "Tuesday phone bank",
+      "time": "6:30 p.m. – 8:00 p.m.",
+      "location": "Remote or HQ",
+      "slots": 15,
+      "signedUp": []
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "note": "Approximate district outlines for volunteer map visualization only — not official SOS boundaries. Confirm precincts at pollfinder.sos.mn.gov.",
+  "center": [45.15, -92.9],
+  "zoom": 10,
+  "layers": [
+    {
+      "id": "us_house_4",
+      "label": "U.S. House MN-04",
+      "level": "federal",
+      "color": "#7dd3fc",
+      "fillOpacity": 0.22,
+      "raceKey": "usHouse4",
+      "geojson": {
+        "type": "Feature",
+        "properties": { "name": "U.S. House MN-04 (approx.)" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[
+            [-93.05, 44.92], [-92.72, 44.92], [-92.72, 45.12],
+            [-92.85, 45.18], [-93.05, 45.12], [-93.05, 44.92]
+          ]]
+        }
+      }
+    },
+    {
+      "id": "us_house_6",
+      "label": "U.S. House MN-06",
+      "level": "federal",
+      "color": "#86efac",
+      "fillOpacity": 0.2,
+      "raceKey": "usHouse6",
+      "geojson": {
+        "type": "Feature",
+        "properties": { "name": "U.S. House MN-06 (approx.)" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[
+            [-93.15, 45.12], [-92.75, 45.12], [-92.7, 45.42],
+            [-93.2, 45.42], [-93.15, 45.12]
+          ]]
+        }
+      }
+    },
+    {
+      "id": "sd_33",
+      "label": "State Senate 33",
+      "level": "state",
+      "color": "#c4b5fd",
+      "fillOpacity": 0.28,
+      "raceKey": "stateSenate33",
+      "geojson": {
+        "type": "Feature",
+        "properties": { "name": "Senate District 33 (approx.)" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[
+            [-93.05, 45.0], [-92.72, 45.0], [-92.7, 45.35],
+            [-93.08, 45.35], [-93.05, 45.0]
+          ]]
+        }
+      }
+    },
+    {
+      "id": "hd_33a",
+      "label": "House 33A",
+      "level": "local",
+      "color": "#fde047",
+      "fillOpacity": 0.38,
+      "raceKey": "house33A",
+      "geojson": {
+        "type": "Feature",
+        "properties": { "name": "House District 33A (approx.)" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[
+            [-93.08, 45.14], [-92.88, 45.14], [-92.85, 45.34],
+            [-93.1, 45.34], [-93.08, 45.14]
+          ]]
+        }
+      }
+    },
+    {
+      "id": "hd_33b",
+      "label": "House 33B",
+      "level": "local",
+      "color": "#f9a8d4",
+      "fillOpacity": 0.38,
+      "raceKey": "house33B",
+      "geojson": {
+        "type": "Feature",
+        "properties": { "name": "House District 33B (approx.)" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[
+            [-92.95, 44.98], [-92.72, 44.98], [-92.7, 45.18],
+            [-92.95, 45.2], [-92.95, 44.98]
+          ]]
+        }
+      }
+    }
+  ],
+  "townPins": [
+    { "name": "Stillwater", "lat": 45.056, "lng": -92.806, "house": "33B" },
+    { "name": "Oak Park Heights", "lat": 45.031, "lng": -92.793, "house": "33B" },
+    { "name": "Bayport", "lat": 45.021, "lng": -92.781, "house": "33B" },
+    { "name": "Marine on St. Croix", "lat": 45.198, "lng": -92.771, "house": "33B" },
+    { "name": "Scandia", "lat": 45.254, "lng": -92.806, "house": "33B" },
+    { "name": "Forest Lake", "lat": 45.278, "lng": -92.985, "house": "33A" },
+    { "name": "Hugo", "lat": 45.16, "lng": -92.993, "house": "33A" },
+    { "name": "Mahtomedi", "lat": 45.07, "lng": -92.952, "house": "33A" }
+  ]
+}

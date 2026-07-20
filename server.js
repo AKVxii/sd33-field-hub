@@ -80,6 +80,16 @@ const GEO_FILE = path.join(DATA, "geo_lookup.json");
 const PREFS_FILE = path.join(DATA, "candidate_prefs.json");
 const FEEDBACK_FILE = path.join(DATA, "feedback.json");
 const SIGN_ASKS_FILE = path.join(DATA, "sign_asks.json");
+const EVENTS_FILE = path.join(DATA, "events.json");
+const SCHEDULE_FILE = path.join(DATA, "schedule.json");
+const ROADMAP_FILE = path.join(DATA, "roadmap.json");
+const DISTRICTS_GEO_FILE = path.join(DATA, "districts_geo.json");
+if (!fs.existsSync(SCHEDULE_FILE)) {
+  fs.writeFileSync(
+    SCHEDULE_FILE,
+    JSON.stringify({ shifts: [] }, null, 2)
+  );
+}
 
 if (!fs.existsSync(DATA)) fs.mkdirSync(DATA, { recursive: true });
 if (!fs.existsSync(SIGNUPS)) fs.writeFileSync(SIGNUPS, "[]");
@@ -615,51 +625,60 @@ app.use(
   })
 );
 
-function layout(title, body) {
+function layout(title, body, opts = {}) {
+  const extraHead = opts.extraHead || "";
+  const extraFoot = opts.extraFoot || "";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${esc(title)} · SD 33 Lit Drop</title>
+  <meta name="description" content="St. Croix Valley volunteer field hub for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and volunteer tools for residents and the press." />
+  <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
   <link rel="stylesheet" href="/css/lit.css" />
+  ${extraHead}
 </head>
 <body>
-  <header class="top">
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="top" role="banner">
     <div class="wrap top-inner">
-      <h1>SD 33 · St. Croix Valley Field Hub</h1>
-      <p>Beautiful Minnesota · Stillwater lakes &amp; river country · Win Senate 33 + House 33A + 33B</p>
-      <nav class="nav">
+      <h1>St. Croix Valley Field Hub</h1>
+      <p>Minnesota Senate District 33 · House Districts 33A &amp; 33B · Washington County</p>
+      <nav class="nav" aria-label="Primary">
         <a href="/">Home</a>
-        <a class="nav-hot" href="/review">Review &amp; advise</a>
-        <a href="/win-playbook">Win playbook</a>
-        <a href="/my-gop-ballot">GOP ballot</a>
-        <a href="/share">Share</a>
-        <a href="/field">Field</a>
-        <a href="/field/doors">Doors</a>
-        <a href="/field/signs">Signs</a>
-        <a href="/team/sign-asks">Sign asks</a>
+        <a class="nav-hot" href="/map">District map</a>
+        <a href="/events">Events</a>
+        <a href="/schedule">Volunteer board</a>
+        <a href="/my-gop-ballot">Find your ballot</a>
         <a href="/candidates">Candidates</a>
-        <a href="/carry">Lit</a>
-        <a href="/team/preferences">Totals</a>
+        <a href="/roadmap">Roadmap</a>
+        <a href="/win-playbook">Field guide</a>
+        <a href="/donate">Support</a>
+        <a href="/es">Español</a>
+        <a href="/share">Share</a>
+        <a href="/field">Field tools</a>
       </nav>
     </div>
   </header>
-  <main class="wrap main">${body}</main>
-  <footer class="footer">
+  <main id="main" class="wrap main" role="main">${body}</main>
+  <footer class="footer" role="contentinfo">
     <div class="wrap">
       <div class="footer-brand">
-        <img src="/images/loon-lake.jpg" alt="Minnesota loon on a lake" />
-        <img src="/images/mn-lake-shore.jpg" alt="Minnesota lake shore" />
-        <img src="/images/st-croix-valley.jpg" alt="St. Croix valley" />
+        <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" />
+        <img src="/images/mn-lake-shore.jpg" alt="Minnesota lake shoreline" />
+        <img src="/images/st-croix-valley.jpg" alt="St. Croix River valley landscape" />
         <div>
-          <strong>SD 33 Field Hub</strong> · Washington County · St. Croix Valley<br/>
-          Volunteer field tool — not an official government site. Verify candidates at SOS.
+          <strong>St. Croix Valley Field Hub</strong><br/>
+          Independent volunteer organizing resource for Senate District 33 and House Districts 33A &amp; 33B.
+          Not an official government website. Candidate filings: Minnesota Secretary of State.
+          Official precinct lookup: <a href="https://pollfinder.sos.mn.gov/" rel="noopener">pollfinder.sos.mn.gov</a>.
         </div>
       </div>
-      <p>Share for review: <a href="/review">/review</a> · Feedback: <a href="/share">/share</a></p>
+      <p>Public site: <a href="https://sd33-field-hub.onrender.com">sd33-field-hub.onrender.com</a>
+      · <a href="/review">Feedback</a> · <a href="/accessibility">Accessibility</a></p>
     </div>
   </footer>
+  ${extraFoot}
 </body>
 </html>`;
 }
@@ -806,87 +825,78 @@ app.get("/api/gop-ballot", (req, res) => {
   });
 });
 
-/* ---------- Home: winning lit plan ---------- */
+/* ---------- Home (public: volunteers, media, residents) ---------- */
 app.get("/", (req, res) => {
   const flash = req.session.flash;
   delete req.session.flash;
+  const events = loadJson(EVENTS_FILE).events || [];
+  const highlight = events.find((e) => e.highlight) || events[0];
   const body = `
     ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
     <section class="photo-hero">
       <div class="photo-hero-content">
-        <span class="badge pri">St. Croix Valley · SD 33</span>
-        <h2>Win where loons call and neighbors vote</h2>
-        <p>Stillwater · Forest Lake · Bayport · Marine · Scandia · lakes, river, and main streets. A field hub built to win <strong>Senate 33 + House 33A + House 33B</strong>.</p>
+        <span class="badge pri">Washington County · Minnesota</span>
+        <h2>St. Croix Valley Field Hub</h2>
+        <p>A public volunteer resource for Minnesota <strong>Senate District 33</strong> and <strong>House Districts 33A &amp; 33B</strong>—Stillwater, Forest Lake, and neighboring communities along the river and lakes.</p>
         <div class="cta-row">
-          <a class="btn btn-gold" href="/review">Review this site &amp; advise</a>
-          <a class="btn" href="/my-gop-ballot">My GOP ballot</a>
-          <a class="btn btn-navy" href="/win-playbook">Winning playbook</a>
+          <a class="btn btn-gold" href="/map">District map &amp; your candidates</a>
+          <a class="btn" href="/events">Events calendar</a>
+          <a class="btn btn-navy" href="/schedule">Volunteer board</a>
         </div>
       </div>
-      <span class="photo-credit">Minnesota lakes · loon country</span>
+      <span class="photo-credit">Minnesota lakes · St. Croix Valley</span>
     </section>
 
-    <div class="gallery" aria-label="District scenery">
+    <div class="gallery" aria-label="Regional scenery">
       <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" />
-      <img src="/images/st-croix-valley.jpg" alt="St. Croix river valley" />
+      <img src="/images/st-croix-valley.jpg" alt="St. Croix River valley" />
       <img src="/images/mn-lake-shore.jpg" alt="Minnesota lake shoreline" />
       <img src="/images/autumn-lakeside.jpg" alt="Autumn lakeside path" />
     </div>
 
+    ${
+      highlight
+        ? `<section class="card event-card highlight" style="margin-bottom:1rem">
+      <span class="badge pri">Featured event</span>
+      <h2 style="margin:0.4rem 0">${esc(highlight.title)}</h2>
+      <p><strong>${esc(highlight.dayLabel)}</strong> · ${esc(highlight.time)} · ${esc(highlight.locationName)}</p>
+      <p class="prose">${esc(highlight.description)}</p>
+      <p class="muted">Districts: ${esc((highlight.districts || []).join(" · "))}</p>
+      <a class="btn" href="/events">Full calendar</a>
+      <a class="btn btn-navy" href="/schedule">Sign up to help</a>
+    </section>`
+        : ""
+    }
+
     <div class="grid" style="margin-bottom:1rem">
       <article class="card">
         <div class="card-photo loon"></div>
-        <h3>GOP ballot by address</h3>
-        <p>Enter an address to see <span class="tag-gop">GOP</span> candidates for each race. Candidates marked <span class="badge pri">LEADING</span> when currently leading in their race.</p>
-        <a class="btn" href="/my-gop-ballot">Open ballot tool</a>
+        <h3>Find candidates by address</h3>
+        <p>Enter a street address or click the map. See local, state, and federal races with district overlays highlighted in light map colors.</p>
+        <a class="btn" href="/map">Open district map</a>
       </article>
       <article class="card">
         <div class="card-photo valley"></div>
-        <h3>Share for feedback</h3>
-        <p>Send one link. Neighbors review the plan, check preferred GOP candidates, and suggest improvements.</p>
-        <a class="btn btn-gold" href="/review">Open review portal</a>
+        <h3>For volunteers</h3>
+        <p>Claim Saturday shifts, carry literature, log yard-sign asks on busy streets, and help turn out neighbors.</p>
+        <a class="btn btn-navy" href="/schedule">Volunteer board</a>
       </article>
       <article class="card">
         <div class="card-photo shore"></div>
-        <h3>Field that wins close races</h3>
-        <p>Doors near polls · signs on busy streets · phones · lit packages. Built for ~700-vote margins.</p>
-        <a class="btn btn-navy" href="/field">Field HQ</a>
+        <h3>For media &amp; residents</h3>
+        <p>Candidate lists, events, and a transparent field roadmap. This is an independent organizing site—not a government page.</p>
+        <a class="btn btn-navy" href="/candidates">Candidate directory</a>
+        <a class="btn btn-gold" href="/roadmap">Capacity roadmap</a>
       </article>
     </div>
 
-    <section class="card" style="margin-bottom:1rem">
-      <h3>Quick: GOP ballot by address</h3>
-      <form class="stack" method="get" action="/my-gop-ballot">
-        <label>Street</label>
-        <input name="street" placeholder="123 Main St" required />
-        <label>City</label>
-        <select name="city" required>
-          <option value="">Select…</option>
-          <option>Stillwater</option>
-          <option>Oak Park Heights</option>
-          <option>Bayport</option>
-          <option>Marine on St. Croix</option>
-          <option>Scandia</option>
-          <option>Forest Lake</option>
-          <option>Hugo</option>
-          <option>Mahtomedi</option>
-          <option>Dellwood</option>
-          <option>May Township</option>
-        </select>
-        <label>ZIP (optional)</label>
-        <input name="zip" placeholder="55082" />
-        <button class="btn" type="submit">Show GOP candidates</button>
-      </form>
-    </section>
-
-    <section class="hero">
-      <span class="badge pri">Win path</span>
-      <h2 style="margin:.4rem 0">Literature &amp; field plan — all three local seats</h2>
-      <p>Senate District 33 elects <strong>one state senator</strong> and two house members (<strong>33A</strong> and <strong>33B</strong>). Close races are won door-by-door. Pick turf, lit, signs on busy streets, report it.</p>
-      <p><a class="btn" href="/my-gop-ballot">Enter address → GOP candidates</a>
-      <a class="btn btn-navy" href="/carry">Select literature →</a>
-      <a class="btn btn-navy" href="/candidates">All candidates →</a>
-      <a class="btn btn-gold" href="/share">Share site →</a></p>
+    <section class="card prose" style="margin-bottom:1rem">
+      <h2>About this district</h2>
+      <p>Senate District 33 elects one state senator and two state representatives (House 33A and 33B). Communities include Stillwater, Oak Park Heights, Bayport, Marine on St. Croix, Scandia, May Township, Forest Lake, Hugo, Mahtomedi, and nearby Washington County neighborhoods.</p>
+      <p>Close legislative races are decided by organized local contact: doors, phones, signs, and early-vote turnout. This hub helps volunteers and the public see who is on the ballot and where to plug in.</p>
+      <p><a class="btn" href="/my-gop-ballot">Ballot lookup</a>
+      <a class="btn btn-navy" href="/win-playbook">Field guide</a>
+      <a class="btn btn-gold" href="/share">Share this site</a></p>
     </section>
 
     <div class="grid">
@@ -2292,15 +2302,436 @@ app.get("/team/feedback", (req, res) => {
   res.send(layout("Feedback", body));
 });
 
+/* ---------- Point-in-polygon + map APIs ---------- */
+function pointInRing(lng, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0];
+    const yi = ring[i][1];
+    const xj = ring[j][0];
+    const yj = ring[j][1];
+    const intersect =
+      yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi + 1e-12) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+function layersContaining(lat, lng, geo) {
+  const hit = [];
+  for (const layer of geo.layers || []) {
+    const coords = layer.geojson?.geometry?.coordinates?.[0];
+    if (coords && pointInRing(lng, lat, coords)) hit.push(layer);
+  }
+  return hit;
+}
+
+app.get("/api/districts-geo", (req, res) => {
+  res.json(loadJson(DISTRICTS_GEO_FILE));
+});
+
+app.get("/api/geocode", async (req, res) => {
+  const q = String(req.query.q || "").trim();
+  if (!q) return res.json({ ok: false, error: "Missing query" });
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=" +
+      encodeURIComponent(q);
+    const r = await fetch(url, {
+      headers: {
+        "User-Agent": "SD33-FieldHub/1.0 (volunteer organizing; contact@local)",
+        Accept: "application/json",
+      },
+    });
+    const arr = await r.json();
+    if (!arr || !arr[0]) return res.json({ ok: false, error: "Not found" });
+    res.json({
+      ok: true,
+      lat: Number(arr[0].lat),
+      lng: Number(arr[0].lon),
+      display_name: arr[0].display_name,
+    });
+  } catch (e) {
+    res.json({ ok: false, error: "Geocoder unavailable" });
+  }
+});
+
+app.get("/api/map-lookup", (req, res) => {
+  const lat = Number(req.query.lat);
+  const lng = Number(req.query.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return res.json({ ok: false, error: "Invalid coordinates" });
+  }
+  const geo = loadJson(DISTRICTS_GEO_FILE);
+  const hits = layersContaining(lat, lng, geo);
+  const candData = loadCandidates();
+
+  // District match from polygons, fallback city-style house from nearest town pin
+  let house = null;
+  let usHouse = [];
+  const matchedLayers = hits.map((h) => h.label);
+  for (const h of hits) {
+    if (h.id === "hd_33a") house = "33A";
+    if (h.id === "hd_33b") house = "33B";
+    if (h.id === "us_house_4") usHouse.push("4");
+    if (h.id === "us_house_6") usHouse.push("6");
+  }
+  if (!house && geo.townPins) {
+    let best = null;
+    let bestD = Infinity;
+    for (const t of geo.townPins) {
+      const d = (t.lat - lat) ** 2 + (t.lng - lng) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = t;
+      }
+    }
+    if (best) house = best.house;
+  }
+  if (!usHouse.length) usHouse = house === "33A" ? ["4", "6"] : ["4"];
+
+  const districts = {
+    house: house || "BOTH",
+    senate: "33",
+    usHouse: [...new Set(usHouse)],
+  };
+  const ballot = gopBallotForDistricts(districts);
+
+  function raceByKey(key) {
+    return (ballot.races || []).find((r) => r.key === key);
+  }
+
+  const levels = [];
+  // Local
+  if (house === "33A" || house === "BOTH") {
+    const r = raceByKey("house33A");
+    levels.push({
+      level: "Local · State House",
+      office: r?.label || "House District 33A",
+      districtNote: house === "BOTH" ? "Confirm 33A vs 33B at pollfinder" : "House 33A",
+      candidates: r?.candidates || candData.races.house33A?.gop || [],
+    });
+  }
+  if (house === "33B" || house === "BOTH") {
+    const r = raceByKey("house33B");
+    levels.push({
+      level: "Local · State House",
+      office: r?.label || "House District 33B",
+      districtNote: house === "BOTH" ? "Confirm 33A vs 33B at pollfinder" : "House 33B",
+      candidates: r?.candidates || candData.races.house33B?.gop || [],
+    });
+  }
+  // State
+  const sen = raceByKey("stateSenate33");
+  levels.push({
+    level: "State · Senate",
+    office: sen?.label || "State Senate District 33",
+    districtNote: "Senate District 33",
+    candidates: sen?.candidates || candData.races.stateSenate33?.gop || [],
+  });
+  const gov = raceByKey("governor");
+  levels.push({
+    level: "State · Statewide",
+    office: gov?.label || "Governor of Minnesota",
+    districtNote: "Statewide",
+    candidates: gov?.candidates || candData.races.governor?.gop || [],
+  });
+  // Federal
+  const uss = raceByKey("usSenate");
+  levels.push({
+    level: "Federal · U.S. Senate",
+    office: uss?.label || "U.S. Senate (Minnesota)",
+    districtNote: "Statewide",
+    candidates: uss?.candidates || candData.races.usSenate?.gop || [],
+  });
+  for (const n of districts.usHouse) {
+    const key = n === "6" ? "usHouse6" : "usHouse4";
+    const r = raceByKey(key);
+    levels.push({
+      level: "Federal · U.S. House",
+      office: r?.label || `U.S. House MN-0${n}`,
+      districtNote: `Congressional District ${n} (map approximate)`,
+      candidates: r?.candidates || candData.races[key]?.gop || [],
+    });
+  }
+
+  res.json({
+    ok: true,
+    addressLabel: req.query.label || "",
+    matchedLayers,
+    house: districts.house,
+    levels,
+  });
+});
+
+app.get("/map", (req, res) => {
+  const geo = loadJson(DISTRICTS_GEO_FILE);
+  const legend = (geo.layers || [])
+    .map(
+      (l) =>
+        `<span><i class="swatch" style="background:${esc(l.color)}"></i> ${esc(l.label)} <span class="muted">(${esc(
+          l.level
+        )})</span></span>`
+    )
+    .join("");
+  const body = `
+    <section class="hero prose">
+      <span class="badge pri">Interactive map</span>
+      <h2>Find your races — local, state &amp; federal</h2>
+      <p>Enter an address or click the map. Districts are shown with light highlighter colors. The panel lists <span class="tag-gop">GOP</span> candidates for each office; <span class="badge pri">LEADING</span> appears when a candidate is currently leading.</p>
+      <p class="muted">${esc(geo.note || "")}</p>
+    </section>
+    <div class="map-legend" aria-label="District color legend">${legend}</div>
+    <div class="map-layout">
+      <div>
+        <div id="district-map" role="application" aria-label="District map of Senate 33 area"></div>
+        <form id="map-address-form" class="card stack" style="margin-top:1rem">
+          <h3>Pin an address</h3>
+          <label for="map-street">Street</label>
+          <input id="map-street" name="street" placeholder="123 Main St N" autocomplete="street-address" />
+          <label for="map-city">City</label>
+          <input id="map-city" name="city" placeholder="Stillwater" list="map-cities" autocomplete="address-level2" />
+          <datalist id="map-cities">
+            <option>Stillwater</option><option>Forest Lake</option><option>Hugo</option>
+            <option>Oak Park Heights</option><option>Bayport</option><option>Scandia</option>
+            <option>Mahtomedi</option><option>Marine on St. Croix</option>
+          </datalist>
+          <label for="map-zip">ZIP</label>
+          <input id="map-zip" name="zip" placeholder="55082" autocomplete="postal-code" />
+          <button class="btn" type="submit">Show candidates for this address</button>
+        </form>
+      </div>
+      <aside class="card" id="map-results-panel">
+        <h3>Candidates at pin</h3>
+        <div id="map-results">
+          <p class="muted">Search an address or click the map to load local, state, and federal races.</p>
+        </div>
+      </aside>
+    </div>`;
+  res.send(
+    layout("District map", body, {
+      extraHead: `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />`,
+      extraFoot: `<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>window.SD33_DISTRICTS = ${JSON.stringify(geo)};</script>
+<script src="/js/map-app.js"></script>`,
+    })
+  );
+});
+
+/* ---------- Events ---------- */
+app.get("/events", (req, res) => {
+  const events = loadJson(EVENTS_FILE).events || [];
+  const cards = events
+    .map((e) => {
+      const cls = e.highlight ? "card event-card highlight" : "card event-card";
+      return `<article class="${cls}" style="margin-bottom:1rem">
+        ${e.highlight ? '<span class="badge pri">Featured</span>' : `<span class="badge other">${esc(e.type)}</span>`}
+        <h2 style="margin:0.4rem 0">${esc(e.title)}</h2>
+        <p><strong>${esc(e.dayLabel)}</strong>${e.time ? " · " + esc(e.time) : ""}</p>
+        <p>${esc(e.locationName)}${e.address ? " · " + esc(e.address) : ""}</p>
+        <p>${esc(e.description)}</p>
+        <p class="muted">Districts: ${esc((e.districts || []).join(" · "))} · Audience: ${esc(e.audience || "")}</p>
+        <p class="muted">${esc(e.rsvpHint || "")}</p>
+        <a class="btn btn-navy" href="/schedule">Volunteer for this</a>
+      </article>`;
+    })
+    .join("");
+  const body = `
+    <section class="hero prose">
+      <h2>Events calendar</h2>
+      <p>Community and field events across Senate District 33 and House Districts 33A and 33B. Residents, volunteers, and the press are welcome at public community events.</p>
+    </section>
+    ${cards || "<p class=\"muted\">No events posted yet.</p>"}`;
+  res.send(layout("Events", body));
+});
+
+/* ---------- Volunteer schedule board ---------- */
+app.get("/schedule", (req, res) => {
+  const data = loadJson(SCHEDULE_FILE);
+  const flash = req.session.flash;
+  delete req.session.flash;
+  const rows = (data.shifts || [])
+    .map((s) => {
+      const n = (s.signedUp || []).length;
+      const open = Math.max(0, (s.slots || 0) - n);
+      const names = (s.signedUp || [])
+        .map((u) => esc(u.name))
+        .join(", ");
+      return `<tr>
+        <td><strong>${esc(s.label)}</strong><div class="muted">${esc(s.date)} · ${esc(s.time)}</div></td>
+        <td>${esc(s.location)}</td>
+        <td>${n} / ${esc(s.slots)} <span class="muted">(${open} open)</span></td>
+        <td class="muted">${names || "—"}</td>
+        <td>
+          <form method="post" action="/schedule/signup" class="stack" style="margin:0">
+            <input type="hidden" name="shiftId" value="${esc(s.id)}" />
+            <input name="name" required placeholder="Your name" maxlength="80" style="max-width:140px" />
+            <input name="contact" placeholder="Email or phone" maxlength="120" style="max-width:140px" />
+            <label style="font-weight:500;font-size:0.85rem"><input type="checkbox" name="optIn" value="yes" /> Email/SMS updates (opt-in)</label>
+            <button class="btn btn-sm" type="submit" ${open <= 0 ? "disabled" : ""}>Sign up</button>
+          </form>
+        </td>
+      </tr>`;
+    })
+    .join("");
+  const body = `
+    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    <section class="hero prose">
+      <h2>Volunteer schedule board</h2>
+      <p>Claim a shift for doors, phones, or community events—including Karaoke Night in Stillwater. Captains follow up by email or phone when you opt in.</p>
+    </section>
+    <div class="card">
+      <table>
+        <thead><tr><th>Shift</th><th>Location</th><th>Filled</th><th>Signed up</th><th>Join</th></tr></thead>
+        <tbody>${rows || "<tr><td colspan=5>No shifts posted</td></tr>"}</tbody>
+      </table>
+    </div>`;
+  res.send(layout("Volunteer board", body));
+});
+
+app.post("/schedule/signup", (req, res) => {
+  const id = String(req.body.shiftId || "");
+  const name = String(req.body.name || "").trim().slice(0, 80);
+  const contact = String(req.body.contact || "").trim().slice(0, 120);
+  const optIn = req.body.optIn === "yes";
+  if (!name) {
+    req.session.flash = "Name is required.";
+    return res.redirect("/schedule");
+  }
+  withDbSafeSchedule((data) => {
+    const s = (data.shifts || []).find((x) => x.id === id);
+    if (!s) return;
+    if ((s.signedUp || []).length >= (s.slots || 99)) return;
+    s.signedUp = s.signedUp || [];
+    s.signedUp.push({
+      name,
+      contact,
+      optIn,
+      at: new Date().toISOString(),
+    });
+  });
+  req.session.flash = "You are signed up. Thank you for volunteering.";
+  res.redirect("/schedule");
+});
+
+function withDbSafeSchedule(fn) {
+  const data = loadJson(SCHEDULE_FILE);
+  fn(data);
+  saveJson(SCHEDULE_FILE, data);
+}
+
+/* ---------- Roadmap / gaps (professional) ---------- */
+app.get("/roadmap", (req, res) => {
+  const road = loadJson(ROADMAP_FILE);
+  const rows = (road.items || [])
+    .map(
+      (i) => `<tr>
+        <td><strong>${esc(i.piece)}</strong></td>
+        <td>${esc(i.why)}</td>
+        <td>${esc(i.status)}</td>
+        <td class="${i.done ? "status-done" : "status-open"}">${i.done ? "In place" : "Next"}</td>
+      </tr>`
+    )
+    .join("");
+  const body = `
+    <section class="hero prose">
+      <h2>${esc(road.title || "Roadmap")}</h2>
+      <p>${esc(road.intro || "")}</p>
+    </section>
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Capacity gaps &amp; status</h3>
+      <table>
+        <thead><tr><th>Missing piece</th><th>Why it wins</th><th>Status here</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="card prose">
+      <h3>Sample win-number framework (illustrative)</h3>
+      <p>Close house races in this region have been decided by hundreds of votes. Organizing targets (refine with past precinct returns):</p>
+      <ul>
+        <li><strong>House 33B:</strong> prioritize Stillwater and corridor precincts; multi-touch doors + early vote.</li>
+        <li><strong>House 33A:</strong> Forest Lake / Hugo density; open-seat visibility.</li>
+        <li><strong>Senate 33:</strong> every turf carries Senate literature with house pieces.</li>
+      </ul>
+      <p><a class="btn" href="/field/phones/export">Export phone list (CSV)</a>
+      <a class="btn btn-navy" href="/map">District map</a></p>
+    </div>`;
+  res.send(layout("Roadmap", body));
+});
+
+/* ---------- Phone export for P2P tools ---------- */
+app.get("/field/phones/export", (req, res) => {
+  const contacts = (loadContacts().contacts || []).filter((c) => c.phone || c.name);
+  const header = "name,phone,city,houseDistrict,partyAffiliation,notes\n";
+  const lines = contacts
+    .map((c) =>
+      [c.name, c.phone, c.city, c.houseDistrict, c.partyAffiliation, (c.notes || "").replace(/,/g, ";")]
+        .map((x) => `"${String(x || "").replace(/"/g, '""')}"`)
+        .join(",")
+    )
+    .join("\n");
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="sd33-phone-export.csv"');
+  res.send(header + lines);
+});
+
+/* ---------- Donate placeholder ---------- */
+app.get("/donate", (req, res) => {
+  const body = `
+    <section class="hero prose">
+      <h2>Support field work</h2>
+      <p>Contributions help fund literature, yard signs, and volunteer supplies across Senate District 33 and House Districts 33A and 33B.</p>
+    </section>
+    <div class="card prose">
+      <h3>Online giving</h3>
+      <p class="muted">A WinRed or committee donation link will appear here once the legal campaign entity is designated. Until then, contact the field team to contribute through the proper channel.</p>
+      <p><strong>Placeholder:</strong> <span class="muted">[WinRed / committee URL — not yet connected]</span></p>
+      <p>Paid for by the sponsoring committee when designated. Contributions are not tax-deductible.</p>
+      <a class="btn btn-navy" href="/schedule">Volunteer instead</a>
+    </div>`;
+  res.send(layout("Support", body));
+});
+
+/* ---------- Spanish quick guide ---------- */
+app.get("/es", (req, res) => {
+  const body = `
+    <section class="hero prose">
+      <h2>Guía rápida (Español)</h2>
+      <p>Bienvenidos al centro de voluntarios del Valle de St. Croix — Distrito del Senado 33 y Distritos de la Cámara 33A y 33B en el condado de Washington, Minnesota.</p>
+    </section>
+    <div class="card prose">
+      <ul>
+        <li><a href="/map">Mapa de distritos</a> — busque su dirección y vea candidatos</li>
+        <li><a href="/events">Eventos</a> — incluido karaoke el sábado 1 de agosto de 2026 en Stillwater</li>
+        <li><a href="/schedule">Horario de voluntarios</a> — inscríbase en un turno</li>
+        <li><a href="/my-gop-ballot">Boleta</a> — candidatos republicanos (GOP) por dirección</li>
+      </ul>
+      <p class="muted">El sitio principal está en inglés. Para la boleta oficial: <a href="https://pollfinder.sos.mn.gov/">pollfinder.sos.mn.gov</a>.</p>
+      <a class="btn" href="/">English home</a>
+    </div>`;
+  res.send(layout("Español", body));
+});
+
+app.get("/accessibility", (req, res) => {
+  const body = `
+    <section class="hero prose">
+      <h2>Accessibility</h2>
+      <p>We aim for clear language, keyboard-friendly forms, skip links, and readable contrast. Report barriers via the <a href="/review">feedback form</a>.</p>
+      <ul>
+        <li>Skip to main content link on every page</li>
+        <li>Visible focus outlines on controls</li>
+        <li>Map has a text address form alternative to clicking</li>
+        <li>Spanish quick guide at <a href="/es">/es</a></li>
+      </ul>
+    </section>`;
+  res.send(layout("Accessibility", body));
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   const ips = lanIps();
-  console.log(`SD 33 Field & Lit HQ`);
-  console.log(`  This PC only:  http://localhost:${PORT}`);
+  console.log(`St. Croix Valley Field Hub`);
+  console.log(`  Local:  http://localhost:${PORT}`);
+  if (PUBLIC_URL) console.log(`  Public: ${PUBLIC_URL}`);
   if (ips.length) {
-    for (const ip of ips) {
-      console.log(`  Phone Wi-Fi:   http://${ip}:${PORT}/review`);
-    }
-  } else {
-    console.log(`  Phone: use your PC Wi-Fi IPv4 from ipconfig, port ${PORT}`);
+    for (const ip of ips) console.log(`  LAN:    http://${ip}:${PORT}`);
   }
 });

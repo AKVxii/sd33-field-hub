@@ -1,0 +1,66 @@
+{
+  "title": "Campaign capacity roadmap",
+  "intro": "Priorities for a competitive St. Croix Valley field program. Status is current as of the public Field Hub.",
+  "items": [
+    {
+      "piece": "Live VAN / voter file sync",
+      "why": "Real phones, scores, and vote history for precise doors and calls",
+      "status": "CSV import ready — connect authorized voter file",
+      "done": false
+    },
+    {
+      "piece": "Peer-to-peer texting",
+      "why": "Scale personal asks beyond manual phone banks",
+      "status": "Phone export available for external P2P tools (Hustle-style workflows)",
+      "done": true
+    },
+    {
+      "piece": "Event calendar",
+      "why": "Visibility at parades, fairs, forums, and community nights",
+      "status": "Events page live — including Karaoke Saturday, August 1, 2026 (Stillwater)",
+      "done": true
+    },
+    {
+      "piece": "Spanish / accessibility pass",
+      "why": "Broader households and inclusive participation",
+      "status": "English primary; accessibility basics + Spanish quick guide on site",
+      "done": true
+    },
+    {
+      "piece": "Donation / WinRed (or equivalent) link",
+      "why": "Fund mail, signs, and field supplies",
+      "status": "Placeholder ready — wire when legal committee entity is set",
+      "done": false
+    },
+    {
+      "piece": "Opposition contrast one-pagers",
+      "why": "Clear door leave-behinds after primary",
+      "status": "Fair, factual contrast only — build post-primary",
+      "done": false
+    },
+    {
+      "piece": "Precinct-level targets & win numbers",
+      "why": "Know exact votes needed by turf",
+      "status": "Turf by 33A/33B + sample win-number framework on roadmap",
+      "done": true
+    },
+    {
+      "piece": "SMS / email capture (double opt-in)",
+      "why": "Re-engage supporters lawfully",
+      "status": "Forms support contact + opt-in checkbox",
+      "done": true
+    },
+    {
+      "piece": "Hosted public URL",
+      "why": "True shareability on any device or network",
+      "status": "Live at https://sd33-field-hub.onrender.com",
+      "done": true
+    },
+    {
+      "piece": "Volunteer schedule board",
+      "why": "Fill Saturday shifts and event roles",
+      "status": "Schedule board live — claim shifts online",
+      "done": true
+    }
+  ]
+}

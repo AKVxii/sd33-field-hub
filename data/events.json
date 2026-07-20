@@ -1,0 +1,36 @@
+{
+  "events": [
+    {
+      "id": "karaoke-2026-08-01",
+      "title": "State Senate & House District Karaoke Night",
+      "type": "community",
+      "status": "planned",
+      "date": "2026-08-01",
+      "dayLabel": "Saturday, August 1, 2026",
+      "time": "6:00 p.m. – 9:00 p.m.",
+      "locationName": "Stillwater (venue TBA)",
+      "address": "Stillwater, MN 55082",
+      "districts": ["SD 33", "HD 33A", "HD 33B"],
+      "description": "A community karaoke night bringing together neighbors from Minnesota Senate District 33 and House Districts 33A and 33B. Volunteers, residents, and friends are welcome. Light program notes on local races; the evening is social first. Great mock event for visibility and volunteer recruitment.",
+      "audience": "Volunteers, residents, families (all ages welcome with a parent/guardian)",
+      "rsvpHint": "Sign up on the volunteer schedule board or contact the field team.",
+      "highlight": true
+    },
+    {
+      "id": "door-sat-template",
+      "title": "Saturday Neighborhood Canvass",
+      "type": "field",
+      "status": "recurring",
+      "date": "",
+      "dayLabel": "Most Saturdays through Election Day",
+      "time": "10:00 a.m. – noon",
+      "locationName": "Meet locations rotate (Stillwater / Forest Lake)",
+      "address": "Washington County, MN",
+      "districts": ["SD 33", "HD 33A", "HD 33B"],
+      "description": "Door knocking and literature in priority precincts. New volunteers pair with a captain. Training takes about 15 minutes.",
+      "audience": "Volunteers",
+      "rsvpHint": "Claim a shift on the Volunteer Schedule board.",
+      "highlight": false
+    }
+  ]
+}
