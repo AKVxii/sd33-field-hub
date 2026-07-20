@@ -561,6 +561,75 @@ form.card label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
 .cta-row { display: flex; flex-wrap: wrap; gap: 0.55rem; margin-top: 1rem; }
 .review-stars { color: var(--gold); letter-spacing: 0.1em; font-size: 1.1rem; }
 
+/* SOS-style sample ballot */
+.sample-ballot-card { margin-bottom: 1rem; }
+.sample-ballot-wrap {
+  overflow-x: auto;
+  margin-top: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.sample-ballot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  margin: 0;
+}
+.sample-ballot-table th {
+  background: var(--navy);
+  color: #fff;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  font-weight: 700;
+}
+.sample-ballot-table td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.sample-gop-row {
+  background: #fff8f8;
+  font-weight: 500;
+}
+.sample-gop-row:hover { background: #fff1f2; }
+.sample-other-row {
+  background: #f8fafc;
+  color: #475569;
+}
+.sample-check-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  font-weight: 600;
+  margin: 0;
+}
+.sample-check-label input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--gop);
+}
+.sample-other-name { font-weight: 500; }
+.precinct-box { margin-bottom: 1rem; border-left: 4px solid var(--lake); }
+.precinct-table {
+  width: 100%;
+  max-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.precinct-table th {
+  text-align: left;
+  padding: 0.4rem 0.65rem 0.4rem 0;
+  color: var(--navy);
+  font-weight: 700;
+  width: 11rem;
+  vertical-align: top;
+}
+.precinct-table td {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
 /* Ballot: GOP prominent left, others right */
 .race-split {
   display: grid;

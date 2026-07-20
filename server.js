@@ -377,7 +377,7 @@ function resolveAddress(input) {
     }
   }
 
-  // Street hints refine / fill match
+  // Street hints refine / fill match (street-level beats city BOTH when specific)
   if (hintMatch) {
     if (!matched) {
       matched = {
@@ -387,23 +387,44 @@ function resolveAddress(input) {
         confidence: hintMatch.confidence || "medium",
         note: hintMatch.note,
         from: "street",
+        precinct: hintMatch.precinct,
+        judicial: hintMatch.judicial,
+        school: hintMatch.school,
+        county: hintMatch.county,
+        countyCommissioner: hintMatch.countyCommissioner,
+        soilWater: hintMatch.soilWater,
       };
-      if (hintMatch.city && !result.city) {
-        result.city = hintMatch.city
-          .split(" ")
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(" ");
-      }
     } else {
-      if (hintMatch.house === "BOTH") matched.house = "BOTH";
-      else if (hintMatch.house && (matched.confidence === "medium" || matched.confidence === "low" || matched.house === "BOTH")) {
-        // keep BOTH for Forest Lake unless hint is specific
-        if (matched.house !== "BOTH") matched.house = hintMatch.house;
+      if (hintMatch.house && hintMatch.house !== "BOTH") {
+        matched.house = hintMatch.house;
+        matched.confidence = hintMatch.confidence || "high";
+        matched.from = "street+city";
+      } else if (hintMatch.house === "BOTH") {
+        matched.house = "BOTH";
       }
       if (hintMatch.usHouse) matched.usHouse = hintMatch.usHouse;
       if (hintMatch.note) result.notes.push(hintMatch.note);
-      if (hintMatch.confidence) matched.confidence = hintMatch.confidence;
+      if (hintMatch.confidence && hintMatch.house && hintMatch.house !== "BOTH") {
+        matched.confidence = hintMatch.confidence;
+      }
+      ["precinct", "judicial", "school", "county", "countyCommissioner", "soilWater"].forEach((k) => {
+        if (hintMatch[k]) matched[k] = hintMatch[k];
+      });
     }
+    if (hintMatch.city && !result.city) {
+      result.city = hintMatch.city
+        .split(" ")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    }
+  }
+
+  // City metadata (school, county) when not set by street
+  if (matched && cityKey && geo.cities[cityKey]) {
+    const cmeta = geo.cities[cityKey];
+    ["judicial", "school", "county", "countyCommissioner", "soilWater"].forEach((k) => {
+      if (!matched[k] && cmeta[k]) matched[k] = cmeta[k];
+    });
   }
 
   if (matched) {
@@ -411,14 +432,19 @@ function resolveAddress(input) {
     result.senate = matched.senate || "33";
     result.usHouse = matched.usHouse || [];
     result.confidence = matched.confidence || "medium";
+    result.precinct = matched.precinct || "";
+    result.judicial = matched.judicial || "10";
+    result.school = matched.school || "";
+    result.county = matched.county || "Washington";
+    result.countyCommissioner = matched.countyCommissioner || "";
+    result.soilWater = matched.soilWater || "";
     if (matched.note) result.notes.push(matched.note);
     if (matched.cityHint) result.notes.push("ZIP area: " + matched.cityHint);
     result.matchedVia = matched.from;
-    // Pretty city name for display
-    if (!result.city && matched.from === "street" && hintMatch && hintMatch.city) {
+    if (!result.city && matched.from && String(matched.from).includes("street") && hintMatch && hintMatch.city) {
       result.city = hintMatch.city.replace(/\b\w/g, (c) => c.toUpperCase());
     }
-    if (result.city === "forest lake") result.city = "Forest Lake";
+    if (normalizeCity(result.city) === "forest lake") result.city = "Forest Lake";
   } else if (streetUse || freeform) {
     result.notes.push(
       "Could not match city/ZIP. Showing statewide + all SD 33 local GOP races only. Select a city from the list for a tighter house district."
@@ -518,27 +544,126 @@ function gopBallotForDistricts(districts) {
     });
   }
 
-  add("governor", "Governor & Lt. Governor (GOP tickets only)");
-  add("usSenate", "U.S. Senator — Minnesota (GOP only)");
-  add("attorneyGeneral", "Attorney General (GOP only)");
-  add("secretaryOfState", "Secretary of State (GOP only)");
-  add("stateAuditor", "State Auditor (GOP only)");
-
+  // Order matches typical SOS "What's on My Ballot" sample
+  add("usSenate", "U.S. Senator");
   const uh = districts.usHouse || [];
-  if (uh.includes("4")) add("usHouse4", "U.S. House — Minnesota District 4 (GOP only)");
-  if (uh.includes("8")) add("usHouse8", "U.S. House — Minnesota District 8 (GOP only)");
-  // MN-06 (Emmer) not auto-listed for SD 33 addresses — most of district is 4 or 8
+  if (uh.includes("8")) add("usHouse8", "U.S. Representative District 8");
+  if (uh.includes("4")) add("usHouse4", "U.S. Representative District 4");
+  add("governor", "Governor & Lt Governor");
+  add("secretaryOfState", "Secretary of State");
+  add("stateAuditor", "State Auditor");
+  add("attorneyGeneral", "Attorney General");
+  add("stateSenate33", "State Senator District 33");
 
-  add("stateSenate33", "Minnesota State Senate — District 33 (GOP only)");
-
-  if (districts.house === "33A") add("house33A", "Minnesota House — District 33A (GOP only)");
-  else if (districts.house === "33B") add("house33B", "Minnesota House — District 33B (GOP only)");
+  if (districts.house === "33A") add("house33A", "State Representative District 33A");
+  else if (districts.house === "33B") add("house33B", "State Representative District 33B");
   else {
-    add("house33A", "Minnesota House — District 33A (GOP — confirm precinct if city is split)");
-    add("house33B", "Minnesota House — District 33B (GOP — confirm precinct if city is split)");
+    add("house33A", "State Representative District 33A (confirm precinct)");
+    add("house33B", "State Representative District 33B (confirm precinct)");
   }
 
-  return { asOf: data.asOf, races: out.filter((r) => (r.candidates || []).length > 0), phase };
+  // Nonpartisan (right column / sample ballot — not GOP checkboxes)
+  add("countySheriff", "County Sheriff");
+  add("judge10th38", "Judge - 10th District Court 38");
+
+  return {
+    asOf: data.asOf,
+    races: out.filter((r) => (r.candidates || []).length > 0 || (r.others || []).length > 0),
+    phase,
+  };
+}
+
+function partyLabelOfficial(party) {
+  const p = String(party || "").toUpperCase();
+  if (p === "GOP" || p === "REPUBLICAN" || p === "R") return "REPUBLICAN";
+  if (p === "DFL" || p.includes("DEMOCRATIC")) return "DEMOCRATIC-FARMER-LABOR";
+  if (p === "NONPARTISAN" || p === "NP") return "NONPARTISAN";
+  return String(party || "OTHER").toUpperCase();
+}
+
+/** SOS-style sample ballot table for the matched district */
+function sampleBallotTableHtml(ballot) {
+  const rows = [];
+  for (const r of ballot.races || []) {
+    const office = r.label || r.office || "";
+    const gop = (r.candidates || []).filter((c) => String(c.party || "GOP").toUpperCase() === "GOP");
+    const others = r.others || [];
+    // GOP first (prominent), then others
+    for (const c of gop) {
+      rows.push({ office, name: c.name, party: "REPUBLICAN", gop: true, raceKey: r.key });
+    }
+    for (const c of others) {
+      rows.push({
+        office,
+        name: c.name,
+        party: partyLabelOfficial(c.party),
+        gop: false,
+        raceKey: r.key,
+      });
+    }
+  }
+  if (!rows.length) {
+    return `<p class="muted">No sample ballot rows for this match.</p>`;
+  }
+  const body = rows
+    .map(
+      (row, i) =>
+        `<tr class="${row.gop ? "sample-gop-row" : "sample-other-row"}">
+          <td>${esc(row.office)}</td>
+          <td>${
+            row.gop
+              ? `<label class="sample-check-label"><input type="checkbox" name="pick" value="${esc(row.raceKey)}||${esc(row.name)}" data-party="GOP" /> <strong>${esc(row.name)}</strong></label>`
+              : `<span class="sample-other-name">${esc(row.name)}</span>`
+          }</td>
+          <td><span class="${row.gop ? "tag-gop" : row.party === "NONPARTISAN" ? "badge other" : "badge dfl"}">${esc(row.party)}</span></td>
+        </tr>`
+    )
+    .join("");
+  return `
+    <div class="card sample-ballot-card" id="sample-ballot">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:0.75rem;align-items:center">
+        <h2 class="section-title" style="margin:0">What's on My Ballot</h2>
+        <a class="btn btn-navy" href="#sample-ballot">View Sample Ballot</a>
+      </div>
+      <p class="muted">Matches your districts (SOS-style). <strong>Republican</strong> rows are checkable. DFL and nonpartisan names are shown for awareness only.</p>
+      <div class="sample-ballot-wrap">
+        <table class="sample-ballot-table">
+          <thead>
+            <tr><th>Office or Question</th><th>Candidate</th><th>Party</th></tr>
+          </thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function precinctDistrictsHtml(districts, formVals) {
+  const house =
+    districts.house === "BOTH"
+      ? "33A or 33B — confirm precinct"
+      : districts.house || "—";
+  const cd = (districts.usHouse || []).join(" / ") || "—";
+  return `
+    <div class="card precinct-box" id="precinct-districts">
+      <h2 class="section-title" style="margin-top:0">Precinct &amp; Districts</h2>
+      <p class="muted" style="margin-top:0">Address: <strong>${esc(formVals.street || formVals.q || "—")}${
+        formVals.city || districts.city ? ", " + esc(formVals.city || districts.city || "") : ""
+      } ${esc(formVals.zip || districts.zip || "")}</strong></p>
+      <table class="precinct-table">
+        <tbody>
+          <tr><th>Precinct</th><td>${esc(districts.precinct || "Confirm at pollfinder.sos.mn.gov")}</td></tr>
+          <tr><th>Congressional</th><td>${esc(cd)}</td></tr>
+          <tr><th>MN Senate</th><td>${esc(districts.senate || "33")}</td></tr>
+          <tr><th>MN House</th><td>${esc(house)}</td></tr>
+          <tr><th>Judicial</th><td>${esc(districts.judicial || "10")}</td></tr>
+          <tr><th>School</th><td>${esc(districts.school || "Confirm at pollfinder")}</td></tr>
+          <tr><th>County</th><td>${esc(districts.county || "Washington")}</td></tr>
+          <tr><th>County Commissioner</th><td>${esc(districts.countyCommissioner || "Confirm at pollfinder")}</td></tr>
+          <tr><th>Soil and Water</th><td>${esc(districts.soilWater || "Confirm at pollfinder")}</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin:0.65rem 0 0;font-size:0.88rem">Official source of truth: <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a> · <a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">myballotmn.sos.mn.gov</a></p>
+    </div>`;
 }
 
 function renderGopBallot(districts, ballot, formVals, opts = {}) {
@@ -579,15 +704,12 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
               : "";
           const boxCls =
             c.nominee || c.leading ? "lit-box cand-pick priority" : "lit-box cand-pick";
-          return `<label class="${boxCls}" for="${esc(id)}">
-            <input type="checkbox" id="${esc(id)}" name="pick" value="${esc(val)}" data-party="GOP" ${
-            isPost && c.nominee ? "checked" : ""
-          } />
+          return `<div class="${boxCls}" style="cursor:default">
             <span>
               <span class="lbl">${partyBadgeHtml("GOP")} <strong>${esc(c.name)}</strong>${lead}</span>
               ${c.note ? `<div class="muted">${esc(c.note)}</div>` : ""}
             </span>
-          </label>`;
+          </div>`;
         })
         .join("");
       const otherHtml = otherList.length
@@ -597,6 +719,7 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
                 `<div class="other-cand-row">
                   <span class="other-cand-name">${esc(c.name)}</span>
                   ${partyBadgeHtml(c.party)}
+                  <span class="muted" style="font-size:0.8rem"> · ${esc(partyLabelOfficial(c.party))}</span>
                   ${c.note ? `<div class="muted" style="font-size:0.85rem">${esc(c.note)}</div>` : ""}
                 </div>`
             )
@@ -605,16 +728,15 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
       if (!cands && !otherList.length) return "";
       return `<section class="card race-split-card" style="margin-bottom:0.85rem">
         <h3>${esc(r.label || r.office)} ${r.winSeat ? '<span class="badge pri">Local Priority Seat</span>' : ""}</h3>
-        <p class="muted" style="margin-bottom:0.75rem">${esc(r.scope || "")}</p>
+        <p class="muted" style="margin-bottom:0.75rem">${esc(r.scope || "")} · Use the <strong>sample ballot table</strong> above to check GOP preferences.</p>
         <div class="race-split">
           <div class="race-gop-col">
-            <h4 class="race-col-title gop-title">Republican (GOP) — select preferred</h4>
-            <p class="muted" style="font-size:0.85rem;margin:0 0 0.5rem">Check one or more. Only GOP can be selected.</p>
+            <h4 class="race-col-title gop-title">Republican (GOP) — prominent</h4>
             ${cands || '<p class="muted">No Republican candidates listed for this office.</p>'}
           </div>
           <div class="race-other-col">
-            <h4 class="race-col-title other-title">Other candidates (display only)</h4>
-            <p class="muted" style="font-size:0.85rem;margin:0 0 0.5rem">DFL, other parties, or nonpartisan — not checkable on this form.</p>
+            <h4 class="race-col-title other-title">Other / nonpartisan (display only)</h4>
+            <p class="muted" style="font-size:0.85rem;margin:0 0 0.5rem">Party or non-affiliated label next to each name.</p>
             ${otherHtml}
           </div>
         </div>
@@ -723,34 +845,21 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
     ${
       formVals.submitted
         ? `
+    ${precinctDistrictsHtml(districts, formVals)}
     ${issuesContrastHtml}
-    <div class="card" style="margin-bottom:1rem">
-      <h3>District Match</h3>
-      <p><strong>Address:</strong> ${esc(formVals.street || formVals.q || "—")}${
-            formVals.city ? ", " + esc(formVals.city) : ""
-          } ${esc(formVals.zip || "")}</p>
-      <p>
-        <span class="badge ${confColor}">Match confidence: ${esc(districts.confidence || "low")}</span>
-        · State Senate: <strong>SD ${esc(districts.senate || "33")}</strong>
-        · State House: <strong>${esc(
-          districts.house === "BOTH" ? "33A or 33B — confirm" : "HD " + (districts.house || "?")
-        )}</strong>
-        · U.S. House: <strong>MN-${esc((districts.usHouse || []).join(" / ") || "?")}</strong>
-      </p>
-      ${notes ? `<ul class="muted">${notes}</ul>` : ""}
-      <p class="muted">Confirm your precinct at
-        <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>.
-        Candidate list as of ${esc(ballot.asOf || "")}.
-      </p>
-    </div>
 
     <form method="post" action="/my-gop-ballot/prefer" id="pref-form">
       <input type="hidden" name="street" value="${esc(formVals.street || "")}" />
-      <input type="hidden" name="city" value="${esc(formVals.city || "")}" />
+      <input type="hidden" name="city" value="${esc(formVals.city || districts.city || "")}" />
       <input type="hidden" name="zip" value="${esc(formVals.zip || "")}" />
       <input type="hidden" name="q" value="${esc(formVals.q || "")}" />
       <input type="hidden" name="houseDistrict" value="${esc(districts.house || "")}" />
       <input type="hidden" name="usHouse" value="${esc((districts.usHouse || []).join(","))}" />
+
+      ${sampleBallotTableHtml(ballot)}
+
+      <p class="muted" style="margin:0.5rem 0 1rem">Match confidence: <span class="badge ${confColor}">${esc(districts.confidence || "low")}</span>
+      · as of ${esc(ballot.asOf || "")}. ${notes ? esc(districts.notes.join(" ")) : ""}</p>
 
       <div class="card" style="margin-bottom:1rem;border-color:#e0b84a">
         <h3>${isPost ? "General Election Package" : "Preference Period"}</h3>
@@ -812,14 +921,8 @@ function renderGopBallot(districts, ballot, formVals, opts = {}) {
         }
       </div>
 
-      <h2 style="margin-top:0.5rem">${
-        isPost ? "Confirm Nominees and Local Slate" : "Select Your Preferred Candidates"
-      }</h2>
-      <p class="muted">${
-        isPost
-          ? "Review nominees for each office. Adjust selections if needed, then save."
-          : "Check every candidate you prefer. You may select more than one per race while the primary field remains open."
-      }</p>
+      <h2 style="margin-top:1rem">By Office — Republican Prominent · Others on the Right</h2>
+      <p class="muted">Same races as the sample ballot. Check <strong>REPUBLICAN</strong> names in the table above, then save. DFL and nonpartisan appear on the right for awareness only.</p>
       ${raceBlocks}
 
       <div class="card stack">
@@ -954,7 +1057,7 @@ function layout(title, body, opts = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for every community in the district." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=ballot2" />
+  <link rel="stylesheet" href="/css/lit.css?v=ballot3" />
   ${extraHead}
 </head>
 <body>
