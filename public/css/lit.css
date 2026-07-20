@@ -927,6 +927,38 @@ form.card label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
 }
 
 /* Accessibility */
+/* Private development notice — sitewide */
+.dev-notice {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  color: #f1f5f9;
+  border-bottom: 4px solid #e0b84a;
+  padding: 1rem 0 1.15rem;
+}
+.dev-notice-inner { max-width: 52rem; }
+.dev-notice-title {
+  margin: 0 0 0.55rem;
+  font-size: 1.15rem;
+  color: #fde68a;
+  letter-spacing: -0.01em;
+}
+.dev-notice p {
+  margin: 0 0 0.55rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+.dev-notice p:last-of-type { margin-bottom: 0.35rem; }
+.dev-notice-links {
+  margin-top: 0.65rem !important;
+  font-size: 0.88rem !important;
+}
+.dev-notice-links a {
+  color: #93c5fd;
+  font-weight: 600;
+}
+.dev-notice-links a:hover { color: #bfdbfe; }
+body.private-dev .main { padding-top: 1.15rem; }
+
 .skip-link {
   position: absolute;
   left: -999px;

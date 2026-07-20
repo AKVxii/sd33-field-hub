@@ -1007,6 +1007,34 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
+/** Private development mode: site is not a live campaign/fundraising service */
+const PRIVATE_DEVELOPMENT =
+  process.env.PRIVATE_DEVELOPMENT !== "false" && process.env.PRIVATE_DEVELOPMENT !== "0";
+
+const PRIVATE_DEV_NOTICE = {
+  title: "St. Croix Valley Field Hub",
+  body: [
+    "This website is under private development and is not currently operating as a public campaign, political committee, fundraising platform, or volunteer-organizing service.",
+    "Candidate, election, geographic, and legislative information appearing in the development environment is provisional and is being reviewed for accuracy, sourcing, privacy, accessibility, and compliance before publication.",
+    "No volunteer registrations, contributions, campaign requests, or voter information are being accepted through this development site.",
+    "For official election and precinct information, please consult the Minnesota Secretary of State.",
+  ],
+};
+
+const BLOCKED_WRITE_PREFIXES = [
+  "/volunteer",
+  "/pulsar",
+  "/carry",
+  "/log-drop",
+  "/field/import",
+  "/field/log",
+  "/field/sign-ask",
+  "/share/feedback",
+  "/schedule/signup",
+  "/my-gop-ballot/prefer",
+  "/donate",
+];
+
 const app = express();
 app.set("trust proxy", 1);
 app.use(morgan(IS_PROD ? "combined" : "dev"));
@@ -1032,6 +1060,24 @@ app.use(
   })
 );
 
+// Block write/submit endpoints while in private development
+app.use((req, res, next) => {
+  if (!PRIVATE_DEVELOPMENT) return next();
+  if (req.method !== "POST" && req.method !== "PUT" && req.method !== "PATCH" && req.method !== "DELETE") {
+    return next();
+  }
+  const p = (req.path || "").split("?")[0];
+  const blocked = BLOCKED_WRITE_PREFIXES.some(
+    (prefix) => p === prefix || p.startsWith(prefix + "/")
+  );
+  // Allow GET-style ballot lookup POST redirect if any; only block data-collection posts
+  if (!blocked) return next();
+  req.session.flash =
+    "This development site is not accepting volunteer registrations, contributions, campaign requests, or other submissions. For official election information, use the Minnesota Secretary of State.";
+  const back = req.get("Referer") || "/";
+  return res.redirect(back);
+});
+
 function isNavActive(href, currentPath) {
   const path = (currentPath || "/").split("?")[0] || "/";
   if (href === "/") return path === "/";
@@ -1045,27 +1091,55 @@ function navClass(href, currentPath) {
   return ' class="nav-active" aria-current="page"';
 }
 
+function privateDevBannerHtml() {
+  if (!PRIVATE_DEVELOPMENT) return "";
+  return `
+  <aside class="dev-notice" role="status" aria-label="Private development notice">
+    <div class="wrap dev-notice-inner">
+      <h2 class="dev-notice-title">${esc(PRIVATE_DEV_NOTICE.title)}</h2>
+      ${PRIVATE_DEV_NOTICE.body.map((p) => `<p>${esc(p)}</p>`).join("")}
+      <p class="dev-notice-links">
+        <a href="https://www.sos.mn.gov/" target="_blank" rel="noopener">Minnesota Secretary of State</a>
+        ·
+        <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">Poll finder / precinct</a>
+        ·
+        <a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">What's on My Ballot</a>
+      </p>
+    </div>
+  </aside>`;
+}
+
 function layout(title, body, opts = {}) {
   const extraHead = opts.extraHead || "";
   const extraFoot = opts.extraFoot || "";
   const path = opts.path || "/";
   const n = (href) => navClass(href, path);
+  const robots = PRIVATE_DEVELOPMENT
+    ? `<meta name="robots" content="noindex, nofollow" />`
+    : "";
+  const metaDesc = PRIVATE_DEVELOPMENT
+    ? "St. Croix Valley Field Hub — private development environment. Not a public campaign, committee, or fundraising site. Official election info: Minnesota Secretary of State."
+    : "St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for every community in the district.";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for every community in the district." />
+  <meta name="description" content="${esc(metaDesc)}" />
+  ${robots}
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=ballot3" />
+  <link rel="stylesheet" href="/css/lit.css?v=dev1" />
   ${extraHead}
 </head>
-<body>
+<body class="${PRIVATE_DEVELOPMENT ? "private-dev" : ""}">
   <a class="skip-link" href="#main">Skip to main content</a>
+  ${privateDevBannerHtml()}
   <header class="top" role="banner">
     <div class="wrap top-inner">
       <h1>St. Croix Valley Field Hub</h1>
-      <p>Minnesota Senate District&nbsp;33 · House Districts&nbsp;33A &amp;&nbsp;33B · Washington County</p>
+      <p>Minnesota Senate District&nbsp;33 · House Districts&nbsp;33A &amp;&nbsp;33B · Washington County${
+        PRIVATE_DEVELOPMENT ? " · <strong>Private development</strong>" : ""
+      }</p>
       <nav class="nav" id="primary-nav" aria-label="Primary">
         <a href="/"${n("/")}>Home</a>
         <a href="/map"${n("/map")}>District map</a>
@@ -1095,9 +1169,14 @@ function layout(title, body, opts = {}) {
         <img src="/images/forest-lake-july4-parade.jpg" alt="Independence Day parade with American flags" width="72" height="48" loading="lazy" />
         <div>
           <strong>St. Croix Valley Field Hub</strong> · SD&nbsp;33 · HD&nbsp;33A · HD&nbsp;33B<br/>
-          Independent volunteer organizing resource for Washington County and the St.&nbsp;Croix Valley.
+          ${
+            PRIVATE_DEVELOPMENT
+              ? `Under <strong>private development</strong>. Not a public campaign, political committee, fundraising platform, or volunteer-organizing service.
+          Provisional information only — verify with the Minnesota Secretary of State.`
+              : `Independent volunteer organizing resource for Washington County and the St.&nbsp;Croix Valley.
           <strong>Not</strong> an official government website and <strong>not</strong> legal advice.
-          Candidate data from public sources (Minnesota Secretary of State and public filings).
+          Candidate data from public sources (Minnesota Secretary of State and public filings).`
+          }
           Official ballot and precinct lookup: <a href="https://pollfinder.sos.mn.gov/" rel="noopener">pollfinder.sos.mn.gov</a>.
         </div>
       </div>
@@ -1110,12 +1189,16 @@ function layout(title, body, opts = {}) {
         <a href="/review">Feedback</a>
       </p>
       <p class="muted" style="font-size:0.82rem;max-width:70ch">
-        Campaign materials paid for by a committee must include required “Paid for by…” disclaimers under Minnesota and, where applicable, federal law.
-        Update committee language with counsel when a legal entity funds this site or printed materials.
+        ${
+          PRIVATE_DEVELOPMENT
+            ? "No volunteer registrations, contributions, campaign requests, or voter information are being accepted through this development site."
+            : `Campaign materials paid for by a committee must include required “Paid for by…” disclaimers under Minnesota and, where applicable, federal law.
+        Update committee language with counsel when a legal entity funds this site or printed materials.`
+        }
         No campaigning inside a polling place or within <strong>100 feet</strong> of the building (or anywhere on public property where a polling place is located) on primary/election day — Minn. Stat. §§ 204C.06, 211B.11.
         Never place literature in U.S. mailboxes (federal law).
       </p>
-      <p>Public site: <a href="https://sd33-field-hub.onrender.com">sd33-field-hub.onrender.com</a></p>
+      <p class="muted">Development host: <a href="https://sd33-field-hub.onrender.com">sd33-field-hub.onrender.com</a></p>
     </div>
   </footer>
   <script src="/js/nav-active.js?v=nav3"></script>
