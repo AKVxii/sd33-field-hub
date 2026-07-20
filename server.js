@@ -1027,10 +1027,12 @@ app.post("/my-gop-ballot/prefer", (req, res) => {
   if (!Array.isArray(phases)) phases = [phases];
   if (phases.length === 0) phases = ["pre_primary"];
 
-  const preferred = picks.map((p) => {
-    const [raceKey, ...rest] = String(p).split("||");
-    return { raceKey, candidate: rest.join("||"), party: "GOP" };
-  });
+  const preferred = picks
+    .map((p) => {
+      const [raceKey, ...rest] = String(p).split("||");
+      return { raceKey, candidate: rest.join("||"), party: "GOP" };
+    })
+    .filter((p) => p.raceKey && p.candidate);
 
   const entry = {
     id: "pref_" + Date.now(),
