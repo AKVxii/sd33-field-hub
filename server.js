@@ -3248,8 +3248,8 @@ const CAMPAIGN_KIT_MAP = {
     shirt: "Johnson / 33B shirt if available",
   },
   lindell: {
-    title: "Mike Lindell — Governor (statewide)",
-    lit: "AUTO: Governor (Lindell) lit when issued — incorporate with local SD 33 slate",
+    title: "Mike Lindell & Phillip C. Parrish — Governor / Lt. Governor",
+    lit: "AUTO: Governor ticket lit when issued — incorporate with local SD 33 slate",
     events: "District events + statewide governor presence; kit pickup with captains",
     shirt: "Lindell / governor shirt if that campaign issues inventory",
   },
