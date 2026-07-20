@@ -68,9 +68,14 @@ a { color: #1a4f8b; }
   border-radius: 6px;
 }
 .nav a:hover { background: rgba(255,255,255,0.12); text-decoration: none; }
-.nav a.nav-hot {
+.nav a.nav-active {
   background: var(--gold);
   color: var(--deep) !important;
+  font-weight: 800;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
+}
+.nav a.nav-active:hover {
+  background: #e0b010;
 }
 
 .main { padding: 1.5rem 0 3.5rem; min-height: 55vh; }

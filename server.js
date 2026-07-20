@@ -625,9 +625,27 @@ app.use(
   })
 );
 
+function navClass(href, currentPath) {
+  const path = currentPath || "/";
+  // Exact match for home; prefix match for nested field tools
+  let active = false;
+  if (href === "/") {
+    active = path === "/" || path === "";
+  } else if (href === "/field") {
+    active = path === "/field" || path.startsWith("/field/");
+  } else if (href === "/team/preferences" || href === "/team/sign-asks") {
+    active = path === href || path.startsWith(href);
+  } else {
+    active = path === href || path.startsWith(href + "/") || path.startsWith(href + "?");
+  }
+  return active ? ' class="nav-active"' : "";
+}
+
 function layout(title, body, opts = {}) {
   const extraHead = opts.extraHead || "";
   const extraFoot = opts.extraFoot || "";
+  const path = opts.path || "/";
+  const n = (href) => navClass(href, path);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -645,18 +663,18 @@ function layout(title, body, opts = {}) {
       <h1>St. Croix Valley Field Hub</h1>
       <p>Minnesota Senate District 33 · House Districts 33A &amp; 33B · Washington County</p>
       <nav class="nav" aria-label="Primary">
-        <a href="/">Home</a>
-        <a class="nav-hot" href="/map">District map</a>
-        <a href="/events">Events</a>
-        <a href="/schedule">Volunteer board</a>
-        <a href="/my-gop-ballot">Find your ballot</a>
-        <a href="/candidates">Candidates</a>
-        <a href="/roadmap">Roadmap</a>
-        <a href="/win-playbook">Field guide</a>
-        <a href="/donate">Support</a>
-        <a href="/es">Español</a>
-        <a href="/share">Share</a>
-        <a href="/field">Field tools</a>
+        <a href="/"${n("/")}>Home</a>
+        <a href="/map"${n("/map")}>District map</a>
+        <a href="/events"${n("/events")}>Events</a>
+        <a href="/schedule"${n("/schedule")}>Volunteer board</a>
+        <a href="/my-gop-ballot"${n("/my-gop-ballot")}>Find your ballot</a>
+        <a href="/candidates"${n("/candidates")}>Candidates</a>
+        <a href="/roadmap"${n("/roadmap")}>Roadmap</a>
+        <a href="/win-playbook"${n("/win-playbook")}>Field guide</a>
+        <a href="/donate"${n("/donate")}>Support</a>
+        <a href="/es"${n("/es")}>Español</a>
+        <a href="/share"${n("/share")}>Share</a>
+        <a href="/field"${n("/field")}>Field tools</a>
       </nav>
     </div>
   </header>
@@ -681,6 +699,11 @@ function layout(title, body, opts = {}) {
   ${extraFoot}
 </body>
 </html>`;
+}
+
+/** Send a page with correct active nav tab for this request path */
+function sendPage(req, res, title, body, opts = {}) {
+  res.send(layout(title, body, { ...opts, path: req.path || "/" }));
 }
 
 function partyBadge(party) {
@@ -731,11 +754,11 @@ app.get("/my-gop-ballot", (req, res) => {
     });
     ballot = gopBallotForDistricts(districts);
   }
-  res.send(
-    layout(
-      "My GOP ballot",
-      renderGopBallot(districts, ballot, formVals, { thanks: req.query.saved === "1" })
-    )
+  sendPage(
+    req,
+    res,
+    "My GOP ballot",
+    renderGopBallot(districts, ballot, formVals, { thanks: req.query.saved === "1" })
   );
 });
 
@@ -963,7 +986,7 @@ app.get("/", (req, res) => {
       </ul>
       <p><a class="btn" href="/how-to">Full how-to guide</a> <a class="btn btn-navy" href="/turf">33A vs 33B turf</a></p>
     </section>`;
-  res.send(layout("Lit drop plan", body));
+  sendPage(req, res, "Lit drop plan", body);
 });
 
 /* ---------- Candidates ---------- */
@@ -1008,7 +1031,7 @@ app.get("/candidates", (req, res) => {
     </section>
     ${sections}
     <p class="muted">Always verify: <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">Minnesota SOS candidate filings</a>.</p>`;
-  res.send(layout("Candidates", body));
+  sendPage(req, res, "Candidates", body);
 });
 
 /* ---------- Carry literature form ---------- */
@@ -1070,7 +1093,7 @@ app.get("/carry", (req, res) => {
       <button class="btn" type="submit">Submit my lit request</button>
     </form>
     <p class="muted" style="margin-top:1rem"><a href="/candidates">Review candidate names first</a> if you are unsure which federal piece matches a door.</p>`;
-  res.send(layout("Choose literature", body));
+  sendPage(req, res, "Choose literature", body);
 });
 
 app.post("/carry", (req, res) => {
@@ -1155,7 +1178,7 @@ app.get("/turf", (req, res) => {
       <p>Captains assign walk sheets. Prefer map apps or printed turfs of 40–70 doors per bag.</p>
       <p><a class="btn" href="/carry">Request lit for my turf</a></p>
     </section>`;
-  res.send(layout("Turf", body));
+  sendPage(req, res, "Turf", body);
 });
 
 /* ---------- How-to ---------- */
@@ -1190,7 +1213,7 @@ app.get("/how-to", (req, res) => {
         <li>Early vote cards from mid-September onward</li>
       </ul>
     </div>`;
-  res.send(layout("How to drop", body));
+  sendPage(req, res, "How to drop", body);
 });
 
 /* ---------- Leaderboard / progress ---------- */
@@ -1256,7 +1279,7 @@ app.get("/leaderboard", (req, res) => {
         <tbody>${recent || "<tr><td colspan=4>None yet</td></tr>"}</tbody>
       </table>
     </div>`;
-  res.send(layout("Progress", body));
+  sendPage(req, res, "Progress", body);
 });
 
 app.post("/log-drop", (req, res) => {
@@ -1347,7 +1370,7 @@ app.get("/field", (req, res) => {
       </ol>
       <p class="muted">Stats snapshot: ${nearPoll} contacts tagged near a poll · ${gop} tagged GOP · verify affiliation from voter file.</p>
     </section>`;
-  res.send(layout("Field HQ", body));
+  sendPage(req, res, "Field HQ", body);
 });
 
 app.get("/field/doors", (req, res) => {
@@ -1438,7 +1461,7 @@ app.get("/field/doors", (req, res) => {
       </form>
     </div>
     <p class="muted" style="margin-top:1rem">Print this page for walk sheets, or export via import reverse (copy table). Best practice: walk poll rings first on Saturdays.</p>`;
-  res.send(layout("Door knocks", body));
+  sendPage(req, res, "Door knocks", body);
 });
 
 app.get("/field/phones", (req, res) => {
@@ -1508,7 +1531,7 @@ app.get("/field/phones", (req, res) => {
         <button class="btn" type="submit">Log phone shift</button>
       </form>
     </div>`;
-  res.send(layout("Phone lists", body));
+  sendPage(req, res, "Phone lists", body);
 });
 
 app.get("/field/signs", (req, res) => {
@@ -1582,7 +1605,7 @@ app.get("/field/signs", (req, res) => {
         <button class="btn" type="submit">Log sign placement</button>
       </form>
     </div>`;
-  res.send(layout("Sign lists", body));
+  sendPage(req, res, "Sign lists", body);
 });
 
 app.get("/field/streets", (req, res) => {
@@ -1613,7 +1636,7 @@ app.get("/field/streets", (req, res) => {
     </section>
     <div class="grid">${cards}</div>
     <p class="muted">Cross-check traffic counts on MnDOT maps and Washington County transportation pages before large sign buys.</p>`;
-  res.send(layout("Busy streets", body));
+  sendPage(req, res, "Busy streets", body);
 });
 
 app.get("/field/polls", (req, res) => {
@@ -1663,7 +1686,7 @@ app.get("/field/polls", (req, res) => {
     </div>
     <p><a class="btn" href="/field/doors?pollOnly=1">All poll-adjacent door contacts</a>
     <a class="btn btn-navy" href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">SOS Pollfinder</a></p>`;
-  res.send(layout("Polling places", body));
+  sendPage(req, res, "Polling places", body);
 });
 
 app.get("/field/import", (req, res) => {
@@ -1711,7 +1734,7 @@ app.get("/field/import", (req, res) => {
         <p>Template file on disk: <code>data/contacts_import_template.csv</code></p>
       </div>
     </div>`;
-  res.send(layout("Import contacts", body));
+  sendPage(req, res, "Import contacts", body);
 });
 
 app.post("/field/import", (req, res) => {
@@ -1898,7 +1921,7 @@ app.get("/team/sign-asks", (req, res) => {
         <tbody>${rows || "<tr><td colspan=7>None yet — use the form on Door knocks or Sign lists</td></tr>"}</tbody>
       </table>
     </div>`;
-  res.send(layout("Sign asks", body));
+  sendPage(req, res, "Sign asks", body);
 });
 
 // Serve template CSV
@@ -2004,7 +2027,7 @@ app.get("/review", (req, res) => {
       </form>
       <p class="muted">Organizers read advice at <a href="/team/feedback">/team/feedback</a>.</p>
     </section>`;
-  res.send(layout("Review & advise", body));
+  sendPage(req, res, "Review & advise", body);
 });
 
 /* ---------- Win playbook (research-backed tactics) ---------- */
@@ -2091,7 +2114,7 @@ app.get("/win-playbook", (req, res) => {
       <p>People vote for neighbors who love this place. The site uses St. Croix valley, lakes, and loon imagery so the campaign feels local — not generic national template.</p>
       <p><a class="btn btn-gold" href="/review">Send for review</a> <a class="btn" href="/share">Share links</a></p>
     </section>`;
-  res.send(layout("Win playbook", body));
+  sendPage(req, res, "Win playbook", body);
 });
 
 /* ---------- Share site + collect feedback ---------- */
@@ -2195,7 +2218,7 @@ Thanks!
         <li><a href="/my-gop-ballot">Ballot tool</a> — same link you share</li>
       </ul>
     </section>`;
-  res.send(layout("Share & feedback", body));
+  sendPage(req, res, "Share & feedback", body);
 });
 
 app.post("/share/feedback", (req, res) => {
@@ -2272,7 +2295,7 @@ app.get("/team/preferences", (req, res) => {
         <tbody>${recent || "<tr><td colspan=5>None yet</td></tr>"}</tbody>
       </table>
     </div>`;
-  res.send(layout("Pick totals", body));
+  sendPage(req, res, "Pick totals", body);
 });
 
 app.get("/team/feedback", (req, res) => {
@@ -2299,7 +2322,7 @@ app.get("/team/feedback", (req, res) => {
         <tbody>${rows || "<tr><td colspan=5>No feedback yet</td></tr>"}</tbody>
       </table>
     </div>`;
-  res.send(layout("Feedback", body));
+  sendPage(req, res, "Feedback", body);
 });
 
 /* ---------- Point-in-polygon + map APIs ---------- */
@@ -2541,14 +2564,12 @@ app.get("/map", (req, res) => {
         </div>
       </aside>
     </div>`;
-  res.send(
-    layout("District map", body, {
-      extraHead: `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />`,
-      extraFoot: `<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  sendPage(req, res, "District map", body, {
+    extraHead: `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />`,
+    extraFoot: `<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>window.SD33_DISTRICTS = ${JSON.stringify(geo)};</script>
 <script src="/js/map-app.js"></script>`,
-    })
-  );
+  });
 });
 
 /* ---------- Events ---------- */
@@ -2575,7 +2596,7 @@ app.get("/events", (req, res) => {
       <p>Community and field events across Senate District 33 and House Districts 33A and 33B. Residents, volunteers, and the press are welcome at public community events.</p>
     </section>
     ${cards || "<p class=\"muted\">No events posted yet.</p>"}`;
-  res.send(layout("Events", body));
+  sendPage(req, res, "Events", body);
 });
 
 /* ---------- Volunteer schedule board ---------- */
@@ -2619,7 +2640,7 @@ app.get("/schedule", (req, res) => {
         <tbody>${rows || "<tr><td colspan=5>No shifts posted</td></tr>"}</tbody>
       </table>
     </div>`;
-  res.send(layout("Volunteer board", body));
+  sendPage(req, res, "Volunteer board", body);
 });
 
 app.post("/schedule/signup", (req, res) => {
@@ -2689,7 +2710,7 @@ app.get("/roadmap", (req, res) => {
       <p><a class="btn" href="/field/phones/export">Export phone list (CSV)</a>
       <a class="btn btn-navy" href="/map">District map</a></p>
     </div>`;
-  res.send(layout("Roadmap", body));
+  sendPage(req, res, "Roadmap", body);
 });
 
 /* ---------- Phone export for P2P tools ---------- */
@@ -2722,7 +2743,7 @@ app.get("/donate", (req, res) => {
       <p>Paid for by the sponsoring committee when designated. Contributions are not tax-deductible.</p>
       <a class="btn btn-navy" href="/schedule">Volunteer instead</a>
     </div>`;
-  res.send(layout("Support", body));
+  sendPage(req, res, "Support", body);
 });
 
 /* ---------- Spanish quick guide ---------- */
@@ -2742,7 +2763,7 @@ app.get("/es", (req, res) => {
       <p class="muted">El sitio principal está en inglés. Para la boleta oficial: <a href="https://pollfinder.sos.mn.gov/">pollfinder.sos.mn.gov</a>.</p>
       <a class="btn" href="/">English home</a>
     </div>`;
-  res.send(layout("Español", body));
+  sendPage(req, res, "Español", body);
 });
 
 app.get("/accessibility", (req, res) => {
@@ -2757,7 +2778,7 @@ app.get("/accessibility", (req, res) => {
         <li>Spanish quick guide at <a href="/es">/es</a></li>
       </ul>
     </section>`;
-  res.send(layout("Accessibility", body));
+  sendPage(req, res, "Accessibility", body);
 });
 
 app.listen(PORT, "0.0.0.0", () => {
