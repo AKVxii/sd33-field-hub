@@ -766,7 +766,7 @@ function layout(title, body, opts = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for Forest Lake, Stillwater, and neighboring communities." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=home8" />
+  <link rel="stylesheet" href="/css/lit.css?v=home9" />
   ${extraHead}
 </head>
 <body>
@@ -1004,24 +1004,28 @@ app.get("/", (req, res) => {
       </div>
     </section>
 
-    <div class="gallery" aria-label="Local scenery">
+    <div class="gallery gallery-5" aria-label="Local scenery">
       <figure>
-        <img src="/images/forest-lake-scenic.jpg?v=3" alt="Public beach and park shoreline on the lake in Forest Lake, Minnesota" width="640" height="360" loading="eager" />
+        <img src="/images/forest-lake-scenic.jpg?v=4" alt="Lakeside Memorial Park beach on Forest Lake in Forest Lake, Minnesota" width="640" height="360" loading="eager" />
       </figure>
       <figure>
-        <img src="/images/forest-lake-july4-parade.jpg?v=3" alt="Downtown street with American flags leading toward the lake" width="640" height="360" loading="eager" />
+        <img src="/images/forest-lake-july4-parade.jpg?v=4" alt="Lake Street corridor in Forest Lake with American flags toward the lake" width="640" height="360" loading="eager" />
       </figure>
       <figure>
-        <img src="/images/forest-lake-waterfront.jpg?v=3" alt="Aerial view of the multi-bay lake and suburban shoreline in Forest Lake, Minnesota" width="640" height="360" loading="lazy" />
+        <img src="/images/forest-lake-waterfront.jpg?v=4" alt="Aerial of multi-bay Forest Lake with park beach, docks, and Highway 61 commercial strip" width="640" height="360" loading="lazy" />
       </figure>
       <figure>
-        <img src="/images/mn-flag-historic.jpg?v=3" alt="Historic Minnesota state flag with Great Seal, 1957 to 2023 design" width="640" height="360" loading="lazy" />
+        <img src="/images/mn-capitol-horizon.jpg?v=4" alt="Minnesota landscape with the State Capitol dome faint on the distant horizon" width="640" height="360" loading="lazy" />
+      </figure>
+      <figure>
+        <img src="/images/mn-flag-historic.png?v=4" alt="Historic Minnesota state flag, 1983 to 2024 design with Great Seal on blue field" width="640" height="360" loading="lazy" />
       </figure>
     </div>
 
     <p class="image-rights">
-      <strong>Image rights.</strong> Community scenes are original illustrations for this Field Hub, reflecting Forest Lake, Minnesota (public lakeside park, Broadway / Lake Street character, and the multi-bay lake)—not third-party stock photographs.
-      The flag is the historic Minnesota state flag (1957–2023 seal design), not the 2024 redesign. Heritage display only.
+      <strong>Image rights.</strong> Forest Lake scenes are original illustrations for this Field Hub, drawn to match the multi-bay lake, Lakeside Memorial Park / East Broadway park beach, Lake Street, and Highway&nbsp;61 commercial corridor—not third-party stock photographs.
+      The state flag image is the official <strong>historic Minnesota flag (1983–2024)</strong> with the Great Seal, years 1819 / 1858 / 1893, lady’s slippers, and nineteen stars—sourced from Wikimedia Commons public domain; it is <strong>not</strong> the 2024 North Star redesign.
+      The Minnesota State Capitol appears only as a faint distant horizon element (heritage artistry; the Capitol stands in Saint Paul).
       Independent volunteer resource—not a government website.
     </p>
 
@@ -2299,13 +2303,13 @@ app.get("/win-playbook", (req, res) => {
           <img src="/images/loon-lake.jpg" alt="Common loon on a Minnesota lake" />
         </figure>
         <figure>
-          <img src="/images/forest-lake-scenic.jpg?v=3" alt="Public lakeside park in Forest Lake, Minnesota" />
+          <img src="/images/forest-lake-scenic.jpg?v=4" alt="Lakeside park beach in Forest Lake, Minnesota" />
         </figure>
         <figure>
-          <img src="/images/st-croix-valley.jpg" alt="St. Croix River valley" />
+          <img src="/images/mn-capitol-horizon.jpg?v=4" alt="Minnesota landscape with faint State Capitol on the horizon" />
         </figure>
         <figure>
-          <img src="/images/forest-lake-july4-parade.jpg?v=3" alt="Downtown street with American flags near the lake" />
+          <img src="/images/mn-flag-historic.png?v=4" alt="Historic Minnesota state flag with Great Seal" />
         </figure>
       </div>
       <p>Original illustrations reflect Washington County and the St.&nbsp;Croix Valley for a professional local presentation.</p>
