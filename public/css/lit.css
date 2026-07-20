@@ -64,18 +64,26 @@ a { color: #1a4f8b; }
   text-decoration: none;
   font-weight: 600;
   font-size: 0.88rem;
-  padding: 0.25rem 0.45rem;
-  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.nav a:hover { background: rgba(255,255,255,0.12); text-decoration: none; }
-.nav a.nav-active {
-  background: var(--gold);
-  color: var(--deep) !important;
-  font-weight: 800;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
+.nav a:hover { background: rgba(255,255,255,0.14); text-decoration: none; color: #fff; }
+/* Current page tab — high contrast so it is obvious on every screen */
+.nav a.nav-active,
+.nav a[aria-current="page"] {
+  background: #f5c518 !important;
+  color: #061a2e !important;
+  font-weight: 800 !important;
+  border-color: #fff !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  text-decoration: none !important;
 }
-.nav a.nav-active:hover {
-  background: #e0b010;
+.nav a.nav-active:hover,
+.nav a[aria-current="page"]:hover {
+  background: #ffd84d !important;
+  color: #061a2e !important;
 }
 
 .main { padding: 1.5rem 0 3.5rem; min-height: 55vh; }

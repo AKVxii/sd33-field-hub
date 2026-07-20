@@ -610,7 +610,13 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(morgan(IS_PROD ? "combined" : "dev"));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(ROOT, "public"), { maxAge: IS_PROD ? "1h" : 0 }));
+// Short cache so CSS/JS nav updates show quickly after deploy
+app.use(
+  express.static(path.join(ROOT, "public"), {
+    maxAge: IS_PROD ? "5m" : 0,
+    etag: true,
+  })
+);
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "sd33-litdrop-secret-change-me",
@@ -625,20 +631,15 @@ app.use(
   })
 );
 
+function isNavActive(href, currentPath) {
+  const path = (currentPath || "/").split("?")[0] || "/";
+  if (href === "/") return path === "/";
+  if (href === "/field") return path === "/field" || path.startsWith("/field/");
+  return path === href || path.startsWith(href + "/");
+}
 function navClass(href, currentPath) {
-  const path = currentPath || "/";
-  // Exact match for home; prefix match for nested field tools
-  let active = false;
-  if (href === "/") {
-    active = path === "/" || path === "";
-  } else if (href === "/field") {
-    active = path === "/field" || path.startsWith("/field/");
-  } else if (href === "/team/preferences" || href === "/team/sign-asks") {
-    active = path === href || path.startsWith(href);
-  } else {
-    active = path === href || path.startsWith(href + "/") || path.startsWith(href + "?");
-  }
-  return active ? ' class="nav-active"' : "";
+  if (!isNavActive(href, currentPath)) return "";
+  return ' class="nav-active" aria-current="page"';
 }
 
 function layout(title, body, opts = {}) {
@@ -653,7 +654,7 @@ function layout(title, body, opts = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="St. Croix Valley volunteer field hub for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and volunteer tools for residents and the press." />
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css" />
+  <link rel="stylesheet" href="/css/lit.css?v=nav3" />
   ${extraHead}
 </head>
 <body>
@@ -662,7 +663,7 @@ function layout(title, body, opts = {}) {
     <div class="wrap top-inner">
       <h1>St. Croix Valley Field Hub</h1>
       <p>Minnesota Senate District 33 · House Districts 33A &amp; 33B · Washington County</p>
-      <nav class="nav" aria-label="Primary">
+      <nav class="nav" id="primary-nav" aria-label="Primary">
         <a href="/"${n("/")}>Home</a>
         <a href="/map"${n("/map")}>District map</a>
         <a href="/events"${n("/events")}>Events</a>
@@ -696,6 +697,7 @@ function layout(title, body, opts = {}) {
       · <a href="/review">Feedback</a> · <a href="/accessibility">Accessibility</a></p>
     </div>
   </footer>
+  <script src="/js/nav-active.js?v=nav3"></script>
   ${extraFoot}
 </body>
 </html>`;
