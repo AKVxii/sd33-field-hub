@@ -1117,9 +1117,11 @@ function layout(title, body, opts = {}) {
   const robots = PRIVATE_DEVELOPMENT
     ? `<meta name="robots" content="noindex, nofollow" />`
     : "";
+  const siteTagline =
+    "A volunteer-built district organizing and voter-information hub supporting candidates and community engagement in Minnesota Senate District 33.";
   const metaDesc = PRIVATE_DEVELOPMENT
-    ? "St. Croix Valley Field Hub — private development environment. Not a public campaign, committee, or fundraising site. Official election info: Minnesota Secretary of State."
-    : "St. Croix Valley Field Hub—volunteer resource for Minnesota Senate District 33 and House Districts 33A and 33B. Maps, candidates, events, and field tools for every community in the district.";
+    ? `${siteTagline} Private development environment — not currently a public campaign, committee, or fundraising site. Official election info: Minnesota Secretary of State.`
+    : `${siteTagline} Also covering House Districts 33A and 33B. Maps, candidates, events, and field tools for every community in the district.`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1128,7 +1130,7 @@ function layout(title, body, opts = {}) {
   <meta name="description" content="${esc(metaDesc)}" />
   ${robots}
   <title>${esc(title)} · St. Croix Valley Field Hub · SD 33</title>
-  <link rel="stylesheet" href="/css/lit.css?v=dev1" />
+  <link rel="stylesheet" href="/css/lit.css?v=tag1" />
   ${extraHead}
 </head>
 <body class="${PRIVATE_DEVELOPMENT ? "private-dev" : ""}">
@@ -1137,6 +1139,7 @@ function layout(title, body, opts = {}) {
   <header class="top" role="banner">
     <div class="wrap top-inner">
       <h1>St. Croix Valley Field Hub</h1>
+      <p class="site-tagline">${esc(siteTagline)}</p>
       <p>Minnesota Senate District&nbsp;33 · House Districts&nbsp;33A &amp;&nbsp;33B · Washington County${
         PRIVATE_DEVELOPMENT ? " · <strong>Private development</strong>" : ""
       }</p>
@@ -1169,11 +1172,12 @@ function layout(title, body, opts = {}) {
         <img src="/images/forest-lake-july4-parade.jpg" alt="Independence Day parade with American flags" width="72" height="48" loading="lazy" />
         <div>
           <strong>St. Croix Valley Field Hub</strong> · SD&nbsp;33 · HD&nbsp;33A · HD&nbsp;33B<br/>
+          <em>A volunteer-built district organizing and voter-information hub supporting candidates and community engagement in Minnesota Senate District&nbsp;33.</em><br/>
           ${
             PRIVATE_DEVELOPMENT
-              ? `Under <strong>private development</strong>. Not a public campaign, political committee, fundraising platform, or volunteer-organizing service.
+              ? `Under <strong>private development</strong>. Not currently operating as a public campaign, political committee, fundraising platform, or live volunteer-organizing service.
           Provisional information only — verify with the Minnesota Secretary of State.`
-              : `Independent volunteer organizing resource for Washington County and the St.&nbsp;Croix Valley.
+              : `Independent resource for Washington County and the St.&nbsp;Croix Valley.
           <strong>Not</strong> an official government website and <strong>not</strong> legal advice.
           Candidate data from public sources (Minnesota Secretary of State and public filings).`
           }
@@ -1372,7 +1376,8 @@ app.get("/", (req, res) => {
       <div class="photo-hero-content">
         <span class="badge pri">Washington County · Minnesota</span>
         <h2>St. Croix Valley Field Hub</h2>
-        <p>A public volunteer resource for Minnesota <strong>Senate District&nbsp;33</strong> and <strong>House Districts&nbsp;33A and&nbsp;33B</strong>—serving every community in the district along the lakes and the St.&nbsp;Croix River. Candidates are listed by <strong>district</strong>, with all cities and townships named equally.</p>
+        <p class="hero-tagline"><strong>A volunteer-built district organizing and voter-information hub supporting candidates and community engagement in Minnesota Senate District&nbsp;33.</strong></p>
+        <p>Serving <strong>Senate District&nbsp;33</strong> and <strong>House Districts&nbsp;33A and&nbsp;33B</strong>—every community along the lakes and the St.&nbsp;Croix River. Candidates are listed by <strong>district</strong>, with all cities and townships named equally.</p>
         <div class="cta-row">
           <a class="btn btn-gold" href="#find-address">Enter Your Address</a>
           <a class="btn" href="/events">Events Calendar</a>
