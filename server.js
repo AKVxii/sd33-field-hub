@@ -1198,7 +1198,7 @@ function layout(title, body, opts = {}) {
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/design-system.css?v=v1" />
+  <link rel="stylesheet" href="/css/design-system.css?v=v2home" />
   <link rel="stylesheet" href="/css/lit.css?v=v1compat" />
   ${extraHead}
 </head>
@@ -1533,154 +1533,239 @@ app.get("/", (req, res) => {
     : `<div class="empty-state" style="grid-column:1/-1"><strong>No confirmed in-district events yet</strong><p class="muted">See <a href="/events?view=proposed">proposed activities</a> or <a href="/volunteer">volunteer</a>.</p></div>`;
 
   const body = `
-    ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+    ${flash ? `<div class="home-band"><div class="flash">${esc(flash)}</div></div>` : ""}
 
     <section class="home-hero" aria-label="Welcome">
-      <span class="home-hero-kicker">Washington County · St. Croix Valley · SD&nbsp;33</span>
-      <h1>Know Your District. Meet the Candidates. Help Shape Minnesota’s Future.</h1>
-      <p>${SITE_DESCRIPTION}</p>
-      <div class="cta-row">
-        <a class="btn btn-primary" href="#find-address">Find My Ballot</a>
-        <a class="btn btn-secondary" href="/volunteer">Volunteer</a>
-        <a class="btn btn-text" href="/candidates">Meet the Candidates</a>
+      <div class="home-hero-inner">
+        <span class="home-hero-kicker">Washington County · St. Croix Valley · SD&nbsp;33</span>
+        <h1>Know Your District. Meet the Candidates.</h1>
+        <p class="home-hero-lead">Trusted voter information and community organizing for Minnesota Senate District&nbsp;33 and House Districts&nbsp;33A and&nbsp;33B.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#find-address">Find My Ballot &amp; Candidates</a>
+          <a class="btn btn-secondary" href="/map">View District Map</a>
+        </div>
+        <p class="home-hero-note">${SITE_DESCRIPTION}</p>
       </div>
     </section>
 
-    <section id="find-address" class="lookup-panel section" aria-label="Find your district by address">
+    <div class="trust-strip" role="region" aria-label="District scope">
+      <span class="trust-pill">Senate District 33</span>
+      <span class="trust-pill">House 33A &amp; 33B</span>
+      <span class="trust-pill">Volunteer-built</span>
+      <span class="trust-pill"><a href="https://www.sos.mn.gov/" target="_blank" rel="noopener">Official SOS sources</a></span>
+    </div>
+
+    <section id="find-address" class="lookup-panel" aria-label="Find your district by address">
+      <span class="lookup-panel-kicker">Start here</span>
       <h2>Find your district and ballot</h2>
-      <p class="muted" style="margin-top:0">Enter an address to estimate precinct and legislative districts. The Minnesota Secretary of State is the official source.</p>
-      <form class="lookup-form stack" method="get" action="/my-gop-ballot">
-        <label for="home-q">Full address</label>
-        <input id="home-q" type="text" name="q" maxlength="200" placeholder="123 Main Street, Stillwater, MN 55082" autocomplete="street-address" />
-        <div class="lookup-grid">
-          <div>
-            <label for="home-street">Or street only</label>
-            <input id="home-street" type="text" name="street" maxlength="120" placeholder="123 Main Street" autocomplete="address-line1" />
-          </div>
-          <div>
-            <label for="home-city">City or township <span class="muted">(optional)</span></label>
-            <select id="home-city" name="city">
-              <option value="">Select…</option>
-              ${cityOptions}
-            </select>
-          </div>
+      <p class="lookup-lead">Enter your address to see precinct, legislative districts, and candidates. The Minnesota Secretary of State is the official source.</p>
+      <form class="lookup-form" method="get" action="/my-gop-ballot">
+        <label class="visually-hidden" for="home-q">Full street address</label>
+        <div class="lookup-search-row">
+          <input class="lookup-main-input" id="home-q" type="text" name="q" maxlength="200" placeholder="123 Main Street, Stillwater, MN 55082" autocomplete="street-address" />
+          <button class="btn btn-primary" type="submit">Search ballot</button>
         </div>
-        <p class="lookup-privacy">Address is used only for this lookup. Confirm at <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a>.</p>
-        <div class="cta-row">
-          <button class="btn btn-primary" type="submit">Show my districts &amp; ballot</button>
-          <a class="btn btn-secondary" href="/map">District map</a>
+        <details class="lookup-advanced">
+          <summary>More search options</summary>
+          <div class="lookup-grid">
+            <div>
+              <label for="home-street">Street only</label>
+              <input id="home-street" type="text" name="street" maxlength="120" placeholder="123 Main Street" autocomplete="address-line1" />
+            </div>
+            <div>
+              <label for="home-city">City or township</label>
+              <select id="home-city" name="city">
+                <option value="">Select…</option>
+                ${cityOptions}
+              </select>
+            </div>
+          </div>
+        </details>
+        <p class="lookup-privacy">Your address is used only for this lookup. Confirm results at <a href="https://pollfinder.sos.mn.gov/" target="_blank" rel="noopener">pollfinder.sos.mn.gov</a> and <a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">myballotmn.sos.mn.gov</a>.</p>
+        <div class="lookup-actions">
+          <a class="btn btn-secondary" href="/map">Open district map</a>
+          <a class="btn btn-ghost" href="/candidates">Browse all candidates</a>
         </div>
       </form>
     </section>
 
-    <section class="section" aria-label="Supported local candidates">
-      <div class="section-head">
-        <h2 class="section-title">Supported local candidates</h2>
-        <a class="section-link" href="/candidates">All filed candidates →</a>
-      </div>
-      <p class="muted" style="margin-top:0">Project organizing focus for three local seats. Not a formal committee endorsement. All parties remain on the directory.</p>
-      <div class="grid">
-        <article class="cand-card">
-          <span class="badge supported">Supported by this volunteer project</span>
-          <p class="cand-office">Minnesota State Senate · District 33</p>
-          <h3>Karin Housley</h3>
-          <span class="tag-gop">Republican</span>
-          <p class="cand-desc">Filed for the full Senate District&nbsp;33. Verify at the Secretary of State.</p>
-          ${areaListHtml("sd33", { compact: true })}
-          <div class="cand-actions">
-            <a class="btn btn-primary btn-sm" href="/candidates#race-stateSenate33">Race details</a>
-            <a class="btn btn-secondary btn-sm" href="/volunteer?focus=housley">Volunteer</a>
+    <div class="home-band">
+      <section class="section" aria-label="Start here steps">
+        <div class="section-head">
+          <h2 class="section-title">Start here</h2>
+        </div>
+        <div class="start-grid">
+          <article class="start-card">
+            <span class="start-num" aria-hidden="true">1</span>
+            <h3>Find your ballot</h3>
+            <p>Look up your address to identify precinct, SD&nbsp;33, and House 33A or 33B—then see who is on your ballot.</p>
+            <a class="btn btn-primary btn-sm" href="#find-address">Search address</a>
+          </article>
+          <article class="start-card">
+            <span class="start-num" aria-hidden="true">2</span>
+            <h3>Meet the candidates</h3>
+            <p>Local legislative seats first, plus statewide offices (Governor, AG, SOS, Auditor) and federal races on file.</p>
+            <a class="btn btn-secondary btn-sm" href="/candidates">Candidate directory</a>
+          </article>
+          <article class="start-card">
+            <span class="start-num" aria-hidden="true">3</span>
+            <h3>Volunteer or attend</h3>
+            <p>Choose doors, events, phones, literature, or signs. Browse confirmed community events when you’re ready.</p>
+            <div class="cta-row" style="margin-top:0">
+              <a class="btn btn-secondary btn-sm" href="/volunteer">Volunteer</a>
+              <a class="btn btn-ghost btn-sm" href="/events">Events</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Supported local candidates">
+        <div class="section-head">
+          <h2 class="section-title">Supported local candidates</h2>
+          <a class="section-link" href="/candidates">All filed candidates →</a>
+        </div>
+        <p class="muted" style="margin-top:0">Project organizing focus for three local seats. Not a formal committee endorsement. All parties remain on the directory.</p>
+        <div class="grid">
+          <article class="cand-card">
+            <span class="badge supported">Supported by this volunteer project</span>
+            <p class="cand-office">Minnesota State Senate · District 33</p>
+            <h3>Karin Housley</h3>
+            <span class="tag-gop">Republican</span>
+            <p class="cand-desc">Filed for the full Senate District&nbsp;33. Verify at the Secretary of State.</p>
+            ${areaListHtml("sd33", { compact: true })}
+            <div class="cand-actions">
+              <a class="btn btn-primary btn-sm" href="/candidates#race-stateSenate33">Race details</a>
+              <a class="btn btn-secondary btn-sm" href="/volunteer?focus=housley">Volunteer</a>
+            </div>
+          </article>
+          <article class="cand-card">
+            <span class="badge supported">Supported by this volunteer project</span>
+            <p class="cand-office">Minnesota House · District 33A</p>
+            <h3>Stacey Stout</h3>
+            <span class="tag-gop">Republican</span>
+            <p class="cand-desc">Filed for the full House District&nbsp;33A. Verify at the Secretary of State.</p>
+            ${areaListHtml("hd33a", { compact: true })}
+            <div class="cand-actions">
+              <a class="btn btn-primary btn-sm" href="/candidates#race-house33A">Race details</a>
+              <a class="btn btn-secondary btn-sm" href="/volunteer?focus=stout">Volunteer</a>
+            </div>
+          </article>
+          <article class="cand-card">
+            <span class="badge supported">Supported by this volunteer project</span>
+            <p class="cand-office">Minnesota House · District 33B</p>
+            <h3>Jessica L. Johnson</h3>
+            <span class="tag-gop">Republican</span>
+            <p class="cand-desc">Filed for the full House District&nbsp;33B. Verify at the Secretary of State.</p>
+            ${areaListHtml("hd33b", { compact: true })}
+            <div class="cand-actions">
+              <a class="btn btn-primary btn-sm" href="/candidates#race-house33B">Race details</a>
+              <a class="btn btn-secondary btn-sm" href="/volunteer?focus=johnson">Volunteer</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Statewide elections">
+        <div class="section-head">
+          <h2 class="section-title">Statewide elections</h2>
+          <a class="section-link" href="/candidates?level=state#section-statewide">View statewide candidates →</a>
+        </div>
+        <p class="muted" style="margin-top:0">Constitutional and federal offices every SD&nbsp;33 voter may see. Full lists for all parties on file.</p>
+        <div class="help-grid">
+          <a class="help-tile" href="/candidates#race-governor"><strong>Governor</strong><span>Governor &amp; Lt. Governor</span></a>
+          <a class="help-tile" href="/candidates#race-attorneyGeneral"><strong>Attorney General</strong><span>Statewide office</span></a>
+          <a class="help-tile" href="/candidates#race-secretaryOfState"><strong>Secretary of State</strong><span>Statewide office</span></a>
+          <a class="help-tile" href="/candidates#race-stateAuditor"><strong>State Auditor</strong><span>Statewide office</span></a>
+          <a class="help-tile" href="/candidates#race-usSenate"><strong>U.S. Senate</strong><span>Minnesota · federal</span></a>
+          <a class="help-tile" href="/candidates#section-federal"><strong>U.S. House</strong><span>MN-04 or MN-08</span></a>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Weekly field targets">
+        <div class="metrics-panel">
+          <h2>Weekly field targets</h2>
+          <p class="metrics-lead">Planning goals for full Senate District&nbsp;33 field work—coverage over perfection. Provisional organizing targets for this volunteer project (not official campaign metrics).</p>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="metric-value">3k–5k</span>
+              <span class="metric-label">Literature pieces per week (build phase)</span>
+              <span class="metric-phase">Peak Oct: 8k–12k</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">25–40</span>
+              <span class="metric-label">Active literature droppers</span>
+              <span class="metric-phase">Peak Oct: 60–100</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">40–70</span>
+              <span class="metric-label">Doors per shift</span>
+              <span class="metric-phase">Peak: 50–80 · ~2 hr Saturday</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">2–3×</span>
+              <span class="metric-label">Touches per target door</span>
+              <span class="metric-phase">Build: 1–2 · Peak: 2–3</span>
+            </div>
           </div>
-        </article>
-        <article class="cand-card">
-          <span class="badge supported">Supported by this volunteer project</span>
-          <p class="cand-office">Minnesota House · District 33A</p>
-          <h3>Stacey Stout</h3>
-          <span class="tag-gop">Republican</span>
-          <p class="cand-desc">Filed for the full House District&nbsp;33A. Verify at the Secretary of State.</p>
-          ${areaListHtml("hd33a", { compact: true })}
-          <div class="cand-actions">
-            <a class="btn btn-primary btn-sm" href="/candidates#race-house33A">Race details</a>
-            <a class="btn btn-secondary btn-sm" href="/volunteer?focus=stout">Volunteer</a>
-          </div>
-        </article>
-        <article class="cand-card">
-          <span class="badge supported">Supported by this volunteer project</span>
-          <p class="cand-office">Minnesota House · District 33B</p>
-          <h3>Jessica L. Johnson</h3>
-          <span class="tag-gop">Republican</span>
-          <p class="cand-desc">Filed for the full House District&nbsp;33B. Verify at the Secretary of State.</p>
-          ${areaListHtml("hd33b", { compact: true })}
-          <div class="cand-actions">
-            <a class="btn btn-primary btn-sm" href="/candidates#race-house33B">Race details</a>
-            <a class="btn btn-secondary btn-sm" href="/volunteer?focus=johnson">Volunteer</a>
-          </div>
-        </article>
-      </div>
-    </section>
+        </div>
+      </section>
 
-    <section class="section" aria-label="Statewide elections">
-      <div class="section-head">
-        <h2 class="section-title">Statewide elections on Minnesota ballots</h2>
-        <a class="section-link" href="/candidates?level=state#section-statewide">View statewide candidates →</a>
-      </div>
-      <p class="muted" style="margin-top:0">Every SD&nbsp;33 voter may also see these statewide constitutional offices. Full candidate lists (all parties on file) are in the directory.</p>
-      <div class="help-grid">
-        <a class="help-tile" href="/candidates#race-governor"><strong>Governor</strong><span>Governor &amp; Lt. Governor ticket</span></a>
-        <a class="help-tile" href="/candidates#race-attorneyGeneral"><strong>Attorney General</strong><span>Statewide constitutional office</span></a>
-        <a class="help-tile" href="/candidates#race-secretaryOfState"><strong>Secretary of State</strong><span>Statewide constitutional office</span></a>
-        <a class="help-tile" href="/candidates#race-stateAuditor"><strong>State Auditor</strong><span>Statewide constitutional office</span></a>
-        <a class="help-tile" href="/candidates#race-usSenate"><strong>U.S. Senate</strong><span>Minnesota · federal</span></a>
-        <a class="help-tile" href="/candidates#section-federal"><strong>U.S. House</strong><span>MN-04 or MN-08 by address</span></a>
-      </div>
-    </section>
+      <section class="section" aria-label="Confirmed upcoming events">
+        <div class="section-head">
+          <h2 class="section-title">Confirmed upcoming events</h2>
+          <a class="section-link" href="/events?view=confirmed&scope=in">Full calendar →</a>
+        </div>
+        <div class="grid">${eventCards}</div>
+      </section>
 
-    <section class="section" aria-label="Confirmed upcoming events">
-      <div class="section-head">
-        <h2 class="section-title">Confirmed upcoming events</h2>
-        <a class="section-link" href="/events?view=confirmed&scope=in">Full calendar →</a>
-      </div>
-      <div class="grid">${eventCards}</div>
-    </section>
+      <section class="section" aria-label="How to help">
+        <div class="section-head">
+          <h2 class="section-title">Choose how to help</h2>
+        </div>
+        <p class="muted" style="margin-top:0">Pick one activity for a short signup. Submissions are not stored in development preview.</p>
+        <div class="help-grid">
+          <a class="help-tile" href="/volunteer?activity=doors"><strong>Knock doors</strong><span>Neighborhood routes</span></a>
+          <a class="help-tile" href="/volunteer?activity=events"><strong>Community events</strong><span>Parades, festivals, greeters</span></a>
+          <a class="help-tile" href="/volunteer?activity=phones"><strong>Make calls</strong><span>Phone banks when ready</span></a>
+          <a class="help-tile" href="/volunteer?activity=lit"><strong>Literature</strong><span>Lit drops &amp; pack prep</span></a>
+          <a class="help-tile" href="/volunteer?activity=team_lead"><strong>Lead a small team</strong><span>Host or captain nearby</span></a>
+          <a class="help-tile" href="/volunteer?activity=signs"><strong>Yard signs</strong><span>With owner permission</span></a>
+        </div>
+      </section>
 
-    <section class="section" aria-label="How to help">
-      <div class="section-head">
-        <h2 class="section-title">Choose how to help</h2>
-      </div>
-      <p class="muted" style="margin-top:0">Pick one activity for a short signup. Submissions are not stored in development preview.</p>
-      <div class="help-grid">
-        <a class="help-tile" href="/volunteer?activity=doors"><strong>Knock doors</strong><span>Neighborhood routes</span></a>
-        <a class="help-tile" href="/volunteer?activity=events"><strong>Community events</strong><span>Parades, festivals, greeters</span></a>
-        <a class="help-tile" href="/volunteer?activity=phones"><strong>Make calls</strong><span>Phone banks when ready</span></a>
-        <a class="help-tile" href="/volunteer?activity=lit"><strong>Literature</strong><span>Lit drops &amp; pack prep</span></a>
-        <a class="help-tile" href="/volunteer?activity=team_lead"><strong>Lead a small team</strong><span>Host or captain nearby</span></a>
-        <a class="help-tile" href="/volunteer?activity=signs"><strong>Yard signs</strong><span>With owner permission</span></a>
-      </div>
-    </section>
+      <section class="section" aria-label="District facts preview">
+        <div class="section-head">
+          <h2 class="section-title">District facts</h2>
+          <a class="section-link" href="/district-facts">Full District Facts →</a>
+        </div>
+        <div class="facts-grid facts-grid--three">
+          <div class="fact-tile">${areaListHtml("sd33", { compact: true })}</div>
+          <div class="fact-tile">${areaListHtml("hd33a", { compact: true })}</div>
+          <div class="fact-tile">${areaListHtml("hd33b", { compact: true })}</div>
+        </div>
+        <p class="muted" style="margin-top:0.85rem">Map: <a href="/map">District Map</a> · Official tools: <a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">What's on My Ballot</a></p>
+      </section>
 
-    <section class="section" aria-label="District facts preview">
-      <div class="section-head">
-        <h2 class="section-title">District facts preview</h2>
-        <a class="section-link" href="/district-facts">Full District Facts →</a>
-      </div>
-      <div class="facts-grid facts-grid--three">
-        <div class="fact-tile">${areaListHtml("sd33", { compact: true })}</div>
-        <div class="fact-tile">${areaListHtml("hd33a", { compact: true })}</div>
-        <div class="fact-tile">${areaListHtml("hd33b", { compact: true })}</div>
-      </div>
-      <p class="muted" style="margin-top:0.75rem">Map: <a href="/map">District Map</a> · Official tools: <a href="https://myballotmn.sos.mn.gov/" target="_blank" rel="noopener">What's on My Ballot</a></p>
-    </section>
+      <section class="section transparency-panel" aria-label="Transparency">
+        <h2>Transparency</h2>
+        <p>${SITE_DESCRIPTION}</p>
+        <ul>
+          <li><strong>Official facts</strong> (filings, precincts, ballots) must be confirmed with the Minnesota Secretary of State.</li>
+          <li><strong>Project recommendations</strong> are labeled “Supported by this volunteer project” and are not committee endorsements.</li>
+          <li><strong>All parties on file</strong> appear in the candidate directory.</li>
+          <li>Corrections: <a href="/corrections">Corrections</a> · <a href="/review">Feedback</a>.</li>
+        </ul>
+      </section>
 
-    <section class="section transparency-panel" aria-label="Transparency">
-      <h2>Transparency</h2>
-      <p>${SITE_DESCRIPTION}</p>
-      <ul>
-        <li><strong>Official facts</strong> (filings, precincts, ballots) must be confirmed with the Minnesota Secretary of State.</li>
-        <li><strong>Project recommendations</strong> are labeled “Supported by this volunteer project” and are not committee endorsements.</li>
-        <li><strong>All parties on file</strong> appear in the candidate directory.</li>
-        <li>Corrections: <a href="/corrections">Corrections</a> · <a href="/review">Feedback</a>.</li>
-      </ul>
-    </section>
+      <section class="section final-cta" aria-label="Next step">
+        <h2>Ready for the next step?</h2>
+        <p class="muted">Look up your ballot, then choose how you want to help neighbors in SD&nbsp;33.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#find-address">Find My Ballot &amp; Candidates</a>
+          <a class="btn btn-secondary" href="/volunteer">Volunteer</a>
+        </div>
+      </section>
+    </div>
   `;
   sendPage(req, res, "Home", body, { bodyClass: "page-home" });
 });
