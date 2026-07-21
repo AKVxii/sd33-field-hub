@@ -1619,6 +1619,22 @@ app.get("/", (req, res) => {
       </div>
     </section>
 
+    <section class="section" aria-label="Statewide elections">
+      <div class="section-head">
+        <h2 class="section-title">Statewide elections on Minnesota ballots</h2>
+        <a class="section-link" href="/candidates?level=state#section-statewide">View statewide candidates →</a>
+      </div>
+      <p class="muted" style="margin-top:0">Every SD&nbsp;33 voter may also see these statewide constitutional offices. Full candidate lists (all parties on file) are in the directory.</p>
+      <div class="help-grid">
+        <a class="help-tile" href="/candidates#race-governor"><strong>Governor</strong><span>Governor &amp; Lt. Governor ticket</span></a>
+        <a class="help-tile" href="/candidates#race-attorneyGeneral"><strong>Attorney General</strong><span>Statewide constitutional office</span></a>
+        <a class="help-tile" href="/candidates#race-secretaryOfState"><strong>Secretary of State</strong><span>Statewide constitutional office</span></a>
+        <a class="help-tile" href="/candidates#race-stateAuditor"><strong>State Auditor</strong><span>Statewide constitutional office</span></a>
+        <a class="help-tile" href="/candidates#race-usSenate"><strong>U.S. Senate</strong><span>Minnesota · federal</span></a>
+        <a class="help-tile" href="/candidates#section-federal"><strong>U.S. House</strong><span>MN-04 or MN-08 by address</span></a>
+      </div>
+    </section>
+
     <section class="section" aria-label="Confirmed upcoming events">
       <div class="section-head">
         <h2 class="section-title">Confirmed upcoming events</h2>
@@ -1673,19 +1689,20 @@ app.get("/", (req, res) => {
 app.get("/candidates", (req, res) => {
   const data = loadCandidates();
   const races = data.races || {};
+  // Local legislative first, then all statewide constitutional offices, then federal, then county/judicial
   const order = [
-    { key: "stateSenate33", group: "local", level: "local" },
-    { key: "house33A", group: "local", level: "local" },
-    { key: "house33B", group: "local", level: "local" },
-    { key: "governor", group: "statewide", level: "state" },
-    { key: "usSenate", group: "statewide", level: "federal" },
-    { key: "usHouse4", group: "federal", level: "federal" },
-    { key: "usHouse8", group: "federal", level: "federal" },
-    { key: "secretaryOfState", group: "statewide", level: "state" },
-    { key: "stateAuditor", group: "statewide", level: "state" },
-    { key: "attorneyGeneral", group: "statewide", level: "state" },
-    { key: "countySheriff", group: "county", level: "county" },
-    { key: "judge10th38", group: "judicial", level: "judicial" },
+    { key: "stateSenate33", group: "local", level: "local", section: "Local legislative (SD 33 / HD 33A / HD 33B)" },
+    { key: "house33A", group: "local", level: "local", section: "Local legislative (SD 33 / HD 33A / HD 33B)" },
+    { key: "house33B", group: "local", level: "local", section: "Local legislative (SD 33 / HD 33A / HD 33B)" },
+    { key: "governor", group: "statewide", level: "state", section: "Statewide constitutional offices" },
+    { key: "attorneyGeneral", group: "statewide", level: "state", section: "Statewide constitutional offices" },
+    { key: "secretaryOfState", group: "statewide", level: "state", section: "Statewide constitutional offices" },
+    { key: "stateAuditor", group: "statewide", level: "state", section: "Statewide constitutional offices" },
+    { key: "usSenate", group: "federal", level: "federal", section: "Federal races" },
+    { key: "usHouse4", group: "federal", level: "federal", section: "Federal races" },
+    { key: "usHouse8", group: "federal", level: "federal", section: "Federal races" },
+    { key: "countySheriff", group: "county", level: "county", section: "County & judicial (nonpartisan)" },
+    { key: "judge10th38", group: "judicial", level: "judicial", section: "County & judicial (nonpartisan)" },
   ];
   const supported = new Set(["Karin Housley", "Stacey Stout", "Jessica L. Johnson"]);
 
@@ -1711,10 +1728,27 @@ app.get("/candidates", (req, res) => {
     if (key === "house33B") return "HD 33B";
     if (key === "usHouse4") return "MN-04";
     if (key === "usHouse8") return "MN-08";
+    if (key === "governor") return "Statewide · Governor";
+    if (key === "attorneyGeneral") return "Statewide · Attorney General";
+    if (key === "secretaryOfState") return "Statewide · Secretary of State";
+    if (key === "stateAuditor") return "Statewide · State Auditor";
+    if (key === "usSenate") return "Statewide · U.S. Senate";
+    if (key === "countySheriff") return "Washington County";
+    if (key === "judge10th38") return "10th District Court";
     return r.scope || "—";
   };
+  const levelBadge = (level) => {
+    if (level === "local") return '<span class="badge pri">Local race</span>';
+    if (level === "state") return '<span class="badge published">Statewide</span>';
+    if (level === "federal") return '<span class="badge other">Federal</span>';
+    if (level === "county") return '<span class="badge other">County</span>';
+    if (level === "judicial") return '<span class="badge other">Judicial</span>';
+    return "";
+  };
+
+  let lastSection = "";
   const sections = order
-    .map(({ key, group, level }) => {
+    .map(({ key, group, level, section }) => {
       const r = races[key];
       if (!r) return "";
       const rows = [];
@@ -1733,7 +1767,7 @@ app.get("/candidates", (req, res) => {
           const website = c.website || c.url || c.campaignUrl || "";
           const litUrl = c.literatureUrl || c.litUrl || c.publicLiterature || "";
           const filing = c.filingStatus || "On file in project data — verify with SOS";
-          const search = [c.name, r.office, partyLabel(party), dist, note].join(" ").toLowerCase();
+          const search = [c.name, r.office, partyLabel(party), dist, note, level, "statewide"].join(" ").toLowerCase();
           rows.push(`
             <article class="cand-directory-card"
               data-name="${esc(c.name).toLowerCase()}"
@@ -1744,14 +1778,16 @@ app.get("/candidates", (req, res) => {
               data-district-label="${esc(dist).toLowerCase()}"
               data-search="${esc(search)}"
               data-supported="${isSup ? "1" : "0"}"
-              data-local="${level === "local" ? "1" : "0"}">
+              data-local="${level === "local" ? "1" : "0"}"
+              data-statewide="${level === "state" ? "1" : "0"}">
               <div class="cand-directory-meta">
                 ${partyBadgeHtml(party)}
+                ${level === "state" ? '<span class="badge published">Statewide</span>' : ""}
                 ${isSup ? '<span class="badge supported">Supported by this volunteer project</span>' : ""}
               </div>
               <div class="name">${esc(c.name)}</div>
               <div class="muted" style="font-size:0.9rem"><strong>Office:</strong> ${esc(r.office)}</div>
-              <div class="muted" style="font-size:0.9rem"><strong>District:</strong> ${esc(dist)}</div>
+              <div class="muted" style="font-size:0.9rem"><strong>District / scope:</strong> ${esc(dist)}</div>
               <div class="muted" style="font-size:0.88rem"><strong>Filing:</strong> ${esc(filing)}</div>
               ${note ? `<div class="muted" style="font-size:0.88rem">${esc(note)}</div>` : ""}
               <div class="muted" style="font-size:0.82rem;margin-top:0.35rem">
@@ -1766,9 +1802,24 @@ app.get("/candidates", (req, res) => {
       pushSide(r.gop, "gop");
       pushSide(r.other, "other");
       if (!rows.length) return "";
+      let heading = "";
+      if (section && section !== lastSection) {
+        lastSection = section;
+        heading = `<h2 class="cand-section-heading" id="section-${esc(group)}">${esc(section)}</h2>
+        <p class="muted cand-section-lead">${
+          group === "statewide"
+            ? "Governor, Attorney General, Secretary of State, and State Auditor — all voters in Minnesota (including SD&nbsp;33) may see these on the ballot. Verify filings at the Secretary of State."
+            : group === "federal"
+              ? "U.S. Senate (statewide) and U.S. House (by congressional district within SD&nbsp;33)."
+              : group === "local"
+                ? "Senate District 33 and House Districts 33A and 33B."
+                : "Nonpartisan races shown for completeness."
+        }</p>`;
+      }
       return `
+      ${heading}
       <section class="race-group" id="race-${esc(key)}" data-group="${esc(group)}" data-level="${esc(level)}">
-        <h2>${esc(r.office)}${level === "local" ? ' <span class="badge pri">Local race</span>' : ""}</h2>
+        <h3 class="race-office-title">${esc(r.office)} ${levelBadge(level)}</h3>
         <p class="muted" style="margin-top:0">${esc(r.scope || "")}</p>
         ${
           r.districtKey
@@ -1787,7 +1838,13 @@ app.get("/candidates", (req, res) => {
   const body = `
     <header class="page-intro">
       <h1>Candidate directory</h1>
-      <p>Search and filter candidates from our public file (as of <strong>${esc(data.asOf)}</strong>). Local SD&nbsp;33 / HD&nbsp;33A / HD&nbsp;33B races appear first. All parties on file are listed. Always verify at <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">candidates.sos.mn.gov</a>.</p>
+      <p>Search and filter candidates from our public file (as of <strong>${esc(data.asOf)}</strong>). Includes <strong>local SD&nbsp;33 / 33A / 33B</strong>, <strong>all statewide constitutional offices</strong> (Governor, Attorney General, Secretary of State, State Auditor), federal races, and nonpartisan county/judicial offices on file. All parties listed. Always verify at <a href="https://candidates.sos.mn.gov/" target="_blank" rel="noopener">candidates.sos.mn.gov</a>.</p>
+      <p class="cta-row" style="margin-top:0.75rem">
+        <a class="btn btn-secondary btn-sm" href="#section-local">Local</a>
+        <a class="btn btn-secondary btn-sm" href="#section-statewide">Statewide (Gov, AG, SOS, Auditor)</a>
+        <a class="btn btn-secondary btn-sm" href="#section-federal">Federal</a>
+        <a class="btn btn-secondary btn-sm" href="#section-county">County &amp; judicial</a>
+      </p>
     </header>
 
     <div class="filter-bar" role="search" aria-label="Filter candidates">
@@ -1798,16 +1855,29 @@ app.get("/candidates", (req, res) => {
           ${officeOptions}
         </select>
       </label>
-      <label>District
+      <label>District / race
         <select id="cand-district">
-          <option value="">All districts</option>
-          <option value="stateSenate33">SD 33</option>
-          <option value="house33A">HD 33A</option>
-          <option value="house33B">HD 33B</option>
-          <option value="usHouse4">MN-04</option>
-          <option value="usHouse8">MN-08</option>
-          <option value="governor">Statewide (Governor)</option>
-          <option value="usSenate">U.S. Senate</option>
+          <option value="">All races</option>
+          <optgroup label="Local">
+            <option value="stateSenate33">SD 33</option>
+            <option value="house33A">HD 33A</option>
+            <option value="house33B">HD 33B</option>
+          </optgroup>
+          <optgroup label="Statewide constitutional">
+            <option value="governor">Governor</option>
+            <option value="attorneyGeneral">Attorney General</option>
+            <option value="secretaryOfState">Secretary of State</option>
+            <option value="stateAuditor">State Auditor</option>
+          </optgroup>
+          <optgroup label="Federal">
+            <option value="usSenate">U.S. Senate</option>
+            <option value="usHouse4">MN-04</option>
+            <option value="usHouse8">MN-08</option>
+          </optgroup>
+          <optgroup label="County &amp; judicial">
+            <option value="countySheriff">County Sheriff</option>
+            <option value="judge10th38">District Court Judge</option>
+          </optgroup>
         </select>
       </label>
       <label>Party
@@ -1820,6 +1890,9 @@ app.get("/candidates", (req, res) => {
       </label>
       <label class="filter-toggle" style="flex-direction:row;align-items:center;gap:0.4rem;text-transform:none;letter-spacing:0;font-size:0.9rem">
         <input type="checkbox" id="cand-local" /> Local races only
+      </label>
+      <label class="filter-toggle" style="flex-direction:row;align-items:center;gap:0.4rem;text-transform:none;letter-spacing:0;font-size:0.9rem">
+        <input type="checkbox" id="cand-statewide" /> Statewide only
       </label>
       <button type="button" class="btn btn-secondary btn-sm" id="cand-clear">Clear filters</button>
       <span class="filter-result-count" id="cand-count" aria-live="polite">${totalCards} candidates</span>
@@ -1838,6 +1911,7 @@ app.get("/candidates", (req, res) => {
     var district = document.getElementById('cand-district');
     var party = document.getElementById('cand-party');
     var localOnly = document.getElementById('cand-local');
+    var statewideOnly = document.getElementById('cand-statewide');
     var clear = document.getElementById('cand-clear');
     var count = document.getElementById('cand-count');
     var cards = Array.prototype.slice.call(document.querySelectorAll('.cand-directory-card'));
@@ -1847,6 +1921,7 @@ app.get("/candidates", (req, res) => {
       var di = district && district.value || '';
       var py = party && party.value || '';
       var loc = localOnly && localOnly.checked;
+      var st = statewideOnly && statewideOnly.checked;
       var n = 0;
       cards.forEach(function(card){
         var ok = true;
@@ -1855,6 +1930,7 @@ app.get("/candidates", (req, res) => {
         if (di && card.getAttribute('data-district') !== di) ok = false;
         if (py && (card.getAttribute('data-party')||'').indexOf(py) === -1) ok = false;
         if (loc && card.getAttribute('data-local') !== '1') ok = false;
+        if (st && card.getAttribute('data-statewide') !== '1') ok = false;
         card.hidden = !ok;
         if (ok) n++;
       });
@@ -1862,10 +1938,33 @@ app.get("/candidates", (req, res) => {
         var any = g.querySelector('.cand-directory-card:not([hidden])');
         g.hidden = !any;
       });
+      document.querySelectorAll('.cand-section-heading').forEach(function(h){
+        var next = h.nextElementSibling;
+        while (next && !next.classList.contains('race-group') && !next.classList.contains('cand-section-heading')) next = next.nextElementSibling;
+        // show heading if any following race-groups in this section are visible
+        var show = false;
+        var el = h.nextElementSibling;
+        while (el && !el.classList.contains('cand-section-heading')) {
+          if (el.classList && el.classList.contains('race-group') && !el.hidden) show = true;
+          el = el.nextElementSibling;
+        }
+        h.hidden = !show;
+        var lead = h.nextElementSibling;
+        if (lead && lead.classList && lead.classList.contains('cand-section-lead')) lead.hidden = !show;
+      });
       if (count) count.textContent = n + ' candidate' + (n===1?'':'s');
     }
-    [q, office, district, party, localOnly].forEach(function(el){ if (el) { el.addEventListener('input', apply); el.addEventListener('change', apply); } });
-    if (clear) clear.addEventListener('click', function(){ if(q)q.value=''; if(office)office.value=''; if(district)district.value=''; if(party)party.value=''; if(localOnly)localOnly.checked=false; apply(); });
+    [q, office, district, party, localOnly, statewideOnly].forEach(function(el){ if (el) { el.addEventListener('input', apply); el.addEventListener('change', apply); } });
+    if (clear) clear.addEventListener('click', function(){
+      if(q)q.value=''; if(office)office.value=''; if(district)district.value=''; if(party)party.value='';
+      if(localOnly)localOnly.checked=false; if(statewideOnly)statewideOnly.checked=false; apply();
+    });
+    // Deep-link: ?level=state or hash
+    try {
+      var params = new URLSearchParams(location.search);
+      if (params.get('level') === 'state' && statewideOnly) { statewideOnly.checked = true; apply(); }
+      if (params.get('level') === 'local' && localOnly) { localOnly.checked = true; apply(); }
+    } catch (e) {}
   })();
   </script>`;
 
@@ -3358,8 +3457,26 @@ app.get("/api/map-lookup", (req, res) => {
   levels.push({
     level: "State · Statewide",
     office: "Governor of Minnesota",
-    districtNote: "Statewide",
+    districtNote: "Statewide constitutional office",
     candidates: gopList("governor"),
+  });
+  levels.push({
+    level: "State · Statewide",
+    office: "Attorney General of Minnesota",
+    districtNote: "Statewide constitutional office",
+    candidates: gopList("attorneyGeneral"),
+  });
+  levels.push({
+    level: "State · Statewide",
+    office: "Secretary of State of Minnesota",
+    districtNote: "Statewide constitutional office",
+    candidates: gopList("secretaryOfState"),
+  });
+  levels.push({
+    level: "State · Statewide",
+    office: "State Auditor of Minnesota",
+    districtNote: "Statewide constitutional office",
+    candidates: gopList("stateAuditor"),
   });
   levels.push({
     level: "Federal · U.S. Senate",

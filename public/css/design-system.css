@@ -964,6 +964,27 @@ form.stack textarea:focus {
   align-items: center;
 }
 .race-group { margin-bottom: 1.75rem; }
+.cand-section-heading {
+  margin: 2rem 0 0.35rem;
+  font-size: var(--fs-xl);
+  color: var(--navy);
+  border-bottom: 2px solid var(--river-soft);
+  padding-bottom: 0.35rem;
+}
+.cand-section-lead {
+  margin: 0 0 1rem;
+  max-width: 42rem;
+}
+.race-office-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--navy);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
 .race-group h2 {
   font-size: var(--fs-lg);
   margin: 0 0 0.75rem;

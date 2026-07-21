@@ -184,37 +184,37 @@
       ]
     },
     "attorneyGeneral": {
-      "office": "Attorney General",
-      "scope": "Statewide",
+      "office": "Attorney General of Minnesota",
+      "scope": "Statewide constitutional office",
       "gop": [
-        { "name": "Ronald J. Schutz", "party": "GOP", "note": "Republican" }
+        { "name": "Ronald J. Schutz", "party": "GOP", "note": "Republican · Statewide" }
       ],
       "other": [
-        { "name": "Keith Ellison", "party": "DFL", "note": "Democratic-Farmer-Labor · Incumbent" },
-        { "name": "David J.S. Madgett", "party": "DFL", "note": "Democratic-Farmer-Labor" }
+        { "name": "Keith Ellison", "party": "DFL", "note": "Democratic-Farmer-Labor · Incumbent · Statewide" },
+        { "name": "David J.S. Madgett", "party": "DFL", "note": "Democratic-Farmer-Labor · Statewide" }
       ]
     },
     "secretaryOfState": {
-      "office": "Secretary of State",
-      "scope": "Statewide",
+      "office": "Secretary of State of Minnesota",
+      "scope": "Statewide constitutional office",
       "gop": [
-        { "name": "Wendy Phillips", "party": "GOP", "note": "Republican" },
-        { "name": "Tad Jude", "party": "GOP", "note": "Republican" }
+        { "name": "Wendy Phillips", "party": "GOP", "note": "Republican · Statewide" },
+        { "name": "Tad Jude", "party": "GOP", "note": "Republican · Statewide" }
       ],
       "other": [
-        { "name": "Steve Simon", "party": "DFL", "note": "Democratic-Farmer-Labor · Incumbent" }
+        { "name": "Steve Simon", "party": "DFL", "note": "Democratic-Farmer-Labor · Incumbent · Statewide" }
       ]
     },
     "stateAuditor": {
-      "office": "State Auditor",
-      "scope": "Statewide",
+      "office": "State Auditor of Minnesota",
+      "scope": "Statewide constitutional office",
       "gop": [
-        { "name": "Nate George", "party": "GOP", "note": "Republican" },
-        { "name": "Scott Jensen", "party": "GOP", "note": "Republican" },
-        { "name": "Will Finn", "party": "GOP", "note": "Republican" }
+        { "name": "Nate George", "party": "GOP", "note": "Republican · Statewide" },
+        { "name": "Scott Jensen", "party": "GOP", "note": "Republican · Statewide" },
+        { "name": "Will Finn", "party": "GOP", "note": "Republican · Statewide" }
       ],
       "other": [
-        { "name": "Zack Filipovich", "party": "DFL", "note": "Democratic-Farmer-Labor" }
+        { "name": "Zack Filipovich", "party": "DFL", "note": "Democratic-Farmer-Labor · Statewide" }
       ]
     },
     "countySheriff": {
