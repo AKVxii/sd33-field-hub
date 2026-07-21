@@ -1551,11 +1551,11 @@ app.get("/", (req, res) => {
       <p class="muted" style="margin-top:0">Enter an address to estimate precinct and legislative districts. The Minnesota Secretary of State is the official source.</p>
       <form class="lookup-form stack" method="get" action="/my-gop-ballot">
         <label for="home-q">Full address</label>
-        <input id="home-q" type="text" name="q" maxlength="200" placeholder="Street address, city, MN ZIP" autocomplete="street-address" />
+        <input id="home-q" type="text" name="q" maxlength="200" placeholder="123 Main Street, Stillwater, MN 55082" autocomplete="street-address" />
         <div class="lookup-grid">
           <div>
             <label for="home-street">Or street only</label>
-            <input id="home-street" type="text" name="street" maxlength="120" placeholder="Street address" autocomplete="address-line1" />
+            <input id="home-street" type="text" name="street" maxlength="120" placeholder="123 Main Street" autocomplete="address-line1" />
           </div>
           <div>
             <label for="home-city">City or township <span class="muted">(optional)</span></label>
